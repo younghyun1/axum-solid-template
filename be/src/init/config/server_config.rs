@@ -1,5 +1,6 @@
 use crate::init::config::{
-    chatbot_config::ChatbotConfig, db_config::DatabaseConfig, file_store_config::FileStoreConfig,
+    chatbot::chatbot_config::ChatbotConfig, db_config::DatabaseConfig,
+    file_store_config::FileStoreConfig, jwt_config::jwt_config::JwtConfig,
 };
 
 pub struct ServerConfig {
@@ -8,6 +9,7 @@ pub struct ServerConfig {
     pub db_config: DatabaseConfig,
     pub file_store_config: FileStoreConfig,
     pub chatbot_config: ChatbotConfig,
+    pub jwt_config: JwtConfig,
 }
 
 #[repr(u8)]

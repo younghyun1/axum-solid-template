@@ -12,8 +12,8 @@ pub struct LocalFileStoreConfig {
 }
 
 pub struct AwsS3Config {
-    pub aws_s3_bucket_name: String,
-    pub aws_s3_access_key: String,
-    pub aws_s3_secret_key: String,
-    pub aws_s3_region: String,
+    aws_s3_bucket_name: String,
+    aws_s3_access_key: String,
+    aws_s3_secret_key: String,
+    aws_s3_region: String,
 }

@@ -11,11 +11,11 @@ enum DatabaseConnectionType {
 }
 
 pub struct DatabaseConfig {
-    pub database_type: DatabaseType,
-    pub database_connection_type: DatabaseConnectionType,
-    pub database_host: String,
-    pub database_port: u16,
-    pub database_username: String,
-    pub database_password: String,
-    pub database_name: String,
+    database_type: DatabaseType,
+    database_connection_type: DatabaseConnectionType,
+    database_host: String,
+    database_port: u16,
+    database_username: String,
+    database_password: String,
+    database_name: String,
 }

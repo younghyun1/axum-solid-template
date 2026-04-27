@@ -1,4 +1,4 @@
-use super::ChatGenerationConfig;
+use super::generation::ChatGenerationConfig;
 
 pub const MISTRAL_API_BASE_URL: &str = "https://api.mistral.ai/v1";
 pub const MISTRAL_AUTHORIZATION_HEADER_NAME: &str = "Authorization";
