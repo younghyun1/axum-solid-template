@@ -1,6 +1,6 @@
 use std::time::Duration;
 
-use crate::init::config::jwt_config::jwt_config::{JwtConfig, JwtIssuer, JwtSecretKey};
+use crate::init::jwt_config::jwt_config::{JwtConfig, JwtIssuer, JwtSecretKey};
 
 use super::{
     parsers::{required_env, required_int_env},

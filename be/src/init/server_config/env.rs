@@ -1,4 +1,4 @@
-use crate::init::config::{
+use crate::init::{
     chatbot::{
         chatbot_config::{ChatbotConfig, ChatbotProvider, RagStorageProvider},
         claude::ClaudeConfig,
@@ -9,6 +9,7 @@ use crate::init::config::{
 };
 
 use super::{
+    cert_env::cert_config_from_env,
     jwt_env::jwt_config_from_env,
     parsers::{
         normalized_env_value, optional_env, parse_database_connection_type, parse_database_type,
@@ -27,6 +28,10 @@ impl ServerConfig {
         };
         let https_enabled = match required_bool_env("HTTPS_ENABLED") {
             Ok(https_enabled) => https_enabled,
+            Err(error) => return Err(error),
+        };
+        let cert_config = match cert_config_from_env(https_enabled) {
+            Ok(cert_config) => cert_config,
             Err(error) => return Err(error),
         };
         let db_config = match database_config_from_env() {
@@ -53,6 +58,7 @@ impl ServerConfig {
             file_store_config,
             chatbot_config,
             jwt_config,
+            cert_config,
         })
     }
 }

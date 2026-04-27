@@ -1,6 +1,6 @@
 use std::{env, str::FromStr};
 
-use crate::init::config::db_config::{DatabaseConnectionType, DatabaseType};
+use crate::init::db_config::{DatabaseConnectionType, DatabaseType};
 
 use super::server_config::{DEPLOYMENT_ENVIRONMENT_KEY, DeploymentEnvironment, ServerConfigError};
 
@@ -41,11 +41,12 @@ pub(super) fn parse_database_connection_type(
     match normalized_env_value(&value).as_str() {
         "local" => Ok(DatabaseConnectionType::Local),
         "remote" => Ok(DatabaseConnectionType::Remote),
-        "domain_socket" | "socket" => Ok(DatabaseConnectionType::DomainSocket),
+        "domain_socket" | "domain-socket" | "domainsocket" | "unix_socket" | "unix-socket"
+        | "unixsocket" | "socket" => Ok(DatabaseConnectionType::DomainSocket),
         _ => Err(ServerConfigError::InvalidEnvironmentVariable {
             env_key: "DATABASE_CONNECTION_TYPE",
             value,
-            expected: "local, remote, domain_socket, or socket",
+            expected: "local, remote, domain_socket, domainsocket, unix_socket, or socket",
         }),
     }
 }

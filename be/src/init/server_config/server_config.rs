@@ -1,6 +1,6 @@
 use std::fmt;
 
-use crate::init::config::{
+use crate::init::{
     chatbot::chatbot_config::ChatbotConfig,
     db_config::DatabaseConfig,
     file_store_config::FileStoreConfig,
@@ -17,6 +17,13 @@ pub struct ServerConfig {
     pub file_store_config: FileStoreConfig,
     pub chatbot_config: ChatbotConfig,
     pub jwt_config: JwtConfig,
+    pub cert_config: Option<CertConfig>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct CertConfig {
+    pub cert_chain_path: String,
+    pub private_key_path: String,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -52,6 +59,19 @@ pub enum ServerConfigError {
 impl From<JwtConfigError> for ServerConfigError {
     fn from(error: JwtConfigError) -> Self {
         Self::JwtConfig(error)
+    }
+}
+
+impl fmt::Display for DeploymentEnvironment {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            DeploymentEnvironment::Local => formatter.write_str("local"),
+            DeploymentEnvironment::Development => formatter.write_str("development"),
+            DeploymentEnvironment::Production => formatter.write_str("production"),
+            DeploymentEnvironment::ProductionDockerized => {
+                formatter.write_str("production_dockerized")
+            }
+        }
     }
 }
 

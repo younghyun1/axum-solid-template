@@ -1,9 +1,8 @@
 use std::{env, fmt, path::Path};
 
 use crate::init::{
-    config::server_config::server_config::{
-        DEPLOYMENT_ENVIRONMENT_KEY, ServerConfig, ServerConfigError,
-    },
+    logging::logging::{LoggerGuard, LoggerInitError, init_logger},
+    server_config::server_config::{DEPLOYMENT_ENVIRONMENT_KEY, ServerConfig, ServerConfigError},
     state::server_state::ServerState,
 };
 
@@ -11,6 +10,7 @@ use crate::init::{
 pub enum ServerInitError {
     DeploymentEnvironmentNotUnicode,
     DotenvLoad(dotenvy::Error),
+    Logger(LoggerInitError),
     ServerConfig(ServerConfigError),
 }
 
@@ -25,6 +25,9 @@ impl fmt::Display for ServerInitError {
             }
             ServerInitError::DotenvLoad(error) => {
                 write!(formatter, "failed to load .env file: {error}")
+            }
+            ServerInitError::Logger(error) => {
+                write!(formatter, "failed to initialize logger: {error}")
             }
             ServerInitError::ServerConfig(error) => {
                 write!(formatter, "failed to build server config: {error}")
@@ -48,7 +51,14 @@ pub fn init_server_state() -> Result<ServerState, ServerInitError> {
         }
     };
 
-    Ok(ServerState::new(server_config))
+    let logger_guard: LoggerGuard = match init_logger(&server_config) {
+        Ok(logger_guard) => logger_guard,
+        Err(error) => {
+            return Err(ServerInitError::Logger(error));
+        }
+    };
+
+    Ok(ServerState::new(server_config, logger_guard))
 }
 
 fn load_dotenv_if_deployment_environment_is_missing() -> Result<(), ServerInitError> {
