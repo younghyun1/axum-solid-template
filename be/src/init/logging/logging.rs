@@ -1,12 +1,12 @@
-use std::{env, fmt};
+use std::fmt;
 
 use tracing::{info, level_filters};
 use tracing_appender::non_blocking::WorkerGuard;
 use tracing_subscriber::{Layer, layer::SubscriberExt, util::SubscriberInitExt};
 
+use crate::build_info::{PROJECT_NAME, PROJECT_VERSION};
 use crate::init::server_config::server_config::{DeploymentEnvironment, ServerConfig};
 
-pub const APP_NAME_VERSION_ENV_KEY: &str = "APP_NAME_VERSION";
 pub const LOGS_DIR: &str = "./logs/";
 
 pub struct LoggerGuard {
@@ -15,8 +15,6 @@ pub struct LoggerGuard {
 
 #[derive(Debug)]
 pub enum LoggerInitError {
-    MissingEnvironmentVariable { env_key: &'static str },
-    EnvironmentVariableNotUnicode { env_key: &'static str },
     SubscriberInit { error: String },
 }
 
@@ -44,18 +42,6 @@ impl fmt::Debug for LoggerGuard {
 impl fmt::Display for LoggerInitError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
-            LoggerInitError::MissingEnvironmentVariable { env_key } => {
-                write!(
-                    formatter,
-                    "missing required environment variable `{env_key}`"
-                )
-            }
-            LoggerInitError::EnvironmentVariableNotUnicode { env_key } => {
-                write!(
-                    formatter,
-                    "environment variable `{env_key}` contains non-unicode data"
-                )
-            }
             LoggerInitError::SubscriberInit { error } => {
                 write!(
                     formatter,
@@ -95,19 +81,7 @@ pub fn init_logger(server_config: &ServerConfig) -> Result<LoggerGuard, LoggerIn
         DeploymentEnvironment::Local
         | DeploymentEnvironment::Development
         | DeploymentEnvironment::Production => {
-            let app_name_version = match env::var(APP_NAME_VERSION_ENV_KEY) {
-                Ok(app_name_version) => app_name_version,
-                Err(env::VarError::NotPresent) => {
-                    return Err(LoggerInitError::MissingEnvironmentVariable {
-                        env_key: APP_NAME_VERSION_ENV_KEY,
-                    });
-                }
-                Err(env::VarError::NotUnicode(_)) => {
-                    return Err(LoggerInitError::EnvironmentVariableNotUnicode {
-                        env_key: APP_NAME_VERSION_ENV_KEY,
-                    });
-                }
-            };
+            let app_name_version = format!("{PROJECT_NAME}-{PROJECT_VERSION}");
             let filename = app_name_version.clone();
             let log_directory = format!("{LOGS_DIR}{app_name_version}");
             let file_appender = tracing_appender::rolling::daily(log_directory, filename);
