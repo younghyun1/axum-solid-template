@@ -1,0 +1,92 @@
+use std::fmt;
+
+use crate::init::config::{
+    chatbot::chatbot_config::ChatbotConfig,
+    db_config::DatabaseConfig,
+    file_store_config::FileStoreConfig,
+    jwt_config::jwt_config::{JwtConfig, JwtConfigError},
+};
+
+pub const DEPLOYMENT_ENVIRONMENT_KEY: &str = "DEPLOYMENT_ENVIRONMENT";
+
+#[derive(Debug, Clone)]
+pub struct ServerConfig {
+    pub deployment_environment: DeploymentEnvironment,
+    pub https_enabled: bool,
+    pub db_config: DatabaseConfig,
+    pub file_store_config: FileStoreConfig,
+    pub chatbot_config: ChatbotConfig,
+    pub jwt_config: JwtConfig,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[repr(u8)]
+pub enum DeploymentEnvironment {
+    Local = 0,
+    Development = 1,
+    Production = 2,
+    ProductionDockerized = 3,
+}
+
+#[derive(Debug)]
+pub enum ServerConfigError {
+    MissingEnvironmentVariable {
+        env_key: &'static str,
+    },
+    InvalidEnvironmentVariable {
+        env_key: &'static str,
+        value: String,
+        expected: &'static str,
+    },
+    InvalidIntegerEnvironmentVariable {
+        env_key: &'static str,
+        value: String,
+        error: String,
+    },
+    EnvironmentVariableNotUnicode {
+        env_key: &'static str,
+    },
+    JwtConfig(JwtConfigError),
+}
+
+impl From<JwtConfigError> for ServerConfigError {
+    fn from(error: JwtConfigError) -> Self {
+        Self::JwtConfig(error)
+    }
+}
+
+impl fmt::Display for ServerConfigError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ServerConfigError::MissingEnvironmentVariable { env_key } => {
+                write!(
+                    formatter,
+                    "missing required environment variable `{env_key}`"
+                )
+            }
+            ServerConfigError::InvalidEnvironmentVariable {
+                env_key,
+                value,
+                expected,
+            } => write!(
+                formatter,
+                "invalid environment variable `{env_key}` value `{value}`; expected {expected}"
+            ),
+            ServerConfigError::InvalidIntegerEnvironmentVariable {
+                env_key,
+                value,
+                error,
+            } => write!(
+                formatter,
+                "invalid integer environment variable `{env_key}` value `{value}`: {error}"
+            ),
+            ServerConfigError::EnvironmentVariableNotUnicode { env_key } => {
+                write!(
+                    formatter,
+                    "environment variable `{env_key}` contains non-unicode data"
+                )
+            }
+            ServerConfigError::JwtConfig(_) => write!(formatter, "invalid JWT configuration"),
+        }
+    }
+}

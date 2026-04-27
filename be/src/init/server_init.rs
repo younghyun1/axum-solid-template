@@ -1,7 +1,9 @@
-use std::{env, path::Path};
+use std::{env, fmt, path::Path};
 
 use crate::init::{
-    config::server_config::{DEPLOYMENT_ENVIRONMENT_KEY, ServerConfig, ServerConfigError},
+    config::server_config::server_config::{
+        DEPLOYMENT_ENVIRONMENT_KEY, ServerConfig, ServerConfigError,
+    },
     state::server_state::ServerState,
 };
 
@@ -12,13 +14,41 @@ pub enum ServerInitError {
     ServerConfig(ServerConfigError),
 }
 
-pub fn init_server_state() -> Result<ServerState, ServerInitError> {
-    load_dotenv_if_deployment_environment_is_missing()?;
-
-    match ServerConfig::from_env() {
-        Ok(server_config) => Ok(ServerState::new(server_config)),
-        Err(error) => Err(ServerInitError::ServerConfig(error)),
+impl fmt::Display for ServerInitError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ServerInitError::DeploymentEnvironmentNotUnicode => {
+                write!(
+                    formatter,
+                    "DEPLOYMENT_ENVIRONMENT contains non-unicode data"
+                )
+            }
+            ServerInitError::DotenvLoad(error) => {
+                write!(formatter, "failed to load .env file: {error}")
+            }
+            ServerInitError::ServerConfig(error) => {
+                write!(formatter, "failed to build server config: {error}")
+            }
+        }
     }
+}
+
+pub fn init_server_state() -> Result<ServerState, ServerInitError> {
+    match load_dotenv_if_deployment_environment_is_missing() {
+        Ok(()) => {}
+        Err(error) => {
+            return Err(error);
+        }
+    }
+
+    let server_config: ServerConfig = match ServerConfig::from_env() {
+        Ok(server_config) => server_config,
+        Err(error) => {
+            return Err(ServerInitError::ServerConfig(error));
+        }
+    };
+
+    Ok(ServerState::new(server_config))
 }
 
 fn load_dotenv_if_deployment_environment_is_missing() -> Result<(), ServerInitError> {

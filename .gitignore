@@ -115,3 +115,6 @@ out/
 
 # logs
 /logs
+
+# reference purpose code
+*/ref_src

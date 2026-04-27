@@ -1,4 +1,4 @@
-use crate::init::config::server_config::ServerConfig;
+use crate::init::config::server_config::server_config::ServerConfig;
 
 #[derive(Debug, Clone)]
 pub struct ServerState {

@@ -4,8 +4,19 @@ use super::jwt_config::{
 
 impl JwtConfig {
     pub fn validate(&self) -> Result<(), JwtConfigError> {
-        self.issuer.validate()?;
-        self.secret_key.validate()?;
+        match self.issuer.validate() {
+            Ok(()) => {}
+            Err(error) => {
+                return Err(error);
+            }
+        }
+
+        match self.secret_key.validate() {
+            Ok(()) => {}
+            Err(error) => {
+                return Err(error);
+            }
+        }
 
         if self.access_token_duration.is_zero() {
             return Err(JwtConfigError::AccessTokenDurationIsZero);
