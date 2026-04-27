@@ -1,0 +1,22 @@
+{
+  "name": "rust-solid-template-fe",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@solidjs/router": "0.16.1",
+    "solid-js": "1.9.12"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "4.2.4",
+    "tailwindcss": "4.2.4",
+    "typescript": "6.0.3",
+    "vite": "8.0.10",
+    "vite-plugin-solid": "2.11.12"
+  }
+}
