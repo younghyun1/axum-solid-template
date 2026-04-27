@@ -13,6 +13,7 @@ lto = true
 panic = "unwind"
 
 [dependencies]
+dotenvy = { version = "0.15.7" }
 
 [build-dependencies]
 chrono = { version = "0.4.44" }
