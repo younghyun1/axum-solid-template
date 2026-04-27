@@ -112,3 +112,6 @@ coverage/
 tmp/
 tmp/**
 out/
+
+# logs
+/logs

@@ -3,4 +3,17 @@ name = "be"
 version = "0.1.0"
 edition = "2024"
 
+[profile.release]
+opt-level = 3
+codegen-units = 1
+debug = false
+incremental = false
+strip = true
+lto = true
+panic = "unwind"
+
 [dependencies]
+
+[build-dependencies]
+chrono = { version = "0.4.44" }
+serde_json = { version = "1.0.149", features = ["preserve_order"] }
