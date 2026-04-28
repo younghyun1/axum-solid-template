@@ -12,7 +12,7 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     controller::{
         auth::{
-            check_if_user_exists, get_user_info, is_superuser, login, logout, me, reset_password,
+            check_if_user_exists, get_user_info, login, logout, me, reset_password,
             reset_password_request, signup, verify_user_email,
         },
         healthcheck::healthcheck,
@@ -20,7 +20,7 @@ use crate::{
     docs::api_doc::ApiDoc,
     init::server_config::server_config::DeploymentEnvironment,
     init::state::server_state::ServerState,
-    middleware::auth::require_auth,
+    middleware::auth::{attach_optional_auth_context, require_auth},
     middleware::request_response_logging::log_request_response,
 };
 
@@ -57,16 +57,18 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
     let protected_auth_router = Router::new()
         .route("/api/auth/me", get(me))
         .route("/api/auth/logout", post(logout))
-        .route("/api/auth/is-superuser", get(is_superuser))
         .route("/api/v1/auth/me", get(me))
         .route("/api/v1/auth/logout", post(logout))
-        .route("/api/v1/auth/is-superuser", get(is_superuser))
         .layer(from_fn_with_state(state.clone(), require_auth));
 
     let api_router = Router::new()
         .route("/healthcheck", get(healthcheck))
         .merge(public_auth_router)
         .merge(protected_auth_router)
+        .layer(from_fn_with_state(
+            state.clone(),
+            attach_optional_auth_context,
+        ))
         .with_state(state);
 
     let swagger_router =

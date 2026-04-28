@@ -18,8 +18,10 @@ pub mod error;
 pub mod init;
 pub mod job;
 pub mod middleware;
+pub mod repository;
 pub mod router;
 pub mod schema;
+pub mod service;
 pub mod util;
 
 #[tokio::main(flavor = "multi_thread")]

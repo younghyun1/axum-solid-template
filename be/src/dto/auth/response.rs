@@ -33,11 +33,6 @@ pub struct LogoutResponse {
 }
 
 #[derive(Debug, Serialize, ToSchema)]
-pub struct IsSuperuserResponse {
-    pub is_superuser: bool,
-}
-
-#[derive(Debug, Serialize, ToSchema)]
 pub struct CheckIfUserExistsResponse {
     pub email_exists: bool,
 }

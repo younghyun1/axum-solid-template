@@ -12,7 +12,27 @@ JWT claims are intentionally rich:
 - role metadata: role id, role name, role type, access level
 - ISO timestamps for issue and expiry time
 
-Protected routes use `be/src/middleware/auth.rs`, which validates the Bearer token and inserts an `AuthContext` request extension.
+Role claims are part of the signed JWT payload and are validated against the canonical role mapping when a token is decoded. A client can read those claims, but cannot change them without invalidating the HS512 signature.
+
+Canonical roles:
+
+- `admin`: owner and platform administration access.
+- `moderator`: elevated moderation access.
+- `service_provider`: provider client access for serving user clients.
+- `user`: client access for requesting services.
+- `guest`: unauthenticated or minimal access.
+
+Role access levels are a coarse authorization hierarchy embedded into the signed JWT:
+
+- `admin`: 4
+- `moderator`: 3
+- `service_provider`: 2
+- `user`: 1
+- `guest`: 0
+
+Use exact-role helpers for role-specific workflows, for example `auth_context.is_service_provider()`. Use minimum-role helpers for hierarchical gates, for example `auth_context.has_min_role(RoleType::Moderator)`.
+
+API routes use `be/src/middleware/auth.rs`, which validates any Bearer token and inserts an `AuthContext` request extension. Public handlers can accept optional auth context, while protected routes require that extension before dispatch.
 
 Implemented endpoints:
 
@@ -20,7 +40,6 @@ Implemented endpoints:
 - `POST /api/auth/login`
 - `GET /api/auth/me`
 - `POST /api/auth/logout`
-- `GET /api/auth/is-superuser`
 - `POST /api/auth/check-if-user-exists`
 - `POST /api/auth/reset-password-request`
 - `POST /api/auth/reset-password`

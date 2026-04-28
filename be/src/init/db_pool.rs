@@ -1,10 +1,11 @@
-use std::{fmt, num::NonZeroUsize, time::Duration};
+use std::{fmt, time::Duration};
 
 use diesel_async::{
     AsyncConnection, AsyncMigrationHarness, AsyncPgConnection,
     pooled_connection::{AsyncDieselConnectionManager, bb8::Pool, bb8::PooledConnection},
 };
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
+use tracing::info;
 
 use crate::init::server_config::db_config::{DatabaseConfig, DatabaseConnectionType, DatabaseType};
 
@@ -82,6 +83,11 @@ pub async fn run_db_migrations(db_config: &DatabaseConfig) -> Result<(), DbPoolI
         }
     }
 
+    info!(
+        database_type = %db_config.database_type,
+        "Running database migrations"
+    );
+
     let connection =
         match AsyncPgConnection::establish(&db_config.postgres_connection_string()).await {
             Ok(connection) => connection,
@@ -94,7 +100,22 @@ pub async fn run_db_migrations(db_config: &DatabaseConfig) -> Result<(), DbPoolI
 
     let mut harness = AsyncMigrationHarness::new(connection);
     match harness.run_pending_migrations(MIGRATIONS) {
-        Ok(_) => Ok(()),
+        Ok(applied_migrations) => {
+            for migration_version in &applied_migrations {
+                info!(
+                    migration_version = %migration_version,
+                    "Applied database migration"
+                );
+            }
+
+            info!(
+                database_type = %db_config.database_type,
+                applied_migration_count = applied_migrations.len(),
+                "Database migrations complete"
+            );
+
+            Ok(())
+        }
         Err(error) => Err(DbPoolInitError::Migrate {
             error: error.to_string(),
         }),
@@ -110,20 +131,17 @@ pub async fn get_conn(pool: &DbPool) -> Result<DbConnection<'_>, DbPoolInitError
     }
 }
 
-#[allow(clippy::manual_unwrap_or)]
 fn physical_parallelism() -> u32 {
     let parallelism = match std::thread::available_parallelism() {
-        Ok(value) => value,
-        Err(_) => match NonZeroUsize::new(4) {
-            Some(value) => value,
-            None => return 4,
-        },
+        Ok(value) => value.get(),
+        Err(_) => 4,
     };
 
-    match u32::try_from(parallelism.get()) {
-        Ok(value) => value,
-        Err(_) => u32::MAX / 10,
+    if parallelism > u32::MAX as usize {
+        return u32::MAX / 10;
     }
+
+    parallelism as u32
 }
 
 impl DatabaseConfig {

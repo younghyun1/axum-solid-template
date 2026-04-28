@@ -60,7 +60,10 @@ impl fmt::Display for ServerInitError {
                 write!(formatter, "failed to initialize mail sender: {error}")
             }
             ServerInitError::ReferenceDataCache(error) => {
-                write!(formatter, "failed to initialize reference data cache: {error}")
+                write!(
+                    formatter,
+                    "failed to initialize reference data cache: {error}"
+                )
             }
             ServerInitError::ServerConfig(error) => {
                 write!(formatter, "failed to build server config: {error}")

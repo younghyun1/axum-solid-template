@@ -75,12 +75,7 @@ impl ReferenceDataCache {
             Ok(country_subdivisions) => country_subdivisions,
             Err(error) => return Err(error),
         };
-        let cache = match Self::build(
-            &countries,
-            &currencies,
-            &languages,
-            &country_subdivisions,
-        ) {
+        let cache = match Self::build(&countries, &currencies, &languages, &country_subdivisions) {
             Ok(cache) => cache,
             Err(error) => return Err(error),
         };
@@ -347,7 +342,9 @@ impl ReferenceDataCache {
 
     pub fn currency_code_by_alpha3(&self, currency_alpha3: &str) -> Option<i32> {
         self.currency_codes_by_alpha3
-            .read_sync(&text_key(currency_alpha3), |_, currency_code| *currency_code)
+            .read_sync(&text_key(currency_alpha3), |_, currency_code| {
+                *currency_code
+            })
     }
 
     pub fn currency_code_by_english_name(&self, currency_name: &str) -> Option<i32> {
@@ -380,17 +377,23 @@ impl ReferenceDataCache {
 
     pub fn language_code_by_alpha2(&self, language_alpha2: &str) -> Option<i32> {
         self.language_codes_by_alpha2
-            .read_sync(&text_key(language_alpha2), |_, language_code| *language_code)
+            .read_sync(&text_key(language_alpha2), |_, language_code| {
+                *language_code
+            })
     }
 
     pub fn language_code_by_alpha3(&self, language_alpha3: &str) -> Option<i32> {
         self.language_codes_by_alpha3
-            .read_sync(&text_key(language_alpha3), |_, language_code| *language_code)
+            .read_sync(&text_key(language_alpha3), |_, language_code| {
+                *language_code
+            })
     }
 
     pub fn language_code_by_english_name(&self, language_eng_name: &str) -> Option<i32> {
         self.language_codes_by_english_name
-            .read_sync(&text_key(language_eng_name), |_, language_code| *language_code)
+            .read_sync(&text_key(language_eng_name), |_, language_code| {
+                *language_code
+            })
     }
 
     pub fn language_by_alpha2(&self, language_alpha2: &str) -> Option<IsoLanguage> {
@@ -425,11 +428,7 @@ impl ReferenceDataCache {
             .read_sync(&subdivision_id, |_, subdivision| subdivision.clone())
     }
 
-    pub fn subdivision_id_by_code(
-        &self,
-        country_code: i32,
-        subdivision_code: &str,
-    ) -> Option<i32> {
+    pub fn subdivision_id_by_code(&self, country_code: i32, subdivision_code: &str) -> Option<i32> {
         self.subdivision_ids_by_code.read_sync(
             &(country_code, text_key(subdivision_code)),
             |_, subdivision_id| *subdivision_id,
@@ -512,10 +511,11 @@ impl ReferenceDataCache {
         let mut subdivisions = Vec::with_capacity(subdivision_ids.len());
 
         for subdivision_id in subdivision_ids {
-            match self.subdivision_by_id(subdivision_id) {
-                Some(subdivision) => subdivisions.push(subdivision),
-                None => {}
-            }
+            let subdivision = match self.subdivision_by_id(subdivision_id) {
+                Some(subdivision) => subdivision,
+                None => continue,
+            };
+            subdivisions.push(subdivision);
         }
 
         subdivisions
@@ -825,10 +825,12 @@ async fn load_country_subdivisions(
 }
 
 fn elapsed_ms(duration: Duration) -> u64 {
-    match u64::try_from(duration.as_millis()) {
-        Ok(elapsed) => elapsed,
-        Err(_) => u64::MAX,
+    let millis = duration.as_millis();
+    if millis > u128::from(u64::MAX) {
+        return u64::MAX;
     }
+
+    millis as u64
 }
 
 fn text_key(value: &str) -> String {

@@ -4,7 +4,7 @@ use axum::{body::Body, extract::State, http::Request, middleware::Next, response
 use tracing::info;
 
 use crate::{
-    domain::auth::jwt::AccessTokenClaims,
+    domain::auth::{jwt::AccessTokenClaims, role::RoleType},
     error::{api_error::ApiError, code_error::CodeError},
     init::server_config::jwt_config::jwt_config::{
         JWT_AUTHORIZATION_HEADER_NAME, JWT_BEARER_SCHEME,
@@ -18,16 +18,83 @@ pub struct AuthContext {
     pub claims: AccessTokenClaims,
 }
 
+impl AuthContext {
+    pub fn has_role(&self, role_type: RoleType) -> bool {
+        self.claims.has_role(role_type)
+    }
+
+    pub fn has_min_role(&self, minimum_role: RoleType) -> bool {
+        self.claims.has_min_role(minimum_role)
+    }
+
+    pub fn is_admin(&self) -> bool {
+        self.claims.is_admin()
+    }
+
+    pub fn is_moderator(&self) -> bool {
+        self.claims.is_moderator()
+    }
+
+    pub fn is_service_provider(&self) -> bool {
+        self.claims.is_service_provider()
+    }
+
+    pub fn is_user_client(&self) -> bool {
+        self.claims.is_user_client()
+    }
+
+    pub fn is_guest(&self) -> bool {
+        self.claims.is_guest()
+    }
+}
+
+pub async fn attach_optional_auth_context(
+    State(state): State<Arc<ServerState>>,
+    mut request: Request<Body>,
+    next: Next,
+) -> Result<Response<Body>, ApiError> {
+    if auth_context_attached(&request) {
+        return Ok(next.run(request).await);
+    }
+
+    let token = match bearer_token(&request) {
+        Some(token) => token,
+        None => return Ok(next.run(request).await),
+    };
+
+    let auth_context = match auth_context_from_token(&state, token) {
+        Ok(auth_context) => auth_context,
+        Err(error) => return Err(error),
+    };
+
+    request.extensions_mut().insert(auth_context);
+    Ok(next.run(request).await)
+}
+
 pub async fn require_auth(
     State(state): State<Arc<ServerState>>,
     mut request: Request<Body>,
     next: Next,
 ) -> Result<Response<Body>, ApiError> {
+    if auth_context_attached(&request) {
+        return Ok(next.run(request).await);
+    }
+
     let token = match bearer_token(&request) {
         Some(token) => token,
         None => return Err(ApiError::new(CodeError::UNAUTHORIZED)),
     };
 
+    let auth_context = match auth_context_from_token(&state, token) {
+        Ok(auth_context) => auth_context,
+        Err(error) => return Err(error),
+    };
+
+    request.extensions_mut().insert(auth_context);
+    Ok(next.run(request).await)
+}
+
+fn auth_context_from_token(state: &ServerState, token: &str) -> Result<AuthContext, ApiError> {
     let claims = match decode_access_token(&state.server_config.jwt_config, token) {
         Ok(claims) => claims,
         Err(error) => {
@@ -36,8 +103,11 @@ pub async fn require_auth(
         }
     };
 
-    request.extensions_mut().insert(AuthContext { claims });
-    Ok(next.run(request).await)
+    Ok(AuthContext { claims })
+}
+
+fn auth_context_attached(request: &Request<Body>) -> bool {
+    request.extensions().get::<AuthContext>().is_some()
 }
 
 fn bearer_token(request: &Request<Body>) -> Option<&str> {

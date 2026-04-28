@@ -20,7 +20,6 @@ pub const JWT_BEARER_TOKEN_TYPE: &str = "Bearer";
 pub struct JwtUserContext {
     pub user: User,
     pub role_type: RoleType,
-    pub role_name: String,
 }
 
 #[derive(Debug, Clone)]
@@ -83,7 +82,7 @@ pub fn issue_access_token(
         user_subdivision: user.user_subdivision,
         user_auth_token_version: user.user_auth_token_version,
         role_id: role_type.id(),
-        role_name: user_context.role_name,
+        role_name: role_type.as_str().to_string(),
         role_type,
         role_access_level: role_type.access_level(),
         issued_at_iso: issued_at,
@@ -136,9 +135,55 @@ pub fn decode_access_token(
         }
     };
 
+    match validate_access_token_claims(&token_data.claims) {
+        Ok(()) => {}
+        Err(error) => return Err(error),
+    }
+
     Ok(token_data.claims)
 }
 
 pub fn jwt_audience(jwt_config: &JwtConfig) -> String {
     format!("{}-api", jwt_config.issuer.0)
+}
+
+fn validate_access_token_claims(claims: &AccessTokenClaims) -> Result<(), JwtError> {
+    match claims.token_type {
+        JwtTokenType::Access => {}
+    }
+
+    if claims.sub != claims.user_id {
+        return Err(JwtError::Decode {
+            error: "JWT subject does not match user_id claim".to_string(),
+        });
+    }
+
+    let role_type = match RoleType::from_uuid(claims.role_id) {
+        Some(role_type) => role_type,
+        None => {
+            return Err(JwtError::Decode {
+                error: "JWT role_id is not recognized".to_string(),
+            });
+        }
+    };
+
+    if role_type != claims.role_type {
+        return Err(JwtError::Decode {
+            error: "JWT role_id does not match role_type claim".to_string(),
+        });
+    }
+
+    if claims.role_name != role_type.as_str() {
+        return Err(JwtError::Decode {
+            error: "JWT role_name does not match role_type claim".to_string(),
+        });
+    }
+
+    if claims.role_access_level != role_type.access_level() {
+        return Err(JwtError::Decode {
+            error: "JWT role_access_level does not match role_type claim".to_string(),
+        });
+    }
+
+    Ok(())
 }

@@ -36,3 +36,33 @@ pub struct AccessTokenClaims {
 pub enum JwtTokenType {
     Access,
 }
+
+impl AccessTokenClaims {
+    pub fn has_role(&self, role_type: RoleType) -> bool {
+        self.role_type == role_type
+    }
+
+    pub fn has_min_role(&self, minimum_role: RoleType) -> bool {
+        self.role_type.has_min_access_level(minimum_role)
+    }
+
+    pub fn is_admin(&self) -> bool {
+        self.role_type.is_admin()
+    }
+
+    pub fn is_moderator(&self) -> bool {
+        self.role_type.is_moderator()
+    }
+
+    pub fn is_service_provider(&self) -> bool {
+        self.role_type.is_service_provider()
+    }
+
+    pub fn is_user_client(&self) -> bool {
+        self.role_type.is_user_client()
+    }
+
+    pub fn is_guest(&self) -> bool {
+        self.role_type.is_guest()
+    }
+}
