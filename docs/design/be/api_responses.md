@@ -39,16 +39,18 @@ Error responses:
 
 `meta.timestamp` is always a UTC RFC3339 timestamp produced through `chrono`. `meta.processing_duration` is always an ISO 8601 duration string. `meta.details` is optional and accepts any JSON value.
 
+API timing is automatic for routes under `/api/v1`. `be/src/middleware/api_timing.rs` starts an `ApiTimer` before downstream API middleware and handlers run. `ApiMeta::new()` reads that request-scoped timer, so controllers should not start or pass timers manually.
+
 Handlers should use `crate::error::prelude::*` and return `ApiResponseResult<T>` when they can fail:
 
 ```rust
 pub async fn get_user() -> ApiResponseResult<UserResponse> {
-    let timer = ApiTimer::start();
+    let user = match repository_call().api_err(CodeError::INTERNAL_ERROR) {
+        Ok(user) => user,
+        Err(error) => return Err(error),
+    };
 
-    let user = repository_call()
-        .api_err_timed(CodeError::INTERNAL_ERROR, timer)?;
-
-    Ok(api_ok_timed(user, timer))
+    Ok(api_ok(user))
 }
 ```
 

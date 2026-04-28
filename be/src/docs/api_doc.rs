@@ -12,7 +12,10 @@ use utoipa::OpenApi;
         crate::controller::v1::auth::reset_password_request,
         crate::controller::v1::auth::reset_password,
         crate::controller::v1::auth::verify_user_email,
-        crate::controller::v1::auth::get_user_info
+        crate::controller::v1::auth::get_user_info,
+        crate::controller::v1::reference_data::countries,
+        crate::controller::v1::reference_data::languages,
+        crate::controller::v1::reference_data::country_subdivisions
     ),
     components(schemas(
         crate::domain::auth::jwt::AccessTokenClaims,
@@ -37,12 +40,16 @@ use utoipa::OpenApi;
         crate::dto::auth::response::ResetPasswordResponse,
         crate::dto::auth::response::VerifyEmailResponse,
         crate::dto::auth::response::PublicUserInfoResponse,
-        crate::dto::healthcheck::HealthcheckResponse
+        crate::dto::healthcheck::HealthcheckResponse,
+        crate::dto::reference_data::ReferenceCountryResponse,
+        crate::dto::reference_data::ReferenceLanguageResponse,
+        crate::dto::reference_data::ReferenceSubdivisionResponse
     )),
     tags(
         (name = "server", description = "Server health and runtime endpoints"),
         (name = "auth", description = "Authentication endpoints"),
-        (name = "user", description = "User endpoints")
+        (name = "user", description = "User endpoints"),
+        (name = "reference", description = "Cached reference data endpoints")
     )
 )]
 pub struct ApiDoc;

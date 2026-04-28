@@ -97,10 +97,112 @@ export interface LoginResponse {
   readonly access_token: string;
   readonly token_type: string;
   readonly expires_at: string;
-  readonly claims: Record<string, unknown>;
+  readonly claims: AccessTokenClaims;
 }
 
 export interface MeResponse {
-  readonly user_info: Record<string, unknown>;
-  readonly claims: Record<string, unknown>;
+  readonly user_info: UserInfo;
+  readonly claims: AccessTokenClaims;
+}
+
+export type RoleType = "admin" | "moderator" | "service_provider" | "user_client" | "guest";
+
+export interface AccessTokenClaims {
+  readonly iss: string;
+  readonly sub: string;
+  readonly aud: readonly string[];
+  readonly exp: number;
+  readonly nbf: number;
+  readonly iat: number;
+  readonly jti: string;
+  readonly token_type: "access";
+  readonly user_id: string;
+  readonly user_name: string;
+  readonly user_email: string;
+  readonly user_is_email_verified: boolean;
+  readonly user_country: number;
+  readonly user_language: number;
+  readonly user_subdivision: number | null;
+  readonly user_auth_token_version: number;
+  readonly role_id: string;
+  readonly role_name: string;
+  readonly role_type: RoleType;
+  readonly role_access_level: number;
+  readonly issued_at_iso: string;
+  readonly expires_at_iso: string;
+}
+
+export interface UserInfo {
+  readonly user_id: string;
+  readonly user_name: string;
+  readonly user_email: string;
+  readonly user_created_at: string;
+  readonly user_updated_at: string;
+  readonly user_last_login_at: string | null;
+  readonly user_is_email_verified: boolean;
+  readonly user_country: number;
+  readonly user_language: number;
+  readonly user_subdivision: number | null;
+}
+
+export interface LogoutResponse {
+  readonly message: string;
+}
+
+export interface CheckIfUserExistsResponse {
+  readonly email_exists: boolean;
+}
+
+export interface ResetPasswordRequestResponse {
+  readonly user_email: string;
+  readonly verify_by: string;
+  readonly delivery_queued: boolean;
+}
+
+export interface ResetPasswordResponse {
+  readonly user_id: string;
+  readonly user_name: string;
+  readonly user_email: string;
+  readonly user_updated_at: string;
+}
+
+export interface VerifyEmailResponse {
+  readonly user_id: string;
+  readonly user_email: string;
+  readonly verified_at: string;
+}
+
+export interface PublicUserInfoResponse {
+  readonly user_id: string;
+  readonly user_name: string;
+  readonly user_created_at: string;
+  readonly user_country: number;
+}
+
+export interface ReferenceCountryResponse {
+  readonly country_code: number;
+  readonly country_alpha2: string;
+  readonly country_alpha3: string;
+  readonly country_name: string;
+  readonly country_primary_language: number;
+  readonly country_currency: number;
+  readonly phone_prefix: string;
+  readonly country_flag: string;
+  readonly is_country: boolean;
+}
+
+export interface ReferenceLanguageResponse {
+  readonly language_code: number;
+  readonly language_alpha2: string;
+  readonly language_alpha3: string;
+  readonly language_name: string;
+}
+
+export interface ReferenceSubdivisionResponse {
+  readonly subdivision_id: number;
+  readonly country_code: number;
+  readonly subdivision_code: string;
+  readonly subdivision_name: string;
+  readonly subdivision_type: string | null;
+  readonly country_flag: string;
 }

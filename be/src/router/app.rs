@@ -24,13 +24,21 @@ use crate::{
             reset_password_request, signup, verify_user_email,
         },
         healthcheck::healthcheck,
+        reference_data::{
+            countries as reference_countries,
+            country_subdivisions as reference_country_subdivisions,
+            languages as reference_languages,
+        },
     },
     docs::api_doc::ApiDoc,
     error::{api_error::ApiError, code_error::CodeError},
     init::server_config::server_config::DeploymentEnvironment,
     init::state::server_state::ServerState,
-    middleware::auth::{attach_optional_auth_context, require_auth},
-    middleware::request_response_logging::log_request_response,
+    middleware::{
+        api_timing::time_api_request,
+        auth::{attach_optional_auth_context, require_auth},
+        request_response_logging::log_request_response,
+    },
 };
 
 use super::static_assets::static_asset_handler;
@@ -61,12 +69,19 @@ fn build_api_v1_router(state: Arc<ServerState>) -> Router {
 
     Router::new()
         .route("/healthcheck", get(healthcheck))
+        .route("/reference/countries", get(reference_countries))
+        .route("/reference/languages", get(reference_languages))
+        .route(
+            "/reference/countries/{country_code}/subdivisions",
+            get(reference_country_subdivisions),
+        )
         .merge(public_auth_router)
         .merge(protected_auth_router)
         .layer(from_fn_with_state(
             state.clone(),
             attach_optional_auth_context,
         ))
+        .layer(from_fn(time_api_request))
         .with_state(state)
 }
 

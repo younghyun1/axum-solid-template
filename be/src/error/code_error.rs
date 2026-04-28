@@ -174,6 +174,13 @@ impl CodeError {
         message: "Too many requests!",
         log_level: Level::WARN,
     };
+    pub const REFERENCE_DATA_NOT_FOUND: CodeError = CodeError {
+        success: false,
+        error_code: 24,
+        http_status_code: StatusCode::NOT_FOUND,
+        message: "Reference data not found!",
+        log_level: Level::INFO,
+    };
     pub const INTERNAL_ERROR: CodeError = CodeError {
         success: false,
         error_code: 255,

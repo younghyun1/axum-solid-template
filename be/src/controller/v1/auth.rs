@@ -7,7 +7,7 @@ use axum::{
 
 use crate::{
     dto::{
-        api_response::{ApiEnvelope, ApiResponse, ApiResponseResult, ApiResult, ApiTimer},
+        api_response::{ApiEnvelope, ApiResponse, ApiResponseResult, ApiResult},
         auth::{
             request::{
                 CheckIfUserExistsRequest, EmailValidationToken, LoginRequest,
@@ -45,8 +45,7 @@ pub async fn signup(
     State(state): State<Arc<ServerState>>,
     Json(request): Json<SignupRequest>,
 ) -> ApiResponseResult<SignupResponse> {
-    let timer = ApiTimer::start();
-    timed_response(timer, signup_user(state, request).await)
+    response_from_result(signup_user(state, request).await)
 }
 
 #[utoipa::path(
@@ -60,8 +59,7 @@ pub async fn login(
     State(state): State<Arc<ServerState>>,
     Json(request): Json<LoginRequest>,
 ) -> ApiResponseResult<LoginResponse> {
-    let timer = ApiTimer::start();
-    timed_response(timer, login_user(state, request).await)
+    response_from_result(login_user(state, request).await)
 }
 
 #[utoipa::path(
@@ -74,8 +72,7 @@ pub async fn me(
     Extension(auth_context): Extension<AuthContext>,
     State(state): State<Arc<ServerState>>,
 ) -> ApiResponseResult<MeResponse> {
-    let timer = ApiTimer::start();
-    timed_response(timer, current_user(state, auth_context.claims).await)
+    response_from_result(current_user(state, auth_context.claims).await)
 }
 
 #[utoipa::path(
@@ -101,8 +98,7 @@ pub async fn check_if_user_exists(
     State(state): State<Arc<ServerState>>,
     Json(request): Json<CheckIfUserExistsRequest>,
 ) -> ApiResponseResult<CheckIfUserExistsResponse> {
-    let timer = ApiTimer::start();
-    timed_response(timer, check_if_user_exists_service(state, request).await)
+    response_from_result(check_if_user_exists_service(state, request).await)
 }
 
 #[utoipa::path(
@@ -116,8 +112,7 @@ pub async fn reset_password_request(
     State(state): State<Arc<ServerState>>,
     Json(request): Json<ResetPasswordRequest>,
 ) -> ApiResponseResult<ResetPasswordRequestResponse> {
-    let timer = ApiTimer::start();
-    timed_response(timer, request_password_reset(state, request).await)
+    response_from_result(request_password_reset(state, request).await)
 }
 
 #[utoipa::path(
@@ -131,8 +126,7 @@ pub async fn reset_password(
     State(state): State<Arc<ServerState>>,
     Json(request): Json<ResetPasswordProcessRequest>,
 ) -> ApiResponseResult<ResetPasswordResponse> {
-    let timer = ApiTimer::start();
-    timed_response(timer, reset_password_service(state, request).await)
+    response_from_result(reset_password_service(state, request).await)
 }
 
 #[utoipa::path(
@@ -146,8 +140,7 @@ pub async fn verify_user_email(
     State(state): State<Arc<ServerState>>,
     Query(token): Query<EmailValidationToken>,
 ) -> ApiResponseResult<VerifyEmailResponse> {
-    let timer = ApiTimer::start();
-    timed_response(timer, verify_user_email_service(state, token).await)
+    response_from_result(verify_user_email_service(state, token).await)
 }
 
 #[utoipa::path(
@@ -161,13 +154,12 @@ pub async fn get_user_info(
     State(state): State<Arc<ServerState>>,
     Path(user_name): Path<String>,
 ) -> ApiResponseResult<PublicUserInfoResponse> {
-    let timer = ApiTimer::start();
-    timed_response(timer, public_user_info(state, user_name).await)
+    response_from_result(public_user_info(state, user_name).await)
 }
 
-fn timed_response<T>(timer: ApiTimer, result: ApiResult<T>) -> ApiResponseResult<T> {
+fn response_from_result<T>(result: ApiResult<T>) -> ApiResponseResult<T> {
     match result {
-        Ok(response) => Ok(api_ok_timed(response, timer)),
-        Err(error) => Err(error.with_timer(timer)),
+        Ok(response) => Ok(api_ok(response)),
+        Err(error) => Err(error),
     }
 }

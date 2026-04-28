@@ -20,6 +20,7 @@ Current ranges:
 Current auth/security codes:
 
 - `13`: unauthorized request.
+- `24`: reference data not found.
 - `14`: invalid JWT.
 - `15`: email is not verified.
 - `16..=18`: email verification token errors.

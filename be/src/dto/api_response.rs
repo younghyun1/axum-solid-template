@@ -1,4 +1,7 @@
-use std::time::{Duration, Instant};
+use std::{
+    future::Future,
+    time::{Duration, Instant},
+};
 
 use axum::{
     Json,
@@ -33,6 +36,10 @@ pub struct ApiMeta {
 #[derive(Debug, Clone, Copy)]
 pub struct ApiTimer {
     started_at: Instant,
+}
+
+tokio::task_local! {
+    static CURRENT_API_TIMER: ApiTimer;
 }
 
 #[derive(Debug, Clone, Serialize, ToSchema)]
@@ -98,17 +105,14 @@ impl ApiEnvelope<(), ApiMeta> {
 
 impl ApiMeta {
     pub fn new() -> Self {
-        Self {
-            timestamp: iso_timestamp_now(),
-            processing_duration: iso_duration_from_duration(Duration::ZERO),
-            details: None,
-        }
-    }
+        let processing_duration = match ApiTimer::current() {
+            Some(timer) => timer.elapsed(),
+            None => Duration::ZERO,
+        };
 
-    pub fn from_timer(timer: ApiTimer) -> Self {
         Self {
             timestamp: iso_timestamp_now(),
-            processing_duration: iso_duration_from_duration(timer.elapsed()),
+            processing_duration: iso_duration_from_duration(processing_duration),
             details: None,
         }
     }
@@ -125,21 +129,6 @@ impl ApiMeta {
         self.details = Some(details);
         self
     }
-
-    pub fn with_timer(mut self, timer: ApiTimer) -> Self {
-        self.processing_duration = iso_duration_from_duration(timer.elapsed());
-        self
-    }
-}
-
-impl Default for ApiMeta {
-    fn default() -> Self {
-        Self {
-            timestamp: iso_timestamp_now(),
-            processing_duration: iso_duration_from_duration(Duration::ZERO),
-            details: None,
-        }
-    }
 }
 
 impl ApiTimer {
@@ -151,6 +140,23 @@ impl ApiTimer {
 
     pub fn elapsed(self) -> Duration {
         self.started_at.elapsed()
+    }
+
+    pub async fn scope<F>(self, future: F) -> F::Output
+    where
+        F: Future,
+    {
+        CURRENT_API_TIMER.scope(self, future).await
+    }
+
+    fn current() -> Option<Self> {
+        CURRENT_API_TIMER.try_with(|timer| *timer).ok()
+    }
+}
+
+impl Default for ApiMeta {
+    fn default() -> Self {
+        Self::new()
     }
 }
 
@@ -192,29 +198,14 @@ impl<T> ApiResponse<T> {
         Self::success(StatusCode::OK, data)
     }
 
-    pub fn ok_timed(data: T, timer: ApiTimer) -> Self {
-        Self::success_timed(StatusCode::OK, data, timer)
-    }
-
     pub fn created(data: T) -> Self {
         Self::success(StatusCode::CREATED, data)
-    }
-
-    pub fn created_timed(data: T, timer: ApiTimer) -> Self {
-        Self::success_timed(StatusCode::CREATED, data, timer)
     }
 
     pub fn success(status_code: StatusCode, data: T) -> Self {
         Self {
             status_code,
             body: ApiEnvelope::success(data, ApiMeta::new()),
-        }
-    }
-
-    pub fn success_timed(status_code: StatusCode, data: T, timer: ApiTimer) -> Self {
-        Self {
-            status_code,
-            body: ApiEnvelope::success(data, ApiMeta::from_timer(timer)),
         }
     }
 }
@@ -224,31 +215,15 @@ impl ApiResponse<()> {
         Self::empty_with_status(StatusCode::OK)
     }
 
-    pub fn empty_timed(timer: ApiTimer) -> Self {
-        Self::empty_with_status_timed(StatusCode::OK, timer)
-    }
-
     pub fn empty_with_status(status_code: StatusCode) -> Self {
         Self {
             status_code,
             body: ApiEnvelope::<(), ApiMeta>::empty_success(ApiMeta::new()),
         }
     }
-
-    pub fn empty_with_status_timed(status_code: StatusCode, timer: ApiTimer) -> Self {
-        Self {
-            status_code,
-            body: ApiEnvelope::<(), ApiMeta>::empty_success(ApiMeta::from_timer(timer)),
-        }
-    }
 }
 
 impl<T> ApiResponse<T> {
-    pub fn with_timer(mut self, timer: ApiTimer) -> Self {
-        self.body.meta = self.body.meta.with_timer(timer);
-        self
-    }
-
     pub fn with_meta_details(mut self, details: serde_json::Value) -> Self {
         self.body.meta = self.body.meta.with_details(details);
         self
@@ -286,24 +261,12 @@ pub fn api_ok<T>(data: T) -> ApiResponse<T> {
     ApiResponse::ok(data)
 }
 
-pub fn api_ok_timed<T>(data: T, timer: ApiTimer) -> ApiResponse<T> {
-    ApiResponse::ok_timed(data, timer)
-}
-
 pub fn api_created<T>(data: T) -> ApiResponse<T> {
     ApiResponse::created(data)
 }
 
-pub fn api_created_timed<T>(data: T, timer: ApiTimer) -> ApiResponse<T> {
-    ApiResponse::created_timed(data, timer)
-}
-
 pub fn api_empty() -> ApiResponse<()> {
     ApiResponse::empty()
-}
-
-pub fn api_empty_timed(timer: ApiTimer) -> ApiResponse<()> {
-    ApiResponse::empty_timed(timer)
 }
 
 fn iso_timestamp_now() -> String {
@@ -326,12 +289,12 @@ pub fn iso_duration_from_duration(duration: Duration) -> String {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Duration;
+    use std::time::{Duration, Instant};
 
     use serde::Serialize;
     use serde_json::{Value, json};
 
-    use super::{ApiMeta, ApiResponse};
+    use super::{ApiMeta, ApiResponse, ApiTimer};
 
     #[derive(Debug, Serialize)]
     struct TestData {
@@ -354,6 +317,31 @@ mod tests {
         assert_eq!(serialized["error"], Value::Null);
         assert!(serialized["meta"]["timestamp"].is_string());
         assert_eq!(serialized["meta"]["processing_duration"], json!("PT0S"));
+    }
+
+    #[tokio::test]
+    async fn success_response_uses_scoped_api_timer() {
+        let timer = ApiTimer {
+            started_at: Instant::now() - Duration::from_millis(5),
+        };
+        let serialized_result = timer
+            .scope(async {
+                let response = ApiResponse::ok(TestData { value: 7 });
+                serde_json::to_value(response.into_body())
+            })
+            .await;
+        assert!(serialized_result.is_ok());
+
+        let serialized = match serialized_result {
+            Ok(value) => value,
+            Err(_) => return,
+        };
+        let processing_duration = match serialized["meta"]["processing_duration"].as_str() {
+            Some(value) => value,
+            None => return,
+        };
+
+        assert!(processing_duration.starts_with("PT0."));
     }
 
     #[test]

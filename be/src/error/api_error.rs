@@ -7,7 +7,7 @@ use axum::{
 use tracing::{Level, error, info, warn};
 
 use crate::{
-    dto::api_response::{ApiEnvelope, ApiErrorBody, ApiMeta, ApiResult, ApiTimer},
+    dto::api_response::{ApiEnvelope, ApiErrorBody, ApiMeta, ApiResult},
     error::code_error::CodeError,
 };
 
@@ -16,15 +16,10 @@ pub struct ApiError {
     code_error: CodeError,
     source_error: Option<String>,
     public_detail: Option<String>,
-    timer: Option<ApiTimer>,
 }
 
 pub trait ApiResultExt<T, E> {
     fn api_err(self, code_error: CodeError) -> ApiResult<T>
-    where
-        E: fmt::Display;
-
-    fn api_err_timed(self, code_error: CodeError, timer: ApiTimer) -> ApiResult<T>
     where
         E: fmt::Display;
 
@@ -33,27 +28,7 @@ pub trait ApiResultExt<T, E> {
         E: fmt::Display,
         D: Into<String>;
 
-    fn api_err_public_timed<D>(
-        self,
-        code_error: CodeError,
-        timer: ApiTimer,
-        public_detail: D,
-    ) -> ApiResult<T>
-    where
-        E: fmt::Display,
-        D: Into<String>;
-
     fn api_err_with_detail<D>(self, code_error: CodeError, detail: D) -> ApiResult<T>
-    where
-        E: fmt::Display,
-        D: FnOnce(&E) -> String;
-
-    fn api_err_with_detail_timed<D>(
-        self,
-        code_error: CodeError,
-        timer: ApiTimer,
-        detail: D,
-    ) -> ApiResult<T>
     where
         E: fmt::Display,
         D: FnOnce(&E) -> String;
@@ -62,18 +37,7 @@ pub trait ApiResultExt<T, E> {
 pub trait ApiOptionExt<T> {
     fn api_ok_or(self, code_error: CodeError) -> ApiResult<T>;
 
-    fn api_ok_or_timed(self, code_error: CodeError, timer: ApiTimer) -> ApiResult<T>;
-
     fn api_ok_or_public<D>(self, code_error: CodeError, public_detail: D) -> ApiResult<T>
-    where
-        D: Into<String>;
-
-    fn api_ok_or_public_timed<D>(
-        self,
-        code_error: CodeError,
-        timer: ApiTimer,
-        public_detail: D,
-    ) -> ApiResult<T>
     where
         D: Into<String>;
 }
@@ -84,7 +48,6 @@ impl ApiError {
             code_error,
             source_error: None,
             public_detail: None,
-            timer: None,
         }
     }
 
@@ -96,7 +59,6 @@ impl ApiError {
             code_error,
             source_error: None,
             public_detail: Some(public_detail.into()),
-            timer: None,
         }
     }
 
@@ -108,7 +70,6 @@ impl ApiError {
             code_error,
             source_error: Some(source_error.to_string()),
             public_detail: None,
-            timer: None,
         }
     }
 
@@ -125,13 +86,7 @@ impl ApiError {
             code_error,
             source_error: Some(source_error.to_string()),
             public_detail: Some(public_detail.into()),
-            timer: None,
         }
-    }
-
-    pub fn with_timer(mut self, timer: ApiTimer) -> Self {
-        self.timer = Some(timer);
-        self
     }
 
     pub fn with_public_detail<D>(mut self, public_detail: D) -> Self
@@ -182,10 +137,7 @@ impl ApiError {
     }
 
     fn response_meta(&self) -> ApiMeta {
-        match self.timer {
-            Some(timer) => ApiMeta::from_timer(timer),
-            None => ApiMeta::new(),
-        }
+        ApiMeta::new()
     }
 
     fn response_body(&self) -> ApiEnvelope<(), ApiMeta> {
@@ -207,16 +159,6 @@ impl<T, E> ApiResultExt<T, E> for Result<T, E> {
         }
     }
 
-    fn api_err_timed(self, code_error: CodeError, timer: ApiTimer) -> ApiResult<T>
-    where
-        E: fmt::Display,
-    {
-        match self {
-            Ok(value) => Ok(value),
-            Err(error) => Err(ApiError::from_source(code_error, error).with_timer(timer)),
-        }
-    }
-
     fn api_err_public<D>(self, code_error: CodeError, public_detail: D) -> ApiResult<T>
     where
         E: fmt::Display,
@@ -229,24 +171,6 @@ impl<T, E> ApiResultExt<T, E> for Result<T, E> {
                 error,
                 public_detail,
             )),
-        }
-    }
-
-    fn api_err_public_timed<D>(
-        self,
-        code_error: CodeError,
-        timer: ApiTimer,
-        public_detail: D,
-    ) -> ApiResult<T>
-    where
-        E: fmt::Display,
-        D: Into<String>,
-    {
-        match self {
-            Ok(value) => Ok(value),
-            Err(error) => Err(
-                ApiError::from_source_public(code_error, error, public_detail).with_timer(timer),
-            ),
         }
     }
 
@@ -267,28 +191,6 @@ impl<T, E> ApiResultExt<T, E> for Result<T, E> {
             }
         }
     }
-
-    fn api_err_with_detail_timed<D>(
-        self,
-        code_error: CodeError,
-        timer: ApiTimer,
-        detail: D,
-    ) -> ApiResult<T>
-    where
-        E: fmt::Display,
-        D: FnOnce(&E) -> String,
-    {
-        match self {
-            Ok(value) => Ok(value),
-            Err(error) => {
-                let public_detail = detail(&error);
-                Err(
-                    ApiError::from_source_public(code_error, error, public_detail)
-                        .with_timer(timer),
-                )
-            }
-        }
-    }
 }
 
 impl<T> ApiOptionExt<T> for Option<T> {
@@ -299,13 +201,6 @@ impl<T> ApiOptionExt<T> for Option<T> {
         }
     }
 
-    fn api_ok_or_timed(self, code_error: CodeError, timer: ApiTimer) -> ApiResult<T> {
-        match self {
-            Some(value) => Ok(value),
-            None => Err(ApiError::new(code_error).with_timer(timer)),
-        }
-    }
-
     fn api_ok_or_public<D>(self, code_error: CodeError, public_detail: D) -> ApiResult<T>
     where
         D: Into<String>,
@@ -313,21 +208,6 @@ impl<T> ApiOptionExt<T> for Option<T> {
         match self {
             Some(value) => Ok(value),
             None => Err(ApiError::public(code_error, public_detail)),
-        }
-    }
-
-    fn api_ok_or_public_timed<D>(
-        self,
-        code_error: CodeError,
-        timer: ApiTimer,
-        public_detail: D,
-    ) -> ApiResult<T>
-    where
-        D: Into<String>,
-    {
-        match self {
-            Some(value) => Ok(value),
-            None => Err(ApiError::public(code_error, public_detail).with_timer(timer)),
         }
     }
 }
