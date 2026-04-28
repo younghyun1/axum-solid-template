@@ -1,7 +1,10 @@
 use std::{env, fmt, net::SocketAddr, path::Path, sync::Arc, time::Instant};
 
 use axum::Router;
-use axum_server::tls_rustls::RustlsConfig;
+use axum_server::{
+    Server,
+    tls_rustls::{RustlsAcceptor, RustlsConfig},
+};
 use tracing::{error, info};
 
 use crate::init::{
@@ -266,7 +269,7 @@ async fn run_https_server(
         https: state.server_config.server_port,
     });
 
-    let listener = match std::net::TcpListener::bind(bind_addr) {
+    let listener = match tokio::net::TcpListener::bind(bind_addr).await {
         Ok(listener) => listener,
         Err(error) => {
             return Err(ServerRunError::HttpsBind {
@@ -274,14 +277,6 @@ async fn run_https_server(
             });
         }
     };
-    match listener.set_nonblocking(true) {
-        Ok(()) => {}
-        Err(error) => {
-            return Err(ServerRunError::HttpsBind {
-                error: error.to_string(),
-            });
-        }
-    }
 
     info!(
         bind_addr = %bind_addr,
@@ -291,14 +286,8 @@ async fn run_https_server(
         "Axum server started"
     );
 
-    let server = match axum_server::from_tcp_rustls(listener, tls_config) {
-        Ok(server) => server,
-        Err(error) => {
-            return Err(ServerRunError::HttpsBind {
-                error: error.to_string(),
-            });
-        }
-    };
+    let server =
+        Server::<SocketAddr>::from_listener(listener).acceptor(RustlsAcceptor::new(tls_config));
 
     match server.serve(router.into_make_service()).await {
         Ok(()) => Ok(()),

@@ -3,11 +3,12 @@
 The backend exposes a single Axum binary from `be/src/main.rs`.
 
 - Runtime initialization stays in `be/src/init`.
+- The long-running server future is spawned from `main` so it runs as a Tokio worker task rather than the `#[tokio::main]` root future.
 - Route composition stays in `be/src/router`.
 - Request handlers stay in `be/src/controller`.
 - API documentation is generated with `utoipa` and served through Swagger UI.
 - Static frontend assets are embedded from `/fe` and served as the fallback route.
-- HTTPS uses rustls. When HTTPS is enabled, a separate HTTP listener redirects traffic to HTTPS.
+- HTTPS uses rustls through `axum_server::Server::from_listener` with a `tokio::net::TcpListener`. When HTTPS is enabled, a separate HTTP listener redirects traffic to HTTPS.
 - Compression is centralized at the router boundary with gzip and zstd enabled.
 - Request and response logging is centralized at the router boundary in `be/src/middleware/request_response_logging.rs`.
 - CORS is permissive only for `local` and `development`; production modes use restrictive CORS defaults.

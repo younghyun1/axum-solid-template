@@ -38,10 +38,20 @@ async fn main() {
 
     let shared_state = Arc::new(server_state);
 
-    match init::server_init::run_server(shared_state, startup_started_at).await {
-        Ok(()) => {}
+    let server_task = tokio::spawn(async move {
+        init::server_init::run_server(shared_state, startup_started_at).await
+    });
+
+    match server_task.await {
+        Ok(server_result) => match server_result {
+            Ok(()) => {}
+            Err(error) => {
+                error!(error = %error, "Server failed");
+                std::process::exit(1);
+            }
+        },
         Err(error) => {
-            error!(error = %error, "Server failed");
+            error!(error = %error, "Server task failed");
             std::process::exit(1);
         }
     }
