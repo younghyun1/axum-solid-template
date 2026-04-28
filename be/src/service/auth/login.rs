@@ -1,11 +1,11 @@
 use std::sync::Arc;
 
 use chrono::Utc;
-use email_address::EmailAddress;
 use tracing::error;
 use zeroize::Zeroize;
 
 use crate::{
+    domain::auth::value::UserEmail,
     dto::{
         api_response::ApiResult,
         auth::{request::LoginRequest, response::LoginResponse},
@@ -17,7 +17,7 @@ use crate::{
     util::{
         auth::jwt::{JWT_BEARER_TOKEN_TYPE, JwtUserContext, issue_access_token},
         crypto::password::verify_password,
-        string::validation::{normalized_email, validate_password_form},
+        string::validation::validate_password_form,
     },
 };
 
@@ -25,9 +25,10 @@ pub async fn login_user(
     state: Arc<ServerState>,
     mut request: LoginRequest,
 ) -> ApiResult<LoginResponse> {
-    if !EmailAddress::is_valid(&request.user_email) {
-        return Err(ApiError::new(CodeError::EMAIL_INVALID));
-    }
+    let user_email = match UserEmail::try_new(request.user_email.clone()) {
+        Ok(user_email) => user_email,
+        Err(_) => return Err(ApiError::new(CodeError::EMAIL_INVALID)),
+    };
     if !validate_password_form(&request.user_password) {
         return Err(ApiError::new(CodeError::PASSWORD_INVALID));
     }
@@ -40,7 +41,7 @@ pub async fn login_user(
         }
     };
 
-    let user_email = normalized_email(&request.user_email);
+    let user_email = user_email.into_inner();
     let user = match user_repository::find_user_by_email(&mut conn, &user_email).await {
         Ok(Some(user)) => user,
         Ok(None) => {

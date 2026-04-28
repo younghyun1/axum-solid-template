@@ -1,13 +1,13 @@
 use std::sync::Arc;
 
 use chrono::{Duration, Utc};
-use email_address::EmailAddress;
-use tracing::error;
+use diesel_async::AsyncConnection;
+use diesel_async::scoped_futures::ScopedFutureExt;
 use uuid::Uuid;
 use zeroize::Zeroize;
 
 use crate::{
-    domain::auth::user::NewPasswordResetToken,
+    domain::auth::{user::NewPasswordResetToken, value::UserEmail},
     dto::{
         api_response::ApiResult,
         auth::{
@@ -19,10 +19,7 @@ use crate::{
     init::state::server_state::ServerState,
     repository::auth::postgres::{password_reset_token_repository, user_repository},
     service::auth::{datasource::postgres_conn, email::queue_password_reset_email},
-    util::{
-        crypto::password::hash_password,
-        string::validation::{normalized_email, validate_password_form},
-    },
+    util::{crypto::password::hash_password, string::validation::validate_password_form},
 };
 
 const PASSWORD_RESET_TOKEN_VALID_DURATION: Duration = Duration::minutes(30);
@@ -31,16 +28,17 @@ pub async fn request_password_reset(
     state: Arc<ServerState>,
     request: ResetPasswordRequest,
 ) -> ApiResult<ResetPasswordRequestResponse> {
-    if !EmailAddress::is_valid(&request.user_email) {
-        return Err(ApiError::new(CodeError::EMAIL_INVALID));
-    }
+    let user_email = match UserEmail::try_new(request.user_email.clone()) {
+        Ok(user_email) => user_email,
+        Err(_) => return Err(ApiError::new(CodeError::EMAIL_INVALID)),
+    };
 
     let mut conn = match postgres_conn(&state).await {
         Ok(conn) => conn,
         Err(error) => return Err(error),
     };
 
-    let email = normalized_email(&request.user_email);
+    let email = user_email.into_inner();
     let user = match user_repository::find_user_by_email(&mut conn, &email).await {
         Ok(Some(user)) => user,
         Ok(None) => return Err(ApiError::new(CodeError::USER_NOT_FOUND)),
@@ -93,35 +91,7 @@ pub async fn reset_password(
         }
     };
 
-    let now = Utc::now();
-    let reset_token = match password_reset_token_repository::find_by_token(
-        &mut conn,
-        request.password_reset_token,
-    )
-    .await
-    {
-        Ok(Some(reset_token)) => reset_token,
-        Ok(None) => {
-            request.zeroize();
-            return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_INVALID));
-        }
-        Err(error) => {
-            request.zeroize();
-            return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error));
-        }
-    };
-
-    if reset_token.password_reset_token_used_at.is_some() {
-        request.zeroize();
-        return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_ALREADY_USED));
-    }
-    if reset_token.password_reset_token_created_at > now
-        || reset_token.password_reset_token_expires_at < now
-    {
-        request.zeroize();
-        return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_EXPIRED));
-    }
-
+    let password_reset_token = request.password_reset_token;
     let new_password_hash = match hash_password(request.new_password.clone()).await {
         Ok(new_password_hash) => new_password_hash,
         Err(error) => {
@@ -131,34 +101,70 @@ pub async fn reset_password(
     };
     request.zeroize();
 
-    let user = match user_repository::update_password_after_reset(
-        &mut conn,
-        reset_token.user_id,
-        new_password_hash,
-        now,
-    )
-    .await
+    let now = Utc::now();
+    let user = match conn
+        .transaction::<_, ApiError, _>(|conn| {
+            async move {
+                let reset_token = match password_reset_token_repository::find_by_token(
+                    conn,
+                    password_reset_token,
+                )
+                .await
+                {
+                    Ok(Some(reset_token)) => reset_token,
+                    Ok(None) => {
+                        return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_INVALID));
+                    }
+                    Err(error) => {
+                        return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error));
+                    }
+                };
+
+                if reset_token.password_reset_token_used_at.is_some() {
+                    return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_ALREADY_USED));
+                }
+                if reset_token.password_reset_token_created_at > now
+                    || reset_token.password_reset_token_expires_at < now
+                {
+                    return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_EXPIRED));
+                }
+
+                let user = match user_repository::update_password_after_reset(
+                    conn,
+                    reset_token.user_id,
+                    new_password_hash,
+                    now,
+                )
+                .await
+                {
+                    Ok(user) => user,
+                    Err(error) => {
+                        return Err(ApiError::from_source(CodeError::DB_UPDATE_ERROR, error));
+                    }
+                };
+
+                match password_reset_token_repository::mark_used(
+                    conn,
+                    reset_token.password_reset_token_id,
+                    now,
+                )
+                .await
+                {
+                    Ok(_) => {}
+                    Err(error) => {
+                        return Err(ApiError::from_source(CodeError::DB_UPDATE_ERROR, error));
+                    }
+                }
+
+                Ok(user)
+            }
+            .scope_boxed()
+        })
+        .await
     {
         Ok(user) => user,
-        Err(error) => return Err(ApiError::from_source(CodeError::DB_UPDATE_ERROR, error)),
+        Err(error) => return Err(error),
     };
-
-    match password_reset_token_repository::mark_used(
-        &mut conn,
-        reset_token.password_reset_token_id,
-        now,
-    )
-    .await
-    {
-        Ok(_) => {}
-        Err(error) => {
-            error!(
-                error = %error,
-                password_reset_token_id = %reset_token.password_reset_token_id,
-                "Failed to mark password reset token as used"
-            );
-        }
-    }
 
     Ok(ResetPasswordResponse {
         user_id: user.user_id,

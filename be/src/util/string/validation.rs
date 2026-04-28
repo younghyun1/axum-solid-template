@@ -1,17 +1,16 @@
+use crate::domain::auth::value::{UserEmail, UserName};
+
+const PASSWORD_MIN_CHARS: usize = 9;
+const PASSWORD_MAX_CHARS: usize = 256;
+
 pub fn validate_username(username: &str) -> bool {
-    let trimmed = username.trim();
-
-    if trimmed.len() < 3 || trimmed.len() > 32 {
-        return false;
-    }
-
-    trimmed
-        .chars()
-        .all(|character| character.is_ascii_alphanumeric() || character == '_' || character == '-')
+    UserName::try_new(username.to_string()).is_ok()
 }
 
 pub fn validate_password_form(password: &str) -> bool {
-    if password.len() < 12 || password.len() > 256 {
+    let character_count = password.chars().count();
+
+    if !(PASSWORD_MIN_CHARS..=PASSWORD_MAX_CHARS).contains(&character_count) {
         return false;
     }
 
@@ -45,7 +44,10 @@ pub fn validate_password_form(password: &str) -> bool {
 }
 
 pub fn normalized_email(email: &str) -> String {
-    email.trim().to_ascii_lowercase()
+    match UserEmail::try_new(email.to_string()) {
+        Ok(user_email) => user_email.into_inner(),
+        Err(_) => email.trim().to_ascii_lowercase(),
+    }
 }
 
 #[cfg(test)]
@@ -61,7 +63,7 @@ mod tests {
 
     #[test]
     fn validates_password_shape() {
-        assert!(validate_password_form("LongPassword1!"));
+        assert!(validate_password_form("Aa123456!"));
         assert!(!validate_password_form("short1!A"));
         assert!(!validate_password_form("longpassword1!"));
     }

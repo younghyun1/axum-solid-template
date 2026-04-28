@@ -28,6 +28,7 @@ pub async fn find_by_token(
 ) -> Result<Option<PasswordResetToken>, diesel::result::Error> {
     match password_reset_tokens::table
         .filter(password_reset_tokens::password_reset_token.eq(token))
+        .for_update()
         .select(PasswordResetToken::as_select())
         .first::<PasswordResetToken>(conn)
         .await

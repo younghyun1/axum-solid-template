@@ -61,6 +61,7 @@ impl ReferenceDataCache {
         let language_pool = db_pool.clone();
         let subdivision_pool = db_pool.clone();
 
+        // Reference tables are immutable at runtime, so load them in parallel once at startup.
         let countries_task = tokio::spawn(async move { load_countries(&country_pool).await });
         let currencies_task = tokio::spawn(async move { load_currencies(&currency_pool).await });
         let languages_task = tokio::spawn(async move { load_languages(&language_pool).await });

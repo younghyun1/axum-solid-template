@@ -167,6 +167,13 @@ impl CodeError {
         message: "Configured database backend is not implemented!",
         log_level: Level::ERROR,
     };
+    pub const RATE_LIMITED: CodeError = CodeError {
+        success: false,
+        error_code: 23,
+        http_status_code: StatusCode::TOO_MANY_REQUESTS,
+        message: "Too many requests!",
+        log_level: Level::WARN,
+    };
     pub const INTERNAL_ERROR: CodeError = CodeError {
         success: false,
         error_code: 255,

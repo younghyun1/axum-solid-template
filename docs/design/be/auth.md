@@ -48,6 +48,13 @@ Implemented endpoints:
 
 The same endpoints are also exposed under `/api/v1`.
 
-Passwords are hashed and verified with Argon2id in blocking tasks. Password-bearing DTOs derive `Zeroize` and `ZeroizeOnDrop`.
+Passwords must contain at least 9 and at most 256 characters, with at least one ASCII uppercase letter, lowercase letter, digit, and symbol. Passwords are hashed and verified with Argon2id version 0x13 in blocking tasks, using 64 MiB memory, 3 iterations, 1 lane, and a 32-byte output. Password-bearing DTOs derive `Zeroize` and `ZeroizeOnDrop`.
 
 There is no server-side session store. Logout is client-side token discard. Password reset increments `user_auth_token_version`; consumers can use the rich claim for stricter invalidation policies later.
+
+Security-sensitive follow-up work:
+
+- Enforce `user_auth_token_version` during protected request handling if immediate invalidation after password reset is required.
+- Add token cleanup jobs after the in-process scheduler is implemented.
+- Public auth routes are rate-limited with `tower-governor` in `be/src/router/app.rs`.
+- `tower-governor` uses `SmartIpKeyExtractor`; deployments behind reverse proxies must strip untrusted forwarding headers before setting trusted `x-forwarded-for`, `x-real-ip`, or `forwarded` values.

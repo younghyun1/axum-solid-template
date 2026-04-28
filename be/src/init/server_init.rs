@@ -221,7 +221,12 @@ async fn run_http_server(
         "Axum server started"
     );
 
-    match axum::serve(listener, router).await {
+    match axum::serve(
+        listener,
+        router.into_make_service_with_connect_info::<SocketAddr>(),
+    )
+    .await
+    {
         Ok(()) => Ok(()),
         Err(error) => Err(ServerRunError::HttpServe {
             error: error.to_string(),
@@ -289,7 +294,10 @@ async fn run_https_server(
     let server =
         Server::<SocketAddr>::from_listener(listener).acceptor(RustlsAcceptor::new(tls_config));
 
-    match server.serve(router.into_make_service()).await {
+    match server
+        .serve(router.into_make_service_with_connect_info::<SocketAddr>())
+        .await
+    {
         Ok(()) => Ok(()),
         Err(error) => Err(ServerRunError::HttpsServe {
             error: error.to_string(),

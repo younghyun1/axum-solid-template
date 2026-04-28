@@ -1,9 +1,10 @@
 use std::sync::Arc;
 
-use email_address::EmailAddress;
-
 use crate::{
-    domain::auth::jwt::AccessTokenClaims,
+    domain::auth::{
+        jwt::AccessTokenClaims,
+        value::{UserEmail, UserName},
+    },
     dto::{
         api_response::ApiResult,
         auth::{
@@ -15,7 +16,6 @@ use crate::{
     init::state::server_state::ServerState,
     repository::auth::postgres::user_repository,
     service::auth::datasource::postgres_conn,
-    util::string::validation::normalized_email,
 };
 
 pub async fn current_user(
@@ -40,16 +40,17 @@ pub async fn check_if_user_exists(
     state: Arc<ServerState>,
     request: CheckIfUserExistsRequest,
 ) -> ApiResult<CheckIfUserExistsResponse> {
-    if !EmailAddress::is_valid(&request.user_email) {
-        return Err(ApiError::new(CodeError::EMAIL_INVALID));
-    }
+    let user_email = match UserEmail::try_new(request.user_email) {
+        Ok(user_email) => user_email,
+        Err(_) => return Err(ApiError::new(CodeError::EMAIL_INVALID)),
+    };
 
     let mut conn = match postgres_conn(&state).await {
         Ok(conn) => conn,
         Err(error) => return Err(error),
     };
 
-    let email = normalized_email(&request.user_email);
+    let email = user_email.into_inner();
     let existing = match user_repository::find_user_id_by_email(&mut conn, &email).await {
         Ok(existing) => existing,
         Err(error) => return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
@@ -64,17 +65,18 @@ pub async fn public_user_info(
     state: Arc<ServerState>,
     user_name: String,
 ) -> ApiResult<PublicUserInfoResponse> {
-    let trimmed_user_name = user_name.trim().to_string();
-    if trimmed_user_name.is_empty() {
-        return Err(ApiError::new(CodeError::USER_NAME_INVALID));
-    }
+    let user_name = match UserName::try_new(user_name) {
+        Ok(user_name) => user_name,
+        Err(_) => return Err(ApiError::new(CodeError::USER_NAME_INVALID)),
+    };
 
     let mut conn = match postgres_conn(&state).await {
         Ok(conn) => conn,
         Err(error) => return Err(error),
     };
 
-    let user = match user_repository::find_user_by_name(&mut conn, &trimmed_user_name).await {
+    let user_name = user_name.into_inner();
+    let user = match user_repository::find_user_by_name(&mut conn, &user_name).await {
         Ok(Some(user)) => user,
         Ok(None) => return Err(ApiError::new(CodeError::USER_NOT_FOUND)),
         Err(error) => return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),

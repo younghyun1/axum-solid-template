@@ -4,6 +4,7 @@ use argon2::{
     Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Version,
     password_hash::{SaltString, rand_core::OsRng},
 };
+use zeroize::Zeroize;
 
 #[derive(Debug)]
 pub enum PasswordCryptoError {
@@ -28,18 +29,24 @@ impl fmt::Display for PasswordCryptoError {
 
 pub async fn hash_password(password: String) -> Result<String, PasswordCryptoError> {
     let join_result = tokio::task::spawn_blocking(move || {
+        let mut password = password;
         let argon2 = match strong_argon2() {
             Ok(argon2) => argon2,
-            Err(error) => return Err(error),
+            Err(error) => {
+                password.zeroize();
+                return Err(error);
+            }
         };
         let salt = SaltString::generate(&mut OsRng);
 
-        match argon2.hash_password(password.as_bytes(), &salt) {
+        let result = match argon2.hash_password(password.as_bytes(), &salt) {
             Ok(password_hash) => Ok(password_hash.to_string()),
             Err(error) => Err(PasswordCryptoError::Hash {
                 error: error.to_string(),
             }),
-        }
+        };
+        password.zeroize();
+        result
     })
     .await;
 
@@ -56,26 +63,37 @@ pub async fn verify_password(
     expected_hash: String,
 ) -> Result<bool, PasswordCryptoError> {
     let join_result = tokio::task::spawn_blocking(move || {
+        let mut password = password;
+        let mut expected_hash = expected_hash;
         let argon2 = match strong_argon2() {
             Ok(argon2) => argon2,
-            Err(error) => return Err(error),
+            Err(error) => {
+                password.zeroize();
+                expected_hash.zeroize();
+                return Err(error);
+            }
         };
         let parsed_hash = match PasswordHash::new(&expected_hash) {
             Ok(parsed_hash) => parsed_hash,
             Err(error) => {
+                password.zeroize();
+                expected_hash.zeroize();
                 return Err(PasswordCryptoError::Parse {
                     error: error.to_string(),
                 });
             }
         };
 
-        match argon2.verify_password(password.as_bytes(), &parsed_hash) {
+        let result = match argon2.verify_password(password.as_bytes(), &parsed_hash) {
             Ok(()) => Ok(true),
             Err(argon2::password_hash::Error::Password) => Ok(false),
             Err(error) => Err(PasswordCryptoError::Verify {
                 error: error.to_string(),
             }),
-        }
+        };
+        password.zeroize();
+        expected_hash.zeroize();
+        result
     })
     .await;
 

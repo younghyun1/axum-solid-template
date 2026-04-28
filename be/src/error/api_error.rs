@@ -338,6 +338,12 @@ impl From<CodeError> for ApiError {
     }
 }
 
+impl From<diesel::result::Error> for ApiError {
+    fn from(error: diesel::result::Error) -> Self {
+        Self::from_source(CodeError::DB_QUERY_ERROR, error)
+    }
+}
+
 impl IntoResponse for CodeError {
     fn into_response(self) -> Response {
         ApiError::new(self).into_response()

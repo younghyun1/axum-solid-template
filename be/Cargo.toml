@@ -30,6 +30,7 @@ mime_guess = "2.0.5"
 rust-embed = "8.11.0"
 rustls = { version = "0.23.39", features = ["aws_lc_rs"] }
 tower-http = { version = "0.6.8", features = ["compression-gzip", "compression-zstd", "cors"] }
+tower_governor = "0.8.0"
 
 # database
 diesel = { version = "2.3.8", features = ["postgres", "chrono", "uuid"] }
@@ -42,6 +43,7 @@ argon2 = { version = "0.5.3", features = ["std"] }
 email_address = "0.2.9"
 jsonwebtoken = { version = "10.3.0", default-features = false, features = ["aws_lc_rs"] }
 lettre = { version = "0.11.21", default-features = false, features = ["builder", "hostname", "pool", "smtp-transport", "tokio1-rustls-tls"] }
+nutype = "0.7.0"
 rand = "0.10.1"
 uuid = { version = "1.23.1", features = ["serde", "v7"] }
 zeroize = { version = "1.8.2", features = ["derive"] }

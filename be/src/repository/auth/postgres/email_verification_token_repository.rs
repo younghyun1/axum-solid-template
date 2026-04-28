@@ -28,6 +28,7 @@ pub async fn find_by_token(
 ) -> Result<Option<EmailVerificationToken>, diesel::result::Error> {
     match email_verification_tokens::table
         .filter(email_verification_tokens::email_verification_token.eq(token))
+        .for_update()
         .select(EmailVerificationToken::as_select())
         .first::<EmailVerificationToken>(conn)
         .await
