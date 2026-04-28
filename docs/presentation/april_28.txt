@@ -6,7 +6,7 @@ Technical Architecture Goals:
 - Security: passwords are Argon2-hashed, password-bearing DTOs zeroize on drop, JWTs are validated centrally, auth routes are rate-limited, and API failures return stable structured errors.
 
 Backend Scaffolded So Far:
-- A Rust 2024 backend under be/ using Axum, Tokio, Diesel async, PostgreSQL, utoipa Swagger UI, tower middleware, rustls TLS, lettre email, jsonwebtoken, nutype, zeroize, scc, and mimalloc.
+- A Rust backend under be/ using Axum, Tokio, Diesel async, PostgreSQL, utoipa Swagger UI, tower middleware, rustls TLS, lettre email, jsonwebtoken, nutype, zeroize, scc, and mimalloc.
 - Server startup flow:
   - loads .env when DEPLOYMENT_ENVIRONMENT is absent;
   - parses deployment, TLS, database, file store, chatbot, JWT, and mail settings from env;
@@ -16,6 +16,7 @@ Backend Scaffolded So Far:
   - loads ISO reference data into an in-memory scc cache;
   - constructs a mail sender, currently disabled or AWS SES SMTP;
   - starts HTTP or HTTPS, with an HTTP-to-HTTPS redirector when TLS is enabled.
+
 - API routing:
   - /api/v1/healthcheck confirms the server is accepting traffic.
   - /api/v1/auth/signup creates a user, assigns a role, creates an email verification token, and queues a verification email.
@@ -28,14 +29,17 @@ Backend Scaffolded So Far:
   - /api/v1/auth/verify-user-email validates the verification token and marks both user and token transactionally.
   - /api/v1/users/{user_name} exposes public user profile basics.
   - /api/v1/reference/countries, /languages, and /countries/{country_code}/subdivisions serve cached ISO reference data.
+
 - OpenAPI and docs:
   - Swagger UI is mounted at /api/v1/swagger-ui.
   - The OpenAPI JSON is mounted at /api/v1/api-docs/openapi.json.
   - Current design docs cover backend layers, auth, database, errors, API responses, reference data, email, jobs, request/response logging, and Axum server behavior.
+
 - API response convention:
   - All JSON API responses use a shared ApiEnvelope with success, data, error, and meta.
   - Meta includes an ISO timestamp and request processing duration.
   - Errors come from a central CodeError registry with stable numeric codes, HTTP status codes, public messages, and tracing levels.
+
 - Middleware and runtime behavior:
   - Request/response logging records method, path, query, HTTP version, content metadata, status, and duration with structured tracing.
   - API timing uses task-local timing so response envelopes can include processing duration.
@@ -44,11 +48,13 @@ Backend Scaffolded So Far:
   - Public auth routes are rate-limited by IP using tower-governor.
   - CORS is permissive in local/development and locked down by default in production.
   - Gzip and zstd response compression are enabled.
+
 - Static frontend serving:
   - The backend embeds be/fe through rust-embed.
   - The static asset fallback serves the Solid/Vite SPA.
   - It prefers precompressed .zst or .gz files based on Accept-Encoding, then falls back to identity.
   - index.html is no-cache; hashed assets under assets/ are immutable for one year.
+
 - Database scaffold:
   - PostgreSQL only; MySQL and SQLite config paths fail explicitly.
   - Migrations define ISO language, currency, country, and subdivision tables.
@@ -57,20 +63,24 @@ Backend Scaffolded So Far:
   - UUID primary keys use PostgreSQL uuidv7().
   - Column names follow the prefixed style, such as user_id and user_email.
   - Indexes cover common lookup fields such as lower(user_email), lower(user_name), role names, token values, reference codes, and job scheduling fields.
+
 - Auth/domain model:
   - Current roles are admin, moderator, service_provider, user, and guest.
   - Signup supports normal users and service providers.
   - JWT claims include issuer, subject, audience, expiry, jti, user identity, email verification state, country/language/subdivision, token version, role id/name/type, role access level, and ISO timestamps.
   - Role helper methods support exact role checks and minimum access-level checks.
   - User, token, role, ISO, and request/response shapes are separated into domain and DTO modules.
+
 - Reference data:
   - ISO data is loaded once at startup in parallel from the database.
   - Cache indexes support lookup by numeric code, alpha codes, names, country/subdivision mapping, and subdivisions by country.
   - Public API responses sort countries, languages, and subdivisions by display name.
+
 - Email:
   - Verification and reset emails are queued in background Tokio tasks.
   - Mail can be disabled for local/dev or delivered through AWS SES SMTP.
   - Failed delivery is logged without rolling back the already-completed auth transaction.
+
 - Tests currently present:
   - API envelope serialization and timing behavior.
   - static asset Accept-Encoding selection.
@@ -97,3 +107,6 @@ After that:
 - Estimate finances.
 - Regularize meetings.
 - Commit to the build plan.
+
+Competitor:
+https://www.professionalmistresses.co.uk/
