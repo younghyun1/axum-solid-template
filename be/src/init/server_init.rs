@@ -8,6 +8,7 @@ use crate::init::{
     db_pool::{DbPoolInitError, build_db_pool, run_db_migrations},
     logging::logging::{LoggerGuard, LoggerInitError, init_logger},
     server_config::server_config::{DEPLOYMENT_ENVIRONMENT_KEY, ServerConfig, ServerConfigError},
+    state::cache::reference_data::{ReferenceDataCache, ReferenceDataCacheError},
     state::server_state::ServerState,
 };
 use crate::router::{
@@ -23,6 +24,7 @@ pub enum ServerInitError {
     DbPool(DbPoolInitError),
     Logger(LoggerInitError),
     MailSender(MailSenderError),
+    ReferenceDataCache(ReferenceDataCacheError),
     ServerConfig(ServerConfigError),
 }
 
@@ -56,6 +58,9 @@ impl fmt::Display for ServerInitError {
             }
             ServerInitError::MailSender(error) => {
                 write!(formatter, "failed to initialize mail sender: {error}")
+            }
+            ServerInitError::ReferenceDataCache(error) => {
+                write!(formatter, "failed to initialize reference data cache: {error}")
             }
             ServerInitError::ServerConfig(error) => {
                 write!(formatter, "failed to build server config: {error}")
@@ -126,6 +131,13 @@ pub async fn init_server_state() -> Result<ServerState, ServerInitError> {
         }
     };
 
+    let reference_data_cache = match ReferenceDataCache::load(&db_pool).await {
+        Ok(reference_data_cache) => reference_data_cache,
+        Err(error) => {
+            return Err(ServerInitError::ReferenceDataCache(error));
+        }
+    };
+
     let mail_sender = match MailSender::from_config(&server_config.mail_config) {
         Ok(mail_sender) => mail_sender,
         Err(error) => {
@@ -138,6 +150,7 @@ pub async fn init_server_state() -> Result<ServerState, ServerInitError> {
         logger_guard,
         db_pool,
         mail_sender,
+        reference_data_cache,
     ))
 }
 
