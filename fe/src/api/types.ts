@@ -63,10 +63,13 @@ export interface SignupRequest extends JsonObject {
   readonly user_name: string;
   readonly user_email: string;
   readonly user_password: string;
+  readonly user_role: SignupRoleType;
   readonly user_country: number;
   readonly user_language: number;
   readonly user_subdivision: number | null;
 }
+
+export type SignupRoleType = "user" | "service_provider";
 
 export interface LoginRequest extends JsonObject {
   readonly user_email: string;
@@ -105,7 +108,7 @@ export interface MeResponse {
   readonly claims: AccessTokenClaims;
 }
 
-export type RoleType = "admin" | "moderator" | "service_provider" | "user_client" | "guest";
+export type RoleType = "admin" | "moderator" | "service_provider" | "user" | "guest";
 
 export interface AccessTokenClaims {
   readonly iss: string;

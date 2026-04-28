@@ -46,6 +46,10 @@ Implemented endpoints:
 - `GET /api/v1/auth/verify-user-email`
 - `GET /api/v1/users/{user_name}`
 
+Signup accepts `user_role` as either `user` or `service_provider`. Omitted role values default to
+`user` so older clients continue creating standard user accounts; public signup never accepts
+elevated roles such as `moderator` or `admin`.
+
 Passwords must contain at least 9 and at most 256 characters, with at least one ASCII uppercase letter, lowercase letter, digit, and symbol. Passwords are hashed and verified with Argon2id version 0x13 in blocking tasks, using 64 MiB memory, 3 iterations, 1 lane, and a 32-byte output. Password-bearing DTOs derive `Zeroize` and `ZeroizeOnDrop`.
 
 There is no server-side session store. Logout is client-side token discard. Password reset increments `user_auth_token_version`; consumers can use the rich claim for stricter invalidation policies later.

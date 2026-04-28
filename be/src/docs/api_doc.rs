@@ -26,6 +26,7 @@ use utoipa::OpenApi;
         crate::dto::api_response::ApiErrorLevel,
         crate::dto::api_response::ApiMeta,
         crate::dto::auth::request::SignupRequest,
+        crate::dto::auth::request::SignupRole,
         crate::dto::auth::request::LoginRequest,
         crate::dto::auth::request::CheckIfUserExistsRequest,
         crate::dto::auth::request::ResetPasswordRequest,

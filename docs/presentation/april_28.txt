@@ -1,0 +1,19 @@
+Technical Architecture Goals:
+- Performance: all customer interactions (except signup) aimed at below 0.05ms; programming language with the fastest performance as well as the most correctness enforced being used
+- Affordability: being performant means being able to serve more customers with the same amount of computational resources rented. this server should achieve ~20,000 RPS or more at 20 pounds a month.
+- Maintainability: everything is documented in an agent-friendly manner for rapid but correct development; future developers will also benefit and business administration will also be able to implement features is the goal.
+- Reliability: all data backed up regularly. automated redeployment, recovery procedures.
+- Security: sensitive industry; no shortcuts taken (rust). everything will be encrypted and gated as much as possible. audits possible but expensive. photos and videos will not be
+
+Need to do:
+- lay out all the pages we need
+- discuss the actual behavior of functions; for example, what steps does a service provider need to go through to verify their status? is email-based signup good enough for users? should they be able to log in through google?
+- UK legal compliance; privacy requirements and such should be researched. ex) already architected a system where we can't see the users' passwords ourselves (ever) but should we also encrypt the email permanently or something?
+- certains like sending texts, emails, et cetera require third party audits from amazon and such; helps if we have a business
+    - 
+
+After that stuff:
+- estimate development time
+- estimate finances
+- regularize meets
+- commit to it

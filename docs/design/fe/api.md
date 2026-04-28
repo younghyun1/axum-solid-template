@@ -9,6 +9,8 @@ Frontend API code is centralized under `/fe/src/api`.
 
 Components should consume `ApiCallResult<T>` through `appApi.ts` rather than hardcoding backend paths or manually parsing error envelopes.
 
+Signup requests include `user_role`, with the frontend limited to `user` and `service_provider`.
+
 Reference data is loaded through:
 
 - `GET /api/v1/reference/countries`

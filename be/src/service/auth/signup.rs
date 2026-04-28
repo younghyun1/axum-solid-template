@@ -15,7 +15,10 @@ use crate::{
     },
     dto::{
         api_response::ApiResult,
-        auth::{request::SignupRequest, response::SignupResponse},
+        auth::{
+            request::{SignupRequest, SignupRole},
+            response::SignupResponse,
+        },
     },
     error::{api_error::ApiError, code_error::CodeError},
     init::state::server_state::ServerState,
@@ -82,6 +85,10 @@ pub async fn signup_user(
     let user_country = request.user_country;
     let user_language = request.user_language;
     let user_subdivision = request.user_subdivision;
+    let user_role = match request.user_role {
+        SignupRole::User => RoleType::User,
+        SignupRole::ServiceProvider => RoleType::ServiceProvider,
+    };
     let signup_result = conn
         .transaction::<_, ApiError, _>(|conn| {
             async move {
@@ -104,9 +111,7 @@ pub async fn signup_user(
                     }
                 };
 
-                match user_role_repository::insert_for_user(conn, user.user_id, RoleType::User)
-                    .await
-                {
+                match user_role_repository::insert_for_user(conn, user.user_id, user_role).await {
                     Ok(()) => {}
                     Err(error) => {
                         return Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error));

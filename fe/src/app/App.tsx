@@ -21,7 +21,8 @@ import type {
   ReferenceCountryResponse,
   ReferenceLanguageResponse,
   ReferenceSubdivisionResponse,
-  SignupRequest
+  SignupRequest,
+  SignupRoleType
 } from "../api/types";
 
 type PageId = "home" | "join" | "signin" | "account" | "recovery";
@@ -64,6 +65,14 @@ export function App() {
   const healthOnline = createMemo(() => resultData(healthResult())?.accepting_traffic === true);
   const currentUser = createMemo(() => profile() ?? profileFromSession(session()));
   const isSignedIn = createMemo(() => token().trim().length > 0 && currentUser() !== null);
+  const isAdmin = createMemo(() => {
+    const user = currentUser();
+    if (user === null) {
+      return false;
+    }
+
+    return user.claims.role_type === "admin";
+  });
 
   createEffect(() => {
     const selectedTheme = theme();
@@ -100,11 +109,15 @@ export function App() {
     setActivePage("home");
   };
 
+  const goToSwagger = () => {
+    window.location.assign("/api/v1/swagger-ui/");
+  };
+
   return (
     <div class="app-shell">
       <header class="top-bar">
         <button class="brand-button" type="button" onClick={() => setActivePage("home")}>
-          Account portal
+          Rust-Solid-Template
         </button>
 
         <div class="top-actions">
@@ -144,6 +157,11 @@ export function App() {
             }
           >
             <div class="user-menu">
+              <Show when={isAdmin()}>
+                <button class="secondary-button" type="button" onClick={goToSwagger}>
+                  Swagger
+                </button>
+              </Show>
               <span class="session-dot session-dot--in" aria-hidden="true" />
               <div class="user-summary">
                 <span>{currentUser()?.user_info.user_name}</span>
@@ -236,11 +254,10 @@ function HomePage(props: HomePageProps) {
   return (
     <section class="page-view landing-layout">
       <div class="landing-copy">
-        <p class="eyebrow">Account portal</p>
+        <p class="eyebrow">Rust-Solid-Template</p>
         <h1>Sign in, create an account, or recover access.</h1>
         <p class="hero-text">
-          A focused customer-facing flow for everything related to your account — nothing else gets
-          in the way.
+          A focused account flow for users and service providers.
         </p>
         <div class="hero-actions">
           <button class="primary-button" type="button" onClick={props.onCreateAccount}>
@@ -285,6 +302,7 @@ function JoinPage(props: JoinPageProps) {
   const [email, setEmail] = createSignal("");
   const [password, setPassword] = createSignal("");
   const [confirmPassword, setConfirmPassword] = createSignal("");
+  const [signupRole, setSignupRole] = createSignal<SignupRoleType>("user");
   const [countryCode, setCountryCode] = createSignal("");
   const [languageCode, setLanguageCode] = createSignal("");
   const [subdivisionId, setSubdivisionId] = createSignal("");
@@ -371,6 +389,7 @@ function JoinPage(props: JoinPageProps) {
       user_language: userLanguage,
       user_name: userName().trim(),
       user_password: password(),
+      user_role: signupRole(),
       user_subdivision: userSubdivision
     };
     const result = await signup(body);
@@ -433,6 +452,43 @@ function JoinPage(props: JoinPageProps) {
           <Show when={passwordsMismatch()}>
             <p class="field-note field-note--error">Passwords do not match.</p>
           </Show>
+          <fieldset class="segmented-control">
+            <legend>Account type</legend>
+            <div class="segmented-control__options">
+              <label
+                class={
+                  signupRole() === "user"
+                    ? "segmented-option segmented-option--active"
+                    : "segmented-option"
+                }
+              >
+                <input
+                  checked={signupRole() === "user"}
+                  name="signup-role"
+                  type="radio"
+                  value="user"
+                  onChange={() => setSignupRole("user")}
+                />
+                <span>User</span>
+              </label>
+              <label
+                class={
+                  signupRole() === "service_provider"
+                    ? "segmented-option segmented-option--active"
+                    : "segmented-option"
+                }
+              >
+                <input
+                  checked={signupRole() === "service_provider"}
+                  name="signup-role"
+                  type="radio"
+                  value="service_provider"
+                  onChange={() => setSignupRole("service_provider")}
+                />
+                <span>Service provider</span>
+              </label>
+            </div>
+          </fieldset>
           <select
             aria-label="Country"
             required
