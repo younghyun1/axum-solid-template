@@ -7,12 +7,15 @@ use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
     controller::healthcheck::healthcheck, docs::api_doc::ApiDoc,
+    init::server_config::server_config::DeploymentEnvironment,
     init::state::server_state::ServerState,
 };
 
 use super::static_assets::static_asset_handler;
 
 pub fn build_router(state: Arc<ServerState>) -> Router {
+    let cors_layer = cors_layer_for_environment(state.server_config.deployment_environment);
+
     let api_router = Router::new()
         .route("/healthcheck", get(healthcheck))
         .with_state(state);
@@ -23,7 +26,18 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
     Router::new()
         .merge(api_router)
         .merge(swagger_router)
-        .layer(CorsLayer::very_permissive())
+        .layer(cors_layer)
         .layer(CompressionLayer::new().gzip(true).zstd(true))
         .fallback(static_asset_handler)
+}
+
+fn cors_layer_for_environment(deployment_environment: DeploymentEnvironment) -> CorsLayer {
+    match deployment_environment {
+        DeploymentEnvironment::Local | DeploymentEnvironment::Development => {
+            CorsLayer::very_permissive()
+        }
+        DeploymentEnvironment::Production | DeploymentEnvironment::ProductionDockerized => {
+            CorsLayer::new()
+        }
+    }
 }

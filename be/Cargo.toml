@@ -16,7 +16,10 @@ panic = "unwind"
 # async runtime
 tokio = { version = "1.52.1", features = ["full"] }
 
+# env. variables loading
 dotenvy = { version = "0.15.7" }
+
+# memory allocator
 mimalloc = "0.1.50"
 
 # web server
@@ -26,6 +29,8 @@ mime_guess = "2.0.5"
 rust-embed = "8.11.0"
 rustls = { version = "0.23.39", features = ["aws_lc_rs"] }
 tower-http = { version = "0.6.8", features = ["compression-gzip", "compression-zstd", "cors"] }
+
+# swagger
 utoipa = { version = "5.4.0", features = ["macros"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum", "vendored"] }
 
@@ -36,6 +41,7 @@ tracing-appender = "0.2.5"
 
 # serde
 serde = { version = "1.0.228", features = ["derive"] }
+serde_json = { version = "1.0.149", features = ["preserve_order"] }
 
 [build-dependencies]
 chrono = { version = "0.4.44" }
