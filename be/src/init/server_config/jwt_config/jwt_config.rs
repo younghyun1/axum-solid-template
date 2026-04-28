@@ -2,7 +2,7 @@ use std::time::Duration;
 
 pub const JWT_AUTHORIZATION_HEADER_NAME: &str = "Authorization";
 pub const JWT_BEARER_SCHEME: &str = "Bearer";
-pub const JWT_MIN_SECRET_KEY_BYTES: usize = 32;
+pub const JWT_MIN_SECRET_KEY_BYTES: usize = 64;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct JwtConfig {

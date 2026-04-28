@@ -1,4 +1,4 @@
-use crate::init::{
+use crate::init::server_config::{
     chatbot::{
         chatbot_config::{ChatbotConfig, ChatbotProvider, RagStorageProvider},
         claude::ClaudeConfig,
@@ -12,6 +12,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use super::{
     cert_env::cert_config_from_env,
     jwt_env::jwt_config_from_env,
+    mail_env::mail_config_from_env,
     parsers::{
         normalized_env_value, optional_env, optional_int_env, optional_ip_addr_env,
         parse_database_connection_type, parse_database_type, parse_deployment_environment,
@@ -65,6 +66,10 @@ impl ServerConfig {
             Ok(jwt_config) => jwt_config,
             Err(error) => return Err(error),
         };
+        let mail_config = match mail_config_from_env() {
+            Ok(mail_config) => mail_config,
+            Err(error) => return Err(error),
+        };
 
         Ok(Self {
             deployment_environment,
@@ -76,6 +81,7 @@ impl ServerConfig {
             file_store_config,
             chatbot_config,
             jwt_config,
+            mail_config,
             cert_config,
         })
     }

@@ -81,6 +81,8 @@ pgdata*/
 **/*.sql.gz
 **/*.backup
 **/*.dump
+!be/migrations/
+!be/migrations/**
 
 # Docker / env files (commonly used for local Postgres)
 docker-compose.override.yml

@@ -1,10 +1,11 @@
 use std::{fmt, net::IpAddr};
 
-use crate::init::{
+use crate::init::server_config::{
     chatbot::chatbot_config::ChatbotConfig,
     db_config::DatabaseConfig,
     file_store_config::FileStoreConfig,
     jwt_config::jwt_config::{JwtConfig, JwtConfigError},
+    mail_config::MailConfig,
 };
 
 pub const DEPLOYMENT_ENVIRONMENT_KEY: &str = "DEPLOYMENT_ENVIRONMENT";
@@ -20,6 +21,7 @@ pub struct ServerConfig {
     pub file_store_config: FileStoreConfig,
     pub chatbot_config: ChatbotConfig,
     pub jwt_config: JwtConfig,
+    pub mail_config: MailConfig,
     pub cert_config: Option<CertConfig>,
 }
 

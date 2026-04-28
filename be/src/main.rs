@@ -19,11 +19,12 @@ pub mod init;
 pub mod job;
 pub mod middleware;
 pub mod router;
+pub mod schema;
 pub mod util;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
-    let server_state: ServerState = match init::server_init::init_server_state() {
+    let server_state: ServerState = match init::server_init::init_server_state().await {
         Ok(server_state) => server_state,
         Err(error) => {
             eprintln!("Failed to initialize server state");

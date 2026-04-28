@@ -5,6 +5,7 @@ use axum_server::tls_rustls::RustlsConfig;
 use tracing::{error, info};
 
 use crate::init::{
+    db_pool::{DbPoolInitError, build_db_pool, run_db_migrations},
     logging::logging::{LoggerGuard, LoggerInitError, init_logger},
     server_config::server_config::{DEPLOYMENT_ENVIRONMENT_KEY, ServerConfig, ServerConfigError},
     state::server_state::ServerState,
@@ -13,12 +14,15 @@ use crate::router::{
     app::build_router,
     redirect::{RedirectPorts, build_redirect_router, redirect_socket_addr},
 };
+use crate::util::email::sender::{MailSender, MailSenderError};
 
 #[derive(Debug)]
 pub enum ServerInitError {
     DeploymentEnvironmentNotUnicode,
     DotenvLoad(dotenvy::Error),
+    DbPool(DbPoolInitError),
     Logger(LoggerInitError),
+    MailSender(MailSenderError),
     ServerConfig(ServerConfigError),
 }
 
@@ -44,8 +48,14 @@ impl fmt::Display for ServerInitError {
             ServerInitError::DotenvLoad(error) => {
                 write!(formatter, "failed to load .env file: {error}")
             }
+            ServerInitError::DbPool(error) => {
+                write!(formatter, "failed to initialize database pool: {error}")
+            }
             ServerInitError::Logger(error) => {
                 write!(formatter, "failed to initialize logger: {error}")
+            }
+            ServerInitError::MailSender(error) => {
+                write!(formatter, "failed to initialize mail sender: {error}")
             }
             ServerInitError::ServerConfig(error) => {
                 write!(formatter, "failed to build server config: {error}")
@@ -80,7 +90,7 @@ impl fmt::Display for ServerRunError {
     }
 }
 
-pub fn init_server_state() -> Result<ServerState, ServerInitError> {
+pub async fn init_server_state() -> Result<ServerState, ServerInitError> {
     match load_dotenv_if_deployment_environment_is_missing() {
         Ok(()) => {}
         Err(error) => {
@@ -102,7 +112,33 @@ pub fn init_server_state() -> Result<ServerState, ServerInitError> {
         }
     };
 
-    Ok(ServerState::new(server_config, logger_guard))
+    match run_db_migrations(&server_config.db_config).await {
+        Ok(()) => {}
+        Err(error) => {
+            return Err(ServerInitError::DbPool(error));
+        }
+    }
+
+    let db_pool = match build_db_pool(&server_config.db_config).await {
+        Ok(db_pool) => db_pool,
+        Err(error) => {
+            return Err(ServerInitError::DbPool(error));
+        }
+    };
+
+    let mail_sender = match MailSender::from_config(&server_config.mail_config) {
+        Ok(mail_sender) => mail_sender,
+        Err(error) => {
+            return Err(ServerInitError::MailSender(error));
+        }
+    };
+
+    Ok(ServerState::new(
+        server_config,
+        logger_guard,
+        db_pool,
+        mail_sender,
+    ))
 }
 
 pub async fn run_server(state: Arc<ServerState>) -> Result<(), ServerRunError> {

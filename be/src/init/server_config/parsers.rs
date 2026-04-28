@@ -1,6 +1,6 @@
 use std::{env, net::IpAddr, str::FromStr};
 
-use crate::init::db_config::{DatabaseConnectionType, DatabaseType};
+use crate::init::server_config::db_config::{DatabaseConnectionType, DatabaseType};
 
 use super::server_config::{DEPLOYMENT_ENVIRONMENT_KEY, DeploymentEnvironment, ServerConfigError};
 

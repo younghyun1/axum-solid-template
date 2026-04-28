@@ -25,13 +25,28 @@ mimalloc = "0.1.50"
 # web server
 axum = { version = "0.8.9", features = ["json", "tokio", "http1", "http2"] }
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
+axum-extra = { version = "0.12.6", features = ["typed-header"] }
 mime_guess = "2.0.5"
 rust-embed = "8.11.0"
 rustls = { version = "0.23.39", features = ["aws_lc_rs"] }
 tower-http = { version = "0.6.8", features = ["compression-gzip", "compression-zstd", "cors"] }
 
+# database
+diesel = { version = "2.3.8", features = ["postgres", "chrono", "uuid"] }
+diesel-async = { version = "0.8.0", features = ["postgres", "bb8", "migrations"] }
+diesel_migrations = { version = "2.3.2", features = ["postgres"] }
+
+# auth and crypto
+argon2 = { version = "0.5.3", features = ["std"] }
+email_address = "0.2.9"
+jsonwebtoken = { version = "10.3.0", default-features = false, features = ["aws_lc_rs"] }
+lettre = { version = "0.11.21", default-features = false, features = ["builder", "hostname", "pool", "smtp-transport", "tokio1-rustls-tls"] }
+rand = "0.8.6"
+uuid = { version = "1.23.1", features = ["serde", "v7"] }
+zeroize = { version = "1.8.2", features = ["derive"] }
+
 # swagger
-utoipa = { version = "5.4.0", features = ["macros"] }
+utoipa = { version = "5.4.0", features = ["macros", "chrono", "uuid"] }
 utoipa-swagger-ui = { version = "9.0.2", features = ["axum", "vendored"] }
 
 # loggers

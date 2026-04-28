@@ -1,0 +1,11 @@
+DROP TABLE IF EXISTS public.password_reset_tokens;
+DROP TABLE IF EXISTS public.email_verification_tokens;
+DROP TABLE IF EXISTS public.user_roles;
+DROP TABLE IF EXISTS public.role_permissions;
+DROP TABLE IF EXISTS public.permissions;
+DROP TABLE IF EXISTS public.roles;
+DROP TABLE IF EXISTS public.users;
+DROP TABLE IF EXISTS public.iso_country_subdivision;
+DROP TABLE IF EXISTS public.iso_country;
+DROP TABLE IF EXISTS public.iso_currency;
+DROP TABLE IF EXISTS public.iso_language;
