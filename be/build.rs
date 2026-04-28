@@ -1,11 +1,23 @@
-use std::{env, fs::File, io::Write, path::Path};
+use std::{env, fs::File, io::Write, path::Path, process};
 
 fn main() {
     // === build_info.rs codegen: ===
     // Get project name and version from environment variables set by Cargo
-    let out_dir = env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not found");
-    let pkg_name = env::var("CARGO_PKG_NAME").unwrap_or_else(|_| "unknown".to_string());
-    let pkg_version = env::var("CARGO_PKG_VERSION").unwrap_or_else(|_| "unknown".to_string());
+    let out_dir = match env::var("CARGO_MANIFEST_DIR") {
+        Ok(out_dir) => out_dir,
+        Err(error) => {
+            eprintln!("CARGO_MANIFEST_DIR not found: {error}");
+            process::exit(1);
+        }
+    };
+    let pkg_name = match env::var("CARGO_PKG_NAME") {
+        Ok(pkg_name) => pkg_name,
+        Err(_) => "unknown".to_string(),
+    };
+    let pkg_version = match env::var("CARGO_PKG_VERSION") {
+        Ok(pkg_version) => pkg_version,
+        Err(_) => "unknown".to_string(),
+    };
 
     // Use chrono to get the current UTC datetime (build time)
     let build_time = chrono::Utc::now();
@@ -15,10 +27,25 @@ fn main() {
 
     // Read environment variable for dep versions, output by Cargo, via cargo metadata.
     // Use cargo_metadata to collect dependencies & versions
-    let deps = get_lib_version_map().unwrap();
+    let deps = match get_lib_version_map() {
+        Some(deps) => deps,
+        None => {
+            eprintln!("failed to collect cargo dependency metadata");
+            process::exit(1);
+        }
+    };
 
     let dest_path = Path::new(&out_dir).join("src/build_info.rs");
-    let mut f = File::create(&dest_path).expect("Unable to create build_info.rs");
+    let mut f = match File::create(&dest_path) {
+        Ok(file) => file,
+        Err(error) => {
+            eprintln!(
+                "unable to create build_info.rs at {}: {error}",
+                dest_path.display()
+            );
+            process::exit(1);
+        }
+    };
 
     // Write struct and impls at the top of build_info.rs
     let libs_count: usize = deps.list.len();
@@ -62,29 +89,46 @@ pub const LIB_VERSIONS: [LibVersion; {libs_count}] = ["#,
         pkg_version = pkg_version,
         libs_count = libs_count
     );
-    writeln!(f, "{prelude}").expect("Failed to write build_info.rs prelude");
+    write_or_exit(
+        writeln!(f, "{prelude}"),
+        "failed to write build_info.rs prelude",
+    );
 
     for dep in deps.list.iter() {
-        writeln!(
-            f,
-            r#"    LibVersion {{
+        write_or_exit(
+            writeln!(
+                f,
+                r#"    LibVersion {{
         name: {:?},
         version: {:?},
     }},"#,
-            dep.name, dep.version
-        )
-        .expect("Failed to write dep entry");
+                dep.name, dep.version
+            ),
+            "failed to write dep entry",
+        );
     }
-    writeln!(f, "];").expect("Failed to finish LIB_VERSIONS array");
+    write_or_exit(writeln!(f, "];"), "failed to finish LIB_VERSIONS array");
 
     // Write a const LIB_VERSION_MAP as well
-    writeln!(
-        f,
-        r#"pub const LIB_VERSION_MAP: LibVersionMap = LibVersionMap {{
+    write_or_exit(
+        writeln!(
+            f,
+            r#"pub const LIB_VERSION_MAP: LibVersionMap = LibVersionMap {{
     list: &LIB_VERSIONS,
 }};"#
-    )
-    .expect("Failed to write LIB_VERSION_MAP const");
+        ),
+        "failed to write LIB_VERSION_MAP const",
+    );
+}
+
+fn write_or_exit(result: std::io::Result<()>, context: &'static str) {
+    match result {
+        Ok(()) => {}
+        Err(error) => {
+            eprintln!("{context}: {error}");
+            process::exit(1);
+        }
+    }
 }
 
 fn rustc_version() -> String {

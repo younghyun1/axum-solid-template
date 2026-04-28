@@ -1,0 +1,415 @@
+use std::fmt;
+
+use axum::{
+    Json,
+    response::{IntoResponse, Response},
+};
+use tracing::{Level, error, info, warn};
+
+use crate::{
+    dto::api_response::{ApiEnvelope, ApiErrorBody, ApiMeta, ApiResult, ApiTimer},
+    error::code_error::CodeError,
+};
+
+#[derive(Debug, Clone)]
+pub struct ApiError {
+    code_error: CodeError,
+    source_error: Option<String>,
+    public_detail: Option<String>,
+    timer: Option<ApiTimer>,
+}
+
+pub trait ApiResultExt<T, E> {
+    fn api_err(self, code_error: CodeError) -> ApiResult<T>
+    where
+        E: fmt::Display;
+
+    fn api_err_timed(self, code_error: CodeError, timer: ApiTimer) -> ApiResult<T>
+    where
+        E: fmt::Display;
+
+    fn api_err_public<D>(self, code_error: CodeError, public_detail: D) -> ApiResult<T>
+    where
+        E: fmt::Display,
+        D: Into<String>;
+
+    fn api_err_public_timed<D>(
+        self,
+        code_error: CodeError,
+        timer: ApiTimer,
+        public_detail: D,
+    ) -> ApiResult<T>
+    where
+        E: fmt::Display,
+        D: Into<String>;
+
+    fn api_err_with_detail<D>(self, code_error: CodeError, detail: D) -> ApiResult<T>
+    where
+        E: fmt::Display,
+        D: FnOnce(&E) -> String;
+
+    fn api_err_with_detail_timed<D>(
+        self,
+        code_error: CodeError,
+        timer: ApiTimer,
+        detail: D,
+    ) -> ApiResult<T>
+    where
+        E: fmt::Display,
+        D: FnOnce(&E) -> String;
+}
+
+pub trait ApiOptionExt<T> {
+    fn api_ok_or(self, code_error: CodeError) -> ApiResult<T>;
+
+    fn api_ok_or_timed(self, code_error: CodeError, timer: ApiTimer) -> ApiResult<T>;
+
+    fn api_ok_or_public<D>(self, code_error: CodeError, public_detail: D) -> ApiResult<T>
+    where
+        D: Into<String>;
+
+    fn api_ok_or_public_timed<D>(
+        self,
+        code_error: CodeError,
+        timer: ApiTimer,
+        public_detail: D,
+    ) -> ApiResult<T>
+    where
+        D: Into<String>;
+}
+
+impl ApiError {
+    pub fn new(code_error: CodeError) -> Self {
+        Self {
+            code_error,
+            source_error: None,
+            public_detail: None,
+            timer: None,
+        }
+    }
+
+    pub fn public<D>(code_error: CodeError, public_detail: D) -> Self
+    where
+        D: Into<String>,
+    {
+        Self {
+            code_error,
+            source_error: None,
+            public_detail: Some(public_detail.into()),
+            timer: None,
+        }
+    }
+
+    pub fn from_source<E>(code_error: CodeError, source_error: E) -> Self
+    where
+        E: fmt::Display,
+    {
+        Self {
+            code_error,
+            source_error: Some(source_error.to_string()),
+            public_detail: None,
+            timer: None,
+        }
+    }
+
+    pub fn from_source_public<E, D>(
+        code_error: CodeError,
+        source_error: E,
+        public_detail: D,
+    ) -> Self
+    where
+        E: fmt::Display,
+        D: Into<String>,
+    {
+        Self {
+            code_error,
+            source_error: Some(source_error.to_string()),
+            public_detail: Some(public_detail.into()),
+            timer: None,
+        }
+    }
+
+    pub fn with_timer(mut self, timer: ApiTimer) -> Self {
+        self.timer = Some(timer);
+        self
+    }
+
+    pub fn with_public_detail<D>(mut self, public_detail: D) -> Self
+    where
+        D: Into<String>,
+    {
+        self.public_detail = Some(public_detail.into());
+        self
+    }
+
+    pub fn code_error(&self) -> CodeError {
+        self.code_error
+    }
+
+    pub fn log(&self) {
+        match self.code_error.log_level {
+            Level::ERROR => {
+                error!(
+                    error_code = self.code_error.error_code,
+                    http_status_code = self.code_error.http_status_code.as_u16(),
+                    error_message = self.code_error.message,
+                    error_detail = ?self.public_detail,
+                    source_error = ?self.source_error,
+                    "API request failed"
+                );
+            }
+            Level::WARN => {
+                warn!(
+                    error_code = self.code_error.error_code,
+                    http_status_code = self.code_error.http_status_code.as_u16(),
+                    error_message = self.code_error.message,
+                    error_detail = ?self.public_detail,
+                    source_error = ?self.source_error,
+                    "API request failed"
+                );
+            }
+            Level::INFO | Level::DEBUG | Level::TRACE => {
+                info!(
+                    error_code = self.code_error.error_code,
+                    http_status_code = self.code_error.http_status_code.as_u16(),
+                    error_message = self.code_error.message,
+                    error_detail = ?self.public_detail,
+                    source_error = ?self.source_error,
+                    "API request failed"
+                );
+            }
+        }
+    }
+
+    fn response_meta(&self) -> ApiMeta {
+        match self.timer {
+            Some(timer) => ApiMeta::from_timer(timer),
+            None => ApiMeta::new(),
+        }
+    }
+
+    fn response_body(&self) -> ApiEnvelope<(), ApiMeta> {
+        ApiEnvelope::failure(
+            ApiErrorBody::from_code_error(self.code_error, self.public_detail.clone()),
+            self.response_meta(),
+        )
+    }
+}
+
+impl<T, E> ApiResultExt<T, E> for Result<T, E> {
+    fn api_err(self, code_error: CodeError) -> ApiResult<T>
+    where
+        E: fmt::Display,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(ApiError::from_source(code_error, error)),
+        }
+    }
+
+    fn api_err_timed(self, code_error: CodeError, timer: ApiTimer) -> ApiResult<T>
+    where
+        E: fmt::Display,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(ApiError::from_source(code_error, error).with_timer(timer)),
+        }
+    }
+
+    fn api_err_public<D>(self, code_error: CodeError, public_detail: D) -> ApiResult<T>
+    where
+        E: fmt::Display,
+        D: Into<String>,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(ApiError::from_source_public(
+                code_error,
+                error,
+                public_detail,
+            )),
+        }
+    }
+
+    fn api_err_public_timed<D>(
+        self,
+        code_error: CodeError,
+        timer: ApiTimer,
+        public_detail: D,
+    ) -> ApiResult<T>
+    where
+        E: fmt::Display,
+        D: Into<String>,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => Err(
+                ApiError::from_source_public(code_error, error, public_detail).with_timer(timer),
+            ),
+        }
+    }
+
+    fn api_err_with_detail<D>(self, code_error: CodeError, detail: D) -> ApiResult<T>
+    where
+        E: fmt::Display,
+        D: FnOnce(&E) -> String,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                let public_detail = detail(&error);
+                Err(ApiError::from_source_public(
+                    code_error,
+                    error,
+                    public_detail,
+                ))
+            }
+        }
+    }
+
+    fn api_err_with_detail_timed<D>(
+        self,
+        code_error: CodeError,
+        timer: ApiTimer,
+        detail: D,
+    ) -> ApiResult<T>
+    where
+        E: fmt::Display,
+        D: FnOnce(&E) -> String,
+    {
+        match self {
+            Ok(value) => Ok(value),
+            Err(error) => {
+                let public_detail = detail(&error);
+                Err(
+                    ApiError::from_source_public(code_error, error, public_detail)
+                        .with_timer(timer),
+                )
+            }
+        }
+    }
+}
+
+impl<T> ApiOptionExt<T> for Option<T> {
+    fn api_ok_or(self, code_error: CodeError) -> ApiResult<T> {
+        match self {
+            Some(value) => Ok(value),
+            None => Err(ApiError::new(code_error)),
+        }
+    }
+
+    fn api_ok_or_timed(self, code_error: CodeError, timer: ApiTimer) -> ApiResult<T> {
+        match self {
+            Some(value) => Ok(value),
+            None => Err(ApiError::new(code_error).with_timer(timer)),
+        }
+    }
+
+    fn api_ok_or_public<D>(self, code_error: CodeError, public_detail: D) -> ApiResult<T>
+    where
+        D: Into<String>,
+    {
+        match self {
+            Some(value) => Ok(value),
+            None => Err(ApiError::public(code_error, public_detail)),
+        }
+    }
+
+    fn api_ok_or_public_timed<D>(
+        self,
+        code_error: CodeError,
+        timer: ApiTimer,
+        public_detail: D,
+    ) -> ApiResult<T>
+    where
+        D: Into<String>,
+    {
+        match self {
+            Some(value) => Ok(value),
+            None => Err(ApiError::public(code_error, public_detail).with_timer(timer)),
+        }
+    }
+}
+
+impl From<CodeError> for ApiError {
+    fn from(code_error: CodeError) -> Self {
+        Self::new(code_error)
+    }
+}
+
+impl IntoResponse for CodeError {
+    fn into_response(self) -> Response {
+        ApiError::new(self).into_response()
+    }
+}
+
+impl fmt::Display for ApiError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match &self.source_error {
+            Some(source_error) => {
+                write!(formatter, "{}: {source_error}", self.code_error.message)
+            }
+            None => formatter.write_str(self.code_error.message),
+        }
+    }
+}
+
+impl std::error::Error for ApiError {}
+
+impl IntoResponse for ApiError {
+    fn into_response(self) -> Response {
+        self.log();
+        (self.code_error.http_status_code, Json(self.response_body())).into_response()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use axum::response::IntoResponse;
+
+    use crate::error::{
+        api_error::{ApiOptionExt, ApiResultExt},
+        code_error::CodeError,
+    };
+
+    #[test]
+    fn result_extension_maps_library_error_to_api_error() {
+        let result: Result<(), std::io::Error> = Err(std::io::Error::other("disk unavailable"));
+        let mapped = result.api_err(CodeError::INTERNAL_ERROR);
+        assert!(mapped.is_err());
+
+        let api_error = match mapped {
+            Ok(()) => return,
+            Err(api_error) => api_error,
+        };
+
+        assert_eq!(api_error.code_error().error_code, 255);
+    }
+
+    #[test]
+    fn option_extension_maps_none_to_api_error() {
+        let missing: Option<u8> = None;
+        let mapped = missing.api_ok_or(CodeError::INTERNAL_ERROR);
+        assert!(mapped.is_err());
+
+        let api_error = match mapped {
+            Ok(_) => return,
+            Err(api_error) => api_error,
+        };
+
+        assert_eq!(
+            api_error.code_error().http_status_code,
+            CodeError::INTERNAL_ERROR.http_status_code
+        );
+    }
+
+    #[test]
+    fn api_error_into_response_uses_configured_status_code() {
+        let response = CodeError::INTERNAL_ERROR.into_response();
+        assert_eq!(
+            response.status(),
+            CodeError::INTERNAL_ERROR.http_status_code
+        );
+    }
+}

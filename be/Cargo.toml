@@ -40,6 +40,7 @@ tracing-subscriber = { version = "0.3.23", features = ["fmt", "json"] }
 tracing-appender = "0.2.5"
 
 # serde
+chrono = { version = "0.4.44", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149", features = ["preserve_order"] }
 

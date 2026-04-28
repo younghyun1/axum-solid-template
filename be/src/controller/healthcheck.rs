@@ -1,7 +1,9 @@
-use axum::{
-    body::Bytes,
-    http::{StatusCode, header},
-    response::IntoResponse,
+use crate::{
+    dto::{
+        api_response::{ApiEnvelope, ApiResponse},
+        healthcheck::HealthcheckResponse,
+    },
+    error::prelude::api_ok,
 };
 
 #[utoipa::path(
@@ -9,13 +11,13 @@ use axum::{
     path = "/healthcheck",
     tag = "server",
     responses(
-        (status = 200, description = "Server is accepting traffic", content_type = "application/octet-stream")
+        (
+            status = 200,
+            description = "Server is accepting traffic",
+            body = ApiEnvelope<HealthcheckResponse>
+        )
     )
 )]
-pub async fn healthcheck() -> impl IntoResponse {
-    (
-        StatusCode::OK,
-        [(header::CONTENT_TYPE, "application/octet-stream")],
-        Bytes::from_static(&[1_u8]),
-    )
+pub async fn healthcheck() -> ApiResponse<HealthcheckResponse> {
+    api_ok(HealthcheckResponse::accepting_traffic())
 }
