@@ -8,7 +8,7 @@ use crate::{
 
 #[utoipa::path(
     get,
-    path = "/healthcheck",
+    path = "/api/v1/healthcheck",
     tag = "server",
     responses(
         (

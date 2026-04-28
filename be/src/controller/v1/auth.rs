@@ -36,7 +36,7 @@ use crate::{
 
 #[utoipa::path(
     post,
-    path = "/api/auth/signup",
+    path = "/api/v1/auth/signup",
     tag = "auth",
     request_body = SignupRequest,
     responses((status = 200, description = "User successfully signed up", body = ApiEnvelope<SignupResponse>))
@@ -51,7 +51,7 @@ pub async fn signup(
 
 #[utoipa::path(
     post,
-    path = "/api/auth/login",
+    path = "/api/v1/auth/login",
     tag = "auth",
     request_body = LoginRequest,
     responses((status = 200, description = "Login successful", body = ApiEnvelope<LoginResponse>))
@@ -66,7 +66,7 @@ pub async fn login(
 
 #[utoipa::path(
     get,
-    path = "/api/auth/me",
+    path = "/api/v1/auth/me",
     tag = "auth",
     responses((status = 200, description = "Current user", body = ApiEnvelope<MeResponse>))
 )]
@@ -80,7 +80,7 @@ pub async fn me(
 
 #[utoipa::path(
     post,
-    path = "/api/auth/logout",
+    path = "/api/v1/auth/logout",
     tag = "auth",
     responses((status = 200, description = "Logout successful", body = ApiEnvelope<LogoutResponse>))
 )]
@@ -92,7 +92,7 @@ pub async fn logout() -> ApiResponse<LogoutResponse> {
 
 #[utoipa::path(
     post,
-    path = "/api/auth/check-if-user-exists",
+    path = "/api/v1/auth/check-if-user-exists",
     tag = "auth",
     request_body = CheckIfUserExistsRequest,
     responses((status = 200, description = "Email existence", body = ApiEnvelope<CheckIfUserExistsResponse>))
@@ -107,7 +107,7 @@ pub async fn check_if_user_exists(
 
 #[utoipa::path(
     post,
-    path = "/api/auth/reset-password-request",
+    path = "/api/v1/auth/reset-password-request",
     tag = "auth",
     request_body = ResetPasswordRequest,
     responses((status = 200, description = "Password reset request processed", body = ApiEnvelope<ResetPasswordRequestResponse>))
@@ -122,7 +122,7 @@ pub async fn reset_password_request(
 
 #[utoipa::path(
     post,
-    path = "/api/auth/reset-password",
+    path = "/api/v1/auth/reset-password",
     tag = "auth",
     request_body = ResetPasswordProcessRequest,
     responses((status = 200, description = "Password reset", body = ApiEnvelope<ResetPasswordResponse>))
@@ -137,7 +137,7 @@ pub async fn reset_password(
 
 #[utoipa::path(
     get,
-    path = "/api/auth/verify-user-email",
+    path = "/api/v1/auth/verify-user-email",
     tag = "auth",
     params(("email_validation_token_id" = Uuid, Query, description = "Email validation token")),
     responses((status = 200, description = "Email verified", body = ApiEnvelope<VerifyEmailResponse>))
@@ -152,7 +152,7 @@ pub async fn verify_user_email(
 
 #[utoipa::path(
     get,
-    path = "/api/users/{user_name}",
+    path = "/api/v1/users/{user_name}",
     tag = "user",
     params(("user_name" = String, Path, description = "Public username")),
     responses((status = 200, description = "Public user information", body = ApiEnvelope<PublicUserInfoResponse>))

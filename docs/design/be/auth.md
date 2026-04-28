@@ -36,17 +36,15 @@ API routes use `be/src/middleware/auth.rs`, which validates any Bearer token and
 
 Implemented endpoints:
 
-- `POST /api/auth/signup`
-- `POST /api/auth/login`
-- `GET /api/auth/me`
-- `POST /api/auth/logout`
-- `POST /api/auth/check-if-user-exists`
-- `POST /api/auth/reset-password-request`
-- `POST /api/auth/reset-password`
-- `GET /api/auth/verify-user-email`
-- `GET /api/users/{user_name}`
-
-The same endpoints are also exposed under `/api/v1`.
+- `POST /api/v1/auth/signup`
+- `POST /api/v1/auth/login`
+- `GET /api/v1/auth/me`
+- `POST /api/v1/auth/logout`
+- `POST /api/v1/auth/check-if-user-exists`
+- `POST /api/v1/auth/reset-password-request`
+- `POST /api/v1/auth/reset-password`
+- `GET /api/v1/auth/verify-user-email`
+- `GET /api/v1/users/{user_name}`
 
 Passwords must contain at least 9 and at most 256 characters, with at least one ASCII uppercase letter, lowercase letter, digit, and symbol. Passwords are hashed and verified with Argon2id version 0x13 in blocking tasks, using 64 MiB memory, 3 iterations, 1 lane, and a 32-byte output. Password-bearing DTOs derive `Zeroize` and `ZeroizeOnDrop`.
 

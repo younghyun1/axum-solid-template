@@ -18,7 +18,7 @@ use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
 use crate::{
-    controller::{
+    controller::v1::{
         auth::{
             check_if_user_exists, get_user_info, login, logout, me, reset_password,
             reset_password_request, signup, verify_user_email,
@@ -37,45 +37,29 @@ use super::static_assets::static_asset_handler;
 
 const AUTH_RATE_LIMIT_REPLENISHED_EVERY_MILLISECONDS: u64 = 63;
 const AUTH_RATE_LIMIT_BURST_SIZE: u32 = 1024;
+const API_V1_PREFIX: &str = "/api/v1";
 
 pub fn build_router(state: Arc<ServerState>) -> Router {
     let cors_layer = cors_layer_for_environment(state.server_config.deployment_environment);
+    let api_v1_router = build_api_v1_router(state);
 
-    // Keep unversioned and v1 routes together until the template has a versioning policy.
-    let public_auth_router = Router::new()
-        .route("/api/auth/signup", post(signup))
-        .route("/api/auth/login", post(login))
-        .route("/api/auth/check-if-user-exists", post(check_if_user_exists))
-        .route(
-            "/api/auth/reset-password-request",
-            post(reset_password_request),
-        )
-        .route("/api/auth/reset-password", post(reset_password))
-        .route("/api/auth/verify-user-email", get(verify_user_email))
-        .route("/api/users/{user_name}", get(get_user_info))
-        .route("/api/v1/auth/signup", post(signup))
-        .route("/api/v1/auth/login", post(login))
-        .route(
-            "/api/v1/auth/check-if-user-exists",
-            post(check_if_user_exists),
-        )
-        .route(
-            "/api/v1/auth/reset-password-request",
-            post(reset_password_request),
-        )
-        .route("/api/v1/auth/reset-password", post(reset_password))
-        .route("/api/v1/auth/verify-user-email", get(verify_user_email))
-        .route("/api/v1/users/{user_name}", get(get_user_info));
-    let public_auth_router = apply_auth_rate_limit(public_auth_router);
+    let swagger_router = SwaggerUi::new("/api/v1/swagger-ui")
+        .url("/api/v1/api-docs/openapi.json", ApiDoc::openapi());
 
-    let protected_auth_router = Router::new()
-        .route("/api/auth/me", get(me))
-        .route("/api/auth/logout", post(logout))
-        .route("/api/v1/auth/me", get(me))
-        .route("/api/v1/auth/logout", post(logout))
-        .layer(from_fn_with_state(state.clone(), require_auth));
+    Router::new()
+        .nest(API_V1_PREFIX, api_v1_router)
+        .merge(swagger_router)
+        .fallback(static_asset_handler)
+        .layer(cors_layer)
+        .layer(CompressionLayer::new().gzip(true).zstd(true))
+        .layer(from_fn(log_request_response))
+}
 
-    let api_router = Router::new()
+fn build_api_v1_router(state: Arc<ServerState>) -> Router {
+    let public_auth_router = apply_auth_rate_limit(build_public_auth_router());
+    let protected_auth_router = build_protected_auth_router(state.clone());
+
+    Router::new()
         .route("/healthcheck", get(healthcheck))
         .merge(public_auth_router)
         .merge(protected_auth_router)
@@ -83,18 +67,25 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
             state.clone(),
             attach_optional_auth_context,
         ))
-        .with_state(state);
+        .with_state(state)
+}
 
-    let swagger_router =
-        SwaggerUi::new("/swagger-ui").url("/api-docs/openapi.json", ApiDoc::openapi());
-
+fn build_public_auth_router() -> Router<Arc<ServerState>> {
     Router::new()
-        .merge(api_router)
-        .merge(swagger_router)
-        .fallback(static_asset_handler)
-        .layer(cors_layer)
-        .layer(CompressionLayer::new().gzip(true).zstd(true))
-        .layer(from_fn(log_request_response))
+        .route("/auth/signup", post(signup))
+        .route("/auth/login", post(login))
+        .route("/auth/check-if-user-exists", post(check_if_user_exists))
+        .route("/auth/reset-password-request", post(reset_password_request))
+        .route("/auth/reset-password", post(reset_password))
+        .route("/auth/verify-user-email", get(verify_user_email))
+        .route("/users/{user_name}", get(get_user_info))
+}
+
+fn build_protected_auth_router(state: Arc<ServerState>) -> Router<Arc<ServerState>> {
+    Router::new()
+        .route("/auth/me", get(me))
+        .route("/auth/logout", post(logout))
+        .layer(from_fn_with_state(state, require_auth))
 }
 
 fn cors_layer_for_environment(deployment_environment: DeploymentEnvironment) -> CorsLayer {

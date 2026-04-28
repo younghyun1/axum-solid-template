@@ -26,6 +26,7 @@ mimalloc = "0.1.50"
 axum = { version = "0.8.9", features = ["json", "tokio", "http1", "http2"] }
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
 axum-extra = { version = "0.12.6", features = ["typed-header"] }
+bytes = "1.11.1"
 mime_guess = "2.0.5"
 rust-embed = "8.11.0"
 rustls = { version = "0.23.39", features = ["aws_lc_rs"] }

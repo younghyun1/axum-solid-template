@@ -1,197 +1,157 @@
 use axum::{
-    http::{HeaderMap, StatusCode, Uri, header},
+    body::Body,
+    http::{HeaderMap, HeaderValue, StatusCode, Uri, header},
     response::{IntoResponse, Response},
 };
+use bytes::Bytes;
 use mime_guess::from_path;
 use rust_embed::Embed;
+use std::{collections::HashMap, sync::OnceLock};
+use tracing::{info, warn};
+
+use super::static_asset_encoding::{ContentCodingPreference, select_static_encoding};
 
 #[derive(Embed)]
-#[folder = "../fe/"]
+#[folder = "fe/"]
 struct EmbeddedFrontend;
 
-#[derive(Clone, Copy, Debug, PartialEq)]
-enum ContentCodingPreference {
-    Zstd,
-    Gzip,
-    Identity,
+static FRONTEND_ASSETS: OnceLock<FrontendAssets> = OnceLock::new();
+
+struct FrontendAssets {
+    assets: HashMap<String, FrontendAsset>,
 }
 
-fn parse_quality(raw: &str) -> f32 {
-    match raw.trim().parse::<f32>() {
-        Ok(value) if (0.0..=1.0).contains(&value) => value,
-        Ok(_) => 0.0,
-        Err(_) => 0.0,
-    }
+struct FrontendAsset {
+    data: Bytes,
 }
 
-fn set_max_quality(slot: &mut Option<f32>, quality: f32) {
-    match *slot {
-        Some(current) if current >= quality => {}
-        _ => *slot = Some(quality),
-    }
-}
+impl FrontendAssets {
+    fn load() -> Self {
+        let mut assets = HashMap::new();
 
-fn q_value_from_parameter(parameter: &str) -> Option<f32> {
-    let mut key_value = parameter.trim().splitn(2, '=');
-    let key = match key_value.next() {
-        Some(value) => value.trim(),
-        None => return None,
-    };
-
-    match key.eq_ignore_ascii_case("q") {
-        true => match key_value.next() {
-            Some(raw_quality) => Some(parse_quality(raw_quality)),
-            None => Some(0.0),
-        },
-        false => None,
-    }
-}
-
-#[allow(clippy::manual_unwrap_or, clippy::single_match)]
-fn select_static_encoding(headers: &HeaderMap) -> ContentCodingPreference {
-    let accept_encoding = match headers.get(header::ACCEPT_ENCODING) {
-        Some(value) => match value.to_str() {
-            Ok(parsed) => parsed,
-            Err(error) => {
-                tracing::warn!(
-                    error = %error,
-                    "Invalid Accept-Encoding header; serving identity asset"
-                );
-                return ContentCodingPreference::Identity;
-            }
-        },
-        None => return ContentCodingPreference::Identity,
-    };
-
-    let mut zstd_q: Option<f32> = None;
-    let mut gzip_q: Option<f32> = None;
-    let mut identity_q: Option<f32> = None;
-    let mut wildcard_q: Option<f32> = None;
-
-    for encoding_entry in accept_encoding.split(',') {
-        let mut parts = encoding_entry.trim().split(';');
-        let encoding_name = match parts.next() {
-            Some(value) => value.trim().to_ascii_lowercase(),
-            None => continue,
-        };
-        if encoding_name.is_empty() {
-            continue;
-        }
-
-        let mut quality = 1.0_f32;
-        for parameter in parts {
-            match q_value_from_parameter(parameter) {
-                Some(parsed_quality) => quality = parsed_quality,
-                None => {}
+        for asset_path in EmbeddedFrontend::iter() {
+            let asset_path_string = asset_path.to_string();
+            match EmbeddedFrontend::get(asset_path_string.as_str()) {
+                Some(content) => {
+                    assets.insert(
+                        asset_path_string,
+                        FrontendAsset {
+                            data: Bytes::copy_from_slice(content.data.as_ref()),
+                        },
+                    );
+                }
+                None => {
+                    warn!(
+                        asset_path = %asset_path_string,
+                        "Embedded frontend asset listed by rust_embed was not readable"
+                    );
+                }
             }
         }
 
-        match encoding_name.as_str() {
-            "zstd" => set_max_quality(&mut zstd_q, quality),
-            "gzip" | "x-gzip" => set_max_quality(&mut gzip_q, quality),
-            "identity" => set_max_quality(&mut identity_q, quality),
-            "*" => set_max_quality(&mut wildcard_q, quality),
-            _ => {}
-        }
+        info!(
+            frontend_asset_count = assets.len(),
+            "Loaded embedded frontend assets into memory"
+        );
+
+        Self { assets }
     }
 
-    let wildcard_default = match wildcard_q {
-        Some(value) => value,
-        None => 0.0,
-    };
-    let zstd_effective = match zstd_q {
-        Some(value) => value,
-        None => wildcard_default,
-    };
-    let gzip_effective = match gzip_q {
-        Some(value) => value,
-        None => wildcard_default,
-    };
-    let identity_effective = match identity_q {
-        Some(value) => value,
-        None => match wildcard_q {
-            Some(0.0) => 0.0,
-            _ => 1.0,
-        },
-    };
-
-    if zstd_effective > 0.0
-        && zstd_effective >= gzip_effective
-        && zstd_effective >= identity_effective
-    {
-        return ContentCodingPreference::Zstd;
+    fn get(&self, path: &str) -> Option<&FrontendAsset> {
+        self.assets.get(path)
     }
+}
 
-    if gzip_effective > 0.0 && gzip_effective >= identity_effective {
-        return ContentCodingPreference::Gzip;
-    }
-
-    ContentCodingPreference::Identity
+fn frontend_assets() -> &'static FrontendAssets {
+    FRONTEND_ASSETS.get_or_init(FrontendAssets::load)
 }
 
 fn serve_compressed_asset(path: &str, coding: ContentCodingPreference) -> Option<Response> {
     let (extension, encoding_name) = match coding {
-        ContentCodingPreference::Zstd => (".zst", "zstd"),
-        ContentCodingPreference::Gzip => (".gz", "gzip"),
+        ContentCodingPreference::Zstd => (".zst", HeaderValue::from_static("zstd")),
+        ContentCodingPreference::Gzip => (".gz", HeaderValue::from_static("gzip")),
         ContentCodingPreference::Identity => return None,
     };
 
     let compressed_path = format!("{path}{extension}");
-    match EmbeddedFrontend::get(&compressed_path) {
-        Some(content) => {
-            let mime = from_path(path).first_or_octet_stream();
-            Some(
-                (
-                    StatusCode::OK,
-                    [
-                        (header::CONTENT_TYPE, mime.as_ref()),
-                        (header::CONTENT_ENCODING, encoding_name),
-                        (header::VARY, "Accept-Encoding"),
-                    ],
-                    content.data,
-                )
-                    .into_response(),
-            )
+    serve_asset(compressed_path.as_str(), path, Some(encoding_name))
+}
+
+fn serve_uncompressed_asset(path: &str) -> Option<Response> {
+    serve_asset(path, path, None)
+}
+
+fn serve_asset(
+    asset_path: &str,
+    source_path: &str,
+    content_encoding: Option<HeaderValue>,
+) -> Option<Response> {
+    match frontend_assets().get(asset_path) {
+        Some(asset) => {
+            let mime = from_path(source_path).first_or_octet_stream();
+            let mut response = Response::new(Body::from(asset.data.clone()));
+            *response.status_mut() = StatusCode::OK;
+
+            let headers = response.headers_mut();
+            match HeaderValue::from_str(mime.as_ref()) {
+                Ok(content_type) => {
+                    headers.insert(header::CONTENT_TYPE, content_type);
+                }
+                Err(error) => {
+                    warn!(
+                        asset_path = %asset_path,
+                        source_path = %source_path,
+                        content_type = mime.as_ref(),
+                        error = %error,
+                        "Failed to build frontend asset Content-Type header"
+                    );
+                    headers.insert(
+                        header::CONTENT_TYPE,
+                        HeaderValue::from_static("application/octet-stream"),
+                    );
+                }
+            }
+
+            if let Some(encoding) = content_encoding {
+                headers.insert(header::CONTENT_ENCODING, encoding);
+            }
+            headers.insert(header::CACHE_CONTROL, cache_control_value(source_path));
+            headers.insert(header::VARY, HeaderValue::from_static("Accept-Encoding"));
+
+            Some(response)
         }
         None => None,
     }
 }
 
-fn serve_uncompressed_asset(path: &str) -> Option<Response> {
-    match EmbeddedFrontend::get(path) {
-        Some(content) => {
-            let mime = from_path(path).first_or_octet_stream();
-            Some(
-                (
-                    StatusCode::OK,
-                    [
-                        (header::CONTENT_TYPE, mime.as_ref()),
-                        (header::VARY, "Accept-Encoding"),
-                    ],
-                    content.data,
-                )
-                    .into_response(),
-            )
-        }
-        None => None,
+fn cache_control_value(source_path: &str) -> HeaderValue {
+    if source_path == "index.html" {
+        return HeaderValue::from_static("no-cache");
     }
+
+    if source_path.starts_with("assets/") {
+        return HeaderValue::from_static("public, max-age=31536000, immutable");
+    }
+
+    HeaderValue::from_static("public, max-age=3600")
 }
 
 #[allow(clippy::single_match)]
 pub async fn static_asset_handler(uri: Uri, headers: HeaderMap) -> Response {
-    let mut path = uri.path().trim_start_matches('/').to_string();
-    if path.is_empty() {
-        path = "index.html".to_string();
-    }
+    let requested_path = uri.path().trim_start_matches('/');
+    let path = match requested_path.is_empty() {
+        true => "index.html",
+        false => requested_path,
+    };
 
     let selected_encoding = select_static_encoding(&headers);
 
-    match serve_compressed_asset(&path, selected_encoding) {
+    match serve_compressed_asset(path, selected_encoding) {
         Some(response) => return response,
         None => {}
     }
 
-    match serve_uncompressed_asset(&path) {
+    match serve_uncompressed_asset(path) {
         Some(response) => return response,
         None => {}
     }
@@ -205,6 +165,11 @@ pub async fn static_asset_handler(uri: Uri, headers: HeaderMap) -> Response {
         Some(response) => return response,
         None => {}
     }
+
+    warn!(
+        requested_path = %path,
+        "Frontend asset and SPA fallback were not found"
+    );
 
     (
         StatusCode::NOT_FOUND,

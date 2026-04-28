@@ -15,13 +15,12 @@ This project is a useful backend seed, but it is not yet a complete reusable bac
 
 ## Should Have
 
-- Health/readiness split: keep `/healthcheck` simple, then add readiness checks that verify database and cache initialization state.
+- Health/readiness split: keep `/api/v1/healthcheck` simple, then add readiness checks that verify database and cache initialization state.
 - Observability baseline: add request IDs, log correlation, structured startup config logging with redacted secrets, and documented log retention behavior.
 - OpenAPI artifact flow: generate and validate OpenAPI JSON in CI so frontend clients can depend on stable API descriptions.
 - Seed/admin workflow: add a documented first-admin creation path as a Rust binary in the workspace.
 - Static asset build path: document or automate how `/fe` is built before embedding into the backend binary.
 - Reference data cache split: `be/src/init/state/cache/reference_data.rs` is above the 300 LOC target and should be split by data family and lookup helpers.
-- API versioning policy: decide when `/api` and `/api/v1` diverge, and document deprecation behavior for old routes.
 - Permission enforcement: roles and permissions tables exist, but authorization currently uses role hierarchy only. Add policy helpers before adding feature-specific permissions.
 - Deployment docs: add local systemd, reverse proxy, TLS certificate, database backup, and migration rollback guidance for the single-server deployment target.
 

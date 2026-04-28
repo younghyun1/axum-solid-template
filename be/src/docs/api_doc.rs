@@ -3,16 +3,16 @@ use utoipa::OpenApi;
 #[derive(OpenApi)]
 #[openapi(
     paths(
-        crate::controller::healthcheck::healthcheck,
-        crate::controller::auth::signup,
-        crate::controller::auth::login,
-        crate::controller::auth::me,
-        crate::controller::auth::logout,
-        crate::controller::auth::check_if_user_exists,
-        crate::controller::auth::reset_password_request,
-        crate::controller::auth::reset_password,
-        crate::controller::auth::verify_user_email,
-        crate::controller::auth::get_user_info
+        crate::controller::v1::healthcheck::healthcheck,
+        crate::controller::v1::auth::signup,
+        crate::controller::v1::auth::login,
+        crate::controller::v1::auth::me,
+        crate::controller::v1::auth::logout,
+        crate::controller::v1::auth::check_if_user_exists,
+        crate::controller::v1::auth::reset_password_request,
+        crate::controller::v1::auth::reset_password,
+        crate::controller::v1::auth::verify_user_email,
+        crate::controller::v1::auth::get_user_info
     ),
     components(schemas(
         crate::domain::auth::jwt::AccessTokenClaims,
