@@ -35,6 +35,7 @@ tower-http = { version = "0.6.8", features = ["compression-gzip", "compression-z
 diesel = { version = "2.3.8", features = ["postgres", "chrono", "uuid"] }
 diesel-async = { version = "0.8.0", features = ["postgres", "bb8", "migrations"] }
 diesel_migrations = { version = "2.3.2", features = ["postgres"] }
+scc = "3.7.0"
 
 # auth and crypto
 argon2 = { version = "0.5.3", features = ["std"] }
