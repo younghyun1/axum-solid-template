@@ -2,24 +2,19 @@
   color-scheme: light;
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
 
   --color-bg: #f6f8fb;
   --color-bg-elevated: #ffffff;
   --color-surface: #ffffff;
   --color-surface-muted: #eef3f8;
-  --color-surface-strong: #e6f4f1;
   --color-text: #172026;
   --color-text-muted: #64727f;
   --color-border: #d7e0e8;
   --color-border-strong: #aab8c5;
-  --color-primary: #0f766e;
-  --color-primary-strong: #115e59;
-  --color-primary-soft: #d9f1ed;
-  --color-secondary: #314f8f;
-  --color-secondary-soft: #e7ecfa;
+  --color-primary: #111827;
+  --color-primary-strong: #263244;
+  --color-primary-soft: #e8eef6;
   --color-accent: #9a5b00;
-  --color-accent-soft: #fff0cf;
   --color-danger: #ba2f22;
   --color-danger-soft: #fde9e7;
   --color-success: #187348;
@@ -29,7 +24,9 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --space-page: 24px;
-  --topbar-height: 72px;
+  --content-max: 1320px;
+  --topbar-height: 68px;
+  --topbar-control-height: 40px;
 
   color: var(--color-text);
   background: var(--color-bg);
@@ -41,22 +38,18 @@
 
 :root[data-theme="dark"] {
   color-scheme: dark;
-  --color-bg: #121417;
-  --color-bg-elevated: #181c20;
-  --color-surface: #1f252b;
-  --color-surface-muted: #283039;
-  --color-surface-strong: #163b37;
+  --color-bg: #111418;
+  --color-bg-elevated: #171b20;
+  --color-surface: #1f252c;
+  --color-surface-muted: #29313a;
   --color-text: #f4f7fa;
   --color-text-muted: #aeb9c4;
   --color-border: #3a4652;
   --color-border-strong: #596675;
-  --color-primary: #5ee0c9;
-  --color-primary-strong: #8bead9;
-  --color-primary-soft: #123f39;
-  --color-secondary: #9bb8ff;
-  --color-secondary-soft: #24324f;
+  --color-primary: #f4f7fa;
+  --color-primary-strong: #ffffff;
+  --color-primary-soft: #28313c;
   --color-accent: #f0b64b;
-  --color-accent-soft: #49361a;
   --color-danger: #ff8a7a;
   --color-danger-soft: #4d211d;
   --color-success: #74d99d;
@@ -72,7 +65,9 @@ body {
   min-width: 320px;
   min-height: 100vh;
   margin: 0;
-  background: var(--color-bg);
+  background:
+    linear-gradient(180deg, var(--color-bg-elevated) 0, var(--color-bg) 320px),
+    var(--color-bg);
 }
 
 button,
@@ -97,15 +92,14 @@ p {
 }
 
 h1 {
-  max-width: 820px;
   margin-bottom: 0;
-  font-size: 3rem;
-  line-height: 1.04;
+  font-size: 2.6rem;
+  line-height: 1.06;
 }
 
 h2 {
-  margin-bottom: 10px;
-  font-size: 1.16rem;
+  margin-bottom: 8px;
+  font-size: 1.18rem;
   line-height: 1.22;
 }
 
@@ -121,10 +115,14 @@ h2 {
 }
 
 .app-shell {
-  width: min(1480px, 100%);
+  width: 100%;
   min-height: 100vh;
+}
+
+.app-shell main {
+  width: min(var(--content-max), 100%);
   margin: 0 auto;
-  padding: 0 var(--space-page) 36px;
+  padding: 0 var(--space-page) 42px;
 }
 
 .top-bar {
@@ -132,18 +130,20 @@ h2 {
   top: 0;
   z-index: 10;
   display: grid;
-  grid-template-columns: minmax(150px, 240px) minmax(0, 1fr) auto;
-  gap: 16px;
+  grid-template-columns: minmax(120px, 220px) minmax(0, 1fr) auto;
+  gap: 18px;
   align-items: center;
+  width: 100%;
   min-height: var(--topbar-height);
   border-bottom: 1px solid var(--color-border);
   background: color-mix(in srgb, var(--color-bg-elevated) 92%, transparent);
   backdrop-filter: blur(18px);
+  padding: 0 var(--space-page);
 }
 
 .brand-button {
   justify-self: start;
-  min-height: 42px;
+  min-height: var(--topbar-control-height);
   border: 0;
   background: transparent;
   color: var(--color-text);
@@ -157,10 +157,12 @@ h2 {
 .utility-button:focus-visible,
 .primary-button:focus-visible,
 .secondary-button:focus-visible,
-.auth-menu summary:focus-visible,
+.link-button:focus-visible,
+.avatar-button:focus-visible,
+.profile-menu button:focus-visible,
 select:focus-visible,
 input:focus-visible {
-  outline: 3px solid color-mix(in srgb, var(--color-primary) 36%, transparent);
+  outline: 3px solid color-mix(in srgb, var(--color-accent) 38%, transparent);
   outline-offset: 2px;
 }
 
@@ -175,7 +177,7 @@ input:focus-visible {
 .nav-button,
 .utility-button,
 .secondary-button {
-  min-height: 38px;
+  min-height: var(--topbar-control-height);
   border: 1px solid transparent;
   border-radius: var(--radius-sm);
   background: transparent;
@@ -184,10 +186,10 @@ input:focus-visible {
   font-size: 0.92rem;
   font-weight: 750;
   transition:
-    background-color 120ms ease,
-    border-color 120ms ease,
-    color 120ms ease,
-    transform 120ms ease;
+    background-color 110ms ease,
+    border-color 110ms ease,
+    color 110ms ease,
+    transform 110ms ease;
   white-space: nowrap;
 }
 
@@ -201,86 +203,125 @@ input:focus-visible {
 }
 
 .utility-button--icon {
-  width: 42px;
+  width: var(--topbar-control-height);
   padding: 0;
-  font-size: 1.12rem;
+  font-size: 1.1rem;
 }
 
-.top-actions {
+.top-actions,
+.guest-actions,
+.user-menu {
   display: flex;
-  gap: 8px;
+  gap: 10px;
   align-items: center;
   justify-content: end;
   min-width: 0;
 }
 
-.select-control select,
-.field-control select,
-.field-control input,
-.token-control input {
-  width: 100%;
-  min-height: 42px;
+.select-control select {
+  width: 132px;
+  min-height: var(--topbar-control-height);
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated);
+  background: var(--color-surface);
   color: var(--color-text);
-  padding: 8px 10px;
-}
-
-.select-control select {
-  max-width: 132px;
+  padding: 0 10px;
   font-weight: 750;
 }
 
-.auth-menu {
+.session-dot,
+.status-light {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--color-danger);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-danger) 15%, transparent);
+}
+
+.session-dot--in,
+.status-light--ok {
+  background: var(--color-success);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-success) 15%, transparent);
+}
+
+.user-menu {
   position: relative;
 }
 
-.auth-menu summary {
+.user-summary {
   display: grid;
-  gap: 1px;
-  min-width: 170px;
-  min-height: 46px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface);
-  color: var(--color-text);
-  padding: 6px 12px;
-  list-style: none;
-  box-shadow: 0 10px 28px var(--color-shadow);
+  gap: 0;
+  max-width: 180px;
+  text-align: right;
 }
 
-.auth-menu summary::-webkit-details-marker {
-  display: none;
-}
-
-.auth-menu summary span {
+.user-summary span,
+.user-summary small {
   overflow: hidden;
-  font-size: 0.9rem;
-  font-weight: 850;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.auth-menu summary small {
-  overflow: hidden;
+.user-summary span {
+  font-size: 0.9rem;
+  font-weight: 820;
+}
+
+.user-summary small {
   color: var(--color-text-muted);
   font-size: 0.74rem;
   font-weight: 650;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
-.auth-menu[open] .token-control {
+.avatar-button,
+.profile-avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: var(--color-bg-elevated);
+  font-weight: 850;
+}
+
+.avatar-button {
+  width: var(--topbar-control-height);
+  height: var(--topbar-control-height);
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 8px 20px var(--color-shadow);
+}
+
+:root[data-theme="dark"] .avatar-button,
+:root[data-theme="dark"] .profile-avatar {
+  color: var(--color-bg);
+}
+
+.profile-menu {
   position: absolute;
   right: 0;
   top: calc(100% + 8px);
-  width: min(420px, calc(100vw - 32px));
+  display: grid;
+  min-width: 170px;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
-  padding: 14px;
+  padding: 6px;
   box-shadow: 0 18px 44px var(--color-shadow);
+}
+
+.profile-menu button {
+  min-height: var(--topbar-control-height);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-text);
+  padding: 0 10px;
+  text-align: left;
+}
+
+.profile-menu button:hover {
+  background: var(--color-surface-muted);
 }
 
 .page-view {
@@ -299,102 +340,125 @@ input:focus-visible {
   }
 }
 
-.home-hero {
+.landing-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(280px, 380px);
   gap: 24px;
-  align-items: stretch;
-  padding: 52px 0 20px;
+  align-items: center;
+  padding: 58px 0 24px;
 }
 
-.hero-copy {
+.landing-copy {
   display: grid;
   gap: 18px;
   align-content: center;
   min-height: 460px;
-  border-bottom: 1px solid var(--color-border);
 }
 
-.hero-text {
+.hero-text,
+.form-copy {
   max-width: 680px;
   margin-bottom: 0;
   color: var(--color-text-muted);
-  font-size: 1.08rem;
+  font-size: 1.02rem;
   font-weight: 620;
 }
 
 .hero-actions,
-.action-row {
+.profile-card {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
 }
 
-.status-panel,
-.flow-panel {
+.portal-panel,
+.auth-card,
+.profile-card {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
   background: var(--color-surface);
   box-shadow: 0 16px 40px var(--color-shadow);
 }
 
-.status-panel {
+.portal-panel {
   display: grid;
   gap: 18px;
   align-content: start;
   padding: 22px;
 }
 
+.portal-panel__header {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.portal-panel__header h2 {
+  margin: 0;
+}
+
 .eyebrow {
   margin: 0;
-  color: var(--color-primary);
-  font-size: 0.78rem;
+  color: var(--color-accent);
+  font-size: 0.76rem;
   font-weight: 850;
   letter-spacing: 0;
   text-transform: uppercase;
 }
 
-.section-heading {
+.auth-page {
   display: grid;
-  gap: 12px;
-  padding: 36px 0 22px;
+  justify-items: center;
+  padding: 42px 0;
 }
 
-.form-layout {
-  display: grid;
-  gap: 18px;
-  width: min(980px, 100%);
-}
-
-.form-layout--narrow {
-  width: min(560px, 100%);
-}
-
-.flow-panel {
+.auth-card {
   display: grid;
   gap: 16px;
-  align-content: start;
-  padding: 18px;
+  width: min(560px, 100%);
+  padding: 28px;
 }
 
-.field-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 14px;
+.auth-card--narrow {
+  width: min(460px, 100%);
 }
 
-.field-control,
-.token-control {
+.auth-card h1 {
+  font-size: 2rem;
+}
+
+.flow-form {
   display: grid;
-  gap: 6px;
+  gap: 12px;
+}
+
+.flow-form input,
+.flow-form select {
+  width: 100%;
+  min-height: 44px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
   color: var(--color-text);
-  font-size: 0.9rem;
-  font-weight: 750;
+  padding: 8px 10px;
 }
 
-.field-control input::placeholder,
-.token-control input::placeholder {
+.flow-form input::placeholder {
   color: var(--color-text-muted);
+}
+
+.flow-form input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.field-note {
+  margin: -4px 0 2px;
+  font-size: 0.86rem;
+  font-weight: 680;
+}
+
+.field-note--error {
+  color: var(--color-danger);
 }
 
 .primary-button {
@@ -402,17 +466,17 @@ input:focus-visible {
   border: 0;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
-  color: #ffffff;
+  color: var(--color-bg-elevated);
   padding: 0 16px;
   font-weight: 850;
   transition:
-    background-color 120ms ease,
-    transform 120ms ease,
-    opacity 120ms ease;
+    background-color 110ms ease,
+    transform 110ms ease,
+    opacity 110ms ease;
 }
 
 :root[data-theme="dark"] .primary-button {
-  color: #10201d;
+  color: var(--color-bg);
 }
 
 .primary-button:hover {
@@ -426,15 +490,71 @@ input:focus-visible {
   transform: translateY(1px);
 }
 
-.primary-button:disabled {
-  opacity: 0.66;
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.62;
 }
 
 .secondary-button {
   border-color: var(--color-border);
-  background: var(--color-surface-muted);
+  background: var(--color-surface);
   color: var(--color-text);
   padding: 0 16px;
+}
+
+.link-button {
+  justify-self: end;
+  min-height: 32px;
+  border: 0;
+  background: transparent;
+  color: var(--color-accent);
+  padding: 0;
+  font-size: 0.9rem;
+  font-weight: 750;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.section-heading {
+  display: grid;
+  gap: 12px;
+  padding: 36px 0 22px;
+}
+
+.account-layout {
+  display: grid;
+  gap: 18px;
+  width: min(820px, 100%);
+}
+
+.profile-card {
+  display: grid;
+  padding: 22px;
+}
+
+.profile-hero {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+.profile-avatar {
+  width: 58px;
+  height: 58px;
+  font-size: 1.35rem;
+}
+
+.profile-hero h2,
+.profile-hero p {
+  margin: 0;
+}
+
+.profile-hero p {
+  color: var(--color-text-muted);
+  font-weight: 650;
 }
 
 .summary-list,
@@ -472,20 +592,7 @@ input:focus-visible {
   text-align: right;
 }
 
-.account-layout {
-  display: grid;
-  gap: 18px;
-  width: min(820px, 100%);
-}
-
-.recovery-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-}
-
-.notice,
-.empty-state {
+.notice {
   margin: 0;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
@@ -525,7 +632,7 @@ input:focus-visible {
   .top-bar {
     grid-template-columns: 1fr;
     gap: 10px;
-    padding: 12px 0;
+    padding: 12px var(--space-page);
   }
 
   .page-nav,
@@ -533,13 +640,12 @@ input:focus-visible {
     justify-content: start;
   }
 
-  .home-hero,
-  .recovery-grid {
+  .landing-layout {
     grid-template-columns: 1fr;
   }
 
-  .hero-copy {
-    min-height: 340px;
+  .landing-copy {
+    min-height: 320px;
   }
 }
 
@@ -549,36 +655,33 @@ input:focus-visible {
   }
 
   h1 {
-    font-size: 2.16rem;
+    font-size: 2.05rem;
   }
 
   .top-actions {
     display: grid;
-    grid-template-columns: 1fr 42px;
+    grid-template-columns: var(--topbar-control-height) 1fr;
     width: 100%;
   }
 
-  .select-control select {
-    max-width: none;
+  .select-control select,
+  .guest-actions,
+  .user-menu {
+    width: 100%;
   }
 
-  .auth-menu {
+  .guest-actions,
+  .user-menu {
     grid-column: 1 / -1;
+    justify-content: start;
   }
 
-  .auth-menu summary,
-  .utility-button {
-    width: 100%;
+  .user-summary {
+    text-align: left;
   }
 
-  .auth-menu[open] .token-control {
-    position: static;
-    width: 100%;
-    margin-top: 8px;
-  }
-
-  .field-grid {
-    grid-template-columns: 1fr;
+  .auth-card {
+    padding: 18px;
   }
 
   .summary-list div,

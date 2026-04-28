@@ -16,7 +16,6 @@ import {
 } from "../api/appApi";
 import type {
   ApiCallResult,
-  HealthcheckResponse,
   LoginResponse,
   MeResponse,
   ReferenceCountryResponse,
@@ -39,6 +38,11 @@ interface Notice {
   readonly text: string;
 }
 
+interface LinkTokens {
+  readonly resetToken: string | null;
+  readonly verificationToken: string | null;
+}
+
 const pages: readonly PageDefinition[] = [
   { id: "home", label: "Home" },
   { id: "join", label: "Create account" },
@@ -53,20 +57,26 @@ const emptyNotice: Notice = {
 };
 
 export function App() {
-  const [activePage, setActivePage] = createSignal<PageId>("home");
+  const linkTokens = readLinkTokens();
+  const [activePage, setActivePage] = createSignal<PageId>(
+    linkTokens.resetToken !== null || linkTokens.verificationToken !== null ? "recovery" : "home"
+  );
   const [theme, setTheme] = createSignal<ThemeMode>(initialTheme());
   const [displayLanguage, setDisplayLanguage] = createSignal("en");
   const [token, setToken] = createSignal("");
   const [session, setSession] = createSignal<LoginResponse | null>(null);
   const [profile, setProfile] = createSignal<MeResponse | null>(null);
+  const [menuOpen, setMenuOpen] = createSignal(false);
 
   const [countriesResult] = createResource(getCountries);
   const [languagesResult] = createResource(getLanguages);
-  const [healthResult, { refetch: refetchHealth }] = createResource(getHealthcheck);
+  const [healthResult] = createResource(getHealthcheck);
 
   const countries = createMemo(() => resultData(countriesResult()) ?? []);
   const languages = createMemo(() => resultData(languagesResult()) ?? []);
-  const health = createMemo(() => resultData(healthResult()));
+  const healthOnline = createMemo(() => resultData(healthResult())?.accepting_traffic === true);
+  const currentUser = createMemo(() => profile() ?? profileFromSession(session()));
+  const isSignedIn = createMemo(() => token().trim().length > 0 && currentUser() !== null);
 
   createEffect(() => {
     const selectedTheme = theme();
@@ -74,34 +84,40 @@ export function App() {
     window.localStorage.setItem("preferred-theme", selectedTheme);
   });
 
-  const authLabel = createMemo(() => {
-    const currentSession = session();
-    if (currentSession !== null) {
-      return currentSession.claims.user_name;
-    }
-
-    if (token().trim().length > 0) {
-      return "Token active";
-    }
-
-    return "Guest";
-  });
-
   const toggleTheme = () => {
     setTheme((current) => (current === "light" ? "dark" : "light"));
   };
 
-  const clearSession = () => {
+  const handleLogin = async (response: LoginResponse) => {
+    setToken(response.access_token);
+    setSession(response);
+    setProfile(null);
+
+    const profileResult = await me(response.access_token);
+    if (profileResult.ok && profileResult.data !== null) {
+      setProfile(profileResult.data);
+    }
+
+    setActivePage("account");
+  };
+
+  const clearSession = async () => {
+    if (token().trim().length > 0) {
+      await logout(token());
+    }
+
     setSession(null);
     setProfile(null);
     setToken("");
+    setMenuOpen(false);
+    setActivePage("home");
   };
 
   return (
     <div class="app-shell">
       <header class="top-bar">
         <button class="brand-button" type="button" onClick={() => setActivePage("home")}>
-          Orville
+          Home
         </button>
 
         <nav class="page-nav" aria-label="Primary navigation">
@@ -120,6 +136,14 @@ export function App() {
         </nav>
 
         <div class="top-actions">
+          <button
+            aria-label="Toggle color theme"
+            class="utility-button utility-button--icon"
+            type="button"
+            onClick={toggleTheme}
+          >
+            {theme() === "light" ? "🌙" : "☀️"}
+          </button>
           <label class="select-control">
             <span class="sr-only">Language</span>
             <select
@@ -132,61 +156,79 @@ export function App() {
               <option value="de">German</option>
             </select>
           </label>
-          <button
-            aria-label="Toggle color theme"
-            class="utility-button utility-button--icon"
-            type="button"
-            onClick={toggleTheme}
+
+          <Show
+            when={isSignedIn() && currentUser() !== null}
+            fallback={
+              <div class="guest-actions">
+                <span class="session-dot session-dot--out" aria-hidden="true" />
+                <button class="secondary-button" type="button" onClick={() => setActivePage("signin")}>
+                  Sign in
+                </button>
+              </div>
+            }
           >
-            {theme() === "light" ? "🌙" : "☀️"}
-          </button>
-          <details class="auth-menu">
-            <summary>
-              <span>{authLabel()}</span>
-              <small>{token().trim().length > 0 ? "Signed session" : "No session"}</small>
-            </summary>
-            <label class="token-control">
-              <span>Access token</span>
-              <input
-                autocomplete="off"
-                inputmode="text"
-                onInput={(event) => {
-                  setToken(event.currentTarget.value);
-                  setSession(null);
-                  setProfile(null);
-                }}
-                placeholder="Paste token"
-                spellcheck={false}
-                type="text"
-                value={token()}
-              />
-            </label>
-          </details>
+            <div class="user-menu">
+              <span class="session-dot session-dot--in" aria-hidden="true" />
+              <div class="user-summary">
+                <span>{currentUser()?.user_info.user_name}</span>
+                <small>{currentUser()?.user_info.user_email}</small>
+              </div>
+              <button
+                class="avatar-button"
+                type="button"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen() ? "true" : "false"}
+                onClick={() => setMenuOpen((open) => !open)}
+              >
+                {currentUser()?.user_info.user_name.slice(0, 1).toUpperCase()}
+              </button>
+              <Show when={menuOpen()}>
+                <div class="profile-menu" role="menu">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setActivePage("account");
+                      setMenuOpen(false);
+                    }}
+                  >
+                    Account
+                  </button>
+                  <button type="button" role="menuitem" onClick={clearSession}>
+                    Sign out
+                  </button>
+                </div>
+              </Show>
+            </div>
+          </Show>
         </div>
       </header>
 
       <main>
         <Show when={activePage() === "home"}>
           <HomePage
-            health={health()}
-            healthLoading={healthResult.loading}
-            onRefreshHealth={() => refetchHealth()}
-            onStart={() => setActivePage("join")}
+            isSignedIn={isSignedIn()}
+            serviceOnline={healthOnline()}
+            onCreateAccount={() => setActivePage("join")}
+            onSignIn={() => setActivePage("signin")}
           />
         </Show>
 
         <Show when={activePage() === "join"}>
-          <JoinPage countries={countries()} languages={languages()} onSignedUp={() => setActivePage("signin")} />
+          <JoinPage
+            countries={countries()}
+            languages={languages()}
+            onSignedUp={() => setActivePage("signin")}
+            onSignIn={() => setActivePage("signin")}
+          />
         </Show>
 
         <Show when={activePage() === "signin"}>
           <SignInPage
-            onLogin={(response) => {
-              setToken(response.access_token);
-              setSession(response);
-              setProfile(null);
-              setActivePage("account");
-            }}
+            onForgotPassword={() => setActivePage("recovery")}
+            onJoin={() => setActivePage("join")}
+            onLogin={handleLogin}
           />
         </Show>
 
@@ -194,16 +236,14 @@ export function App() {
           <AccountPage
             countries={countries()}
             languages={languages()}
-            profile={profile()}
-            session={session()}
-            token={token()}
-            onClear={clearSession}
-            onProfile={setProfile}
+            profile={currentUser()}
+            onSignIn={() => setActivePage("signin")}
+            onSignOut={clearSession}
           />
         </Show>
 
         <Show when={activePage() === "recovery"}>
-          <RecoveryPage />
+          <RecoveryPage linkTokens={linkTokens} onSignIn={() => setActivePage("signin")} />
         </Show>
       </main>
     </div>
@@ -211,57 +251,55 @@ export function App() {
 }
 
 interface HomePageProps {
-  readonly health: HealthcheckResponse | null;
-  readonly healthLoading: boolean;
-  readonly onRefreshHealth: () => void;
-  readonly onStart: () => void;
+  readonly isSignedIn: boolean;
+  readonly serviceOnline: boolean;
+  readonly onCreateAccount: () => void;
+  readonly onSignIn: () => void;
 }
 
 function HomePage(props: HomePageProps) {
-  const readiness = createMemo(() => {
-    if (props.healthLoading) {
-      return "Checking";
-    }
-
-    if (props.health?.accepting_traffic === true) {
-      return "Online";
-    }
-
-    return "Unavailable";
-  });
-
   return (
-    <section class="page-view home-hero">
-      <div class="hero-copy">
-        <p class="eyebrow">Secure customer access</p>
-        <h1>Account access that feels fast, clear, and ready.</h1>
+    <section class="page-view landing-layout">
+      <div class="landing-copy">
+        <p class="eyebrow">Account portal</p>
+        <h1>Access your account without the backend getting in the way.</h1>
         <p class="hero-text">
-          Create an account, sign in, recover credentials, and check your session without touching
-          raw API payloads.
+          Sign in, create an account, manage your profile, and recover access from one clean
+          customer-facing flow.
         </p>
         <div class="hero-actions">
-          <button class="primary-button" type="button" onClick={props.onStart}>
+          <button class="primary-button" type="button" onClick={props.onCreateAccount}>
             Create account
           </button>
-          <button class="secondary-button" type="button" onClick={props.onRefreshHealth}>
-            Refresh status
+          <button class="secondary-button" type="button" onClick={props.onSignIn}>
+            Sign in
           </button>
         </div>
       </div>
-      <div class="status-panel">
-        <p class="eyebrow">Service</p>
-        <h2>{readiness()}</h2>
+
+      <aside class="portal-panel">
+        <div class="portal-panel__header">
+          <span class={props.serviceOnline ? "status-light status-light--ok" : "status-light"} />
+          <div>
+            <p class="eyebrow">Service</p>
+            <h2>{props.serviceOnline ? "Available" : "Checking status"}</h2>
+          </div>
+        </div>
         <dl class="summary-list">
           <div>
-            <dt>Traffic</dt>
-            <dd>{props.health?.accepting_traffic === true ? "Accepting" : "Pending"}</dd>
+            <dt>Session</dt>
+            <dd>{props.isSignedIn ? "Signed in" : "Guest"}</dd>
           </div>
           <div>
-            <dt>Envelope</dt>
-            <dd>Synced</dd>
+            <dt>Recovery</dt>
+            <dd>Email link</dd>
+          </div>
+          <div>
+            <dt>Profile</dt>
+            <dd>Protected</dd>
           </div>
         </dl>
-      </div>
+      </aside>
     </section>
   );
 }
@@ -270,12 +308,14 @@ interface JoinPageProps {
   readonly countries: readonly ReferenceCountryResponse[];
   readonly languages: readonly ReferenceLanguageResponse[];
   readonly onSignedUp: () => void;
+  readonly onSignIn: () => void;
 }
 
 function JoinPage(props: JoinPageProps) {
   const [userName, setUserName] = createSignal("");
   const [email, setEmail] = createSignal("");
   const [password, setPassword] = createSignal("");
+  const [confirmPassword, setConfirmPassword] = createSignal("");
   const [countryCode, setCountryCode] = createSignal("");
   const [languageCode, setLanguageCode] = createSignal("");
   const [subdivisionId, setSubdivisionId] = createSignal("");
@@ -287,6 +327,9 @@ function JoinPage(props: JoinPageProps) {
   const selectedCountry = createMemo(() => findCountry(props.countries, countryCode()));
   const orderedLanguages = createMemo(() =>
     languagesWithPrimaryFirst(props.languages, selectedCountry()?.country_primary_language ?? null)
+  );
+  const passwordsMismatch = createMemo(
+    () => password().length > 0 && confirmPassword().length > 0 && password() !== confirmPassword()
   );
 
   createEffect(() => {
@@ -326,18 +369,22 @@ function JoinPage(props: JoinPageProps) {
 
   const submit = async (event: SubmitEvent) => {
     event.preventDefault();
-    const country = selectedCountry();
     const userCountry = parseInteger(countryCode());
     const userLanguage = parseInteger(languageCode());
     const userSubdivision = parseOptionalInteger(subdivisionId());
 
-    if (country === null || userCountry === null || userLanguage === null) {
+    if (userCountry === null || userLanguage === null) {
       setNotice({ kind: "error", text: "Choose a country and language." });
       return;
     }
 
     if (userSubdivision === "invalid") {
       setNotice({ kind: "error", text: "Choose a valid subdivision." });
+      return;
+    }
+
+    if (passwordsMismatch()) {
+      setNotice({ kind: "error", text: "Passwords do not match." });
       return;
     }
 
@@ -365,79 +412,108 @@ function JoinPage(props: JoinPageProps) {
       return;
     }
 
-    setNotice({ kind: "success", text: `Verification email queued for ${result.data?.user_email ?? email()}.` });
+    setNotice({
+      kind: "success",
+      text: "Account created. Check your email to verify your address."
+    });
     props.onSignedUp();
   };
 
   return (
-    <section class="page-view form-layout">
-      <div class="section-heading">
+    <section class="page-view auth-page">
+      <div class="auth-card">
         <p class="eyebrow">New account</p>
         <h1>Create your account</h1>
+        <form class="flow-form" onSubmit={submit}>
+          <input
+            autocomplete="username"
+            placeholder="Username"
+            required
+            value={userName()}
+            onInput={(event) => setUserName(event.currentTarget.value)}
+          />
+          <input
+            autocomplete="email"
+            placeholder="Email"
+            required
+            type="email"
+            value={email()}
+            onInput={(event) => setEmail(event.currentTarget.value)}
+          />
+          <input
+            autocomplete="new-password"
+            placeholder="Password"
+            required
+            type="password"
+            value={password()}
+            onInput={(event) => setPassword(event.currentTarget.value)}
+          />
+          <input
+            autocomplete="new-password"
+            aria-invalid={passwordsMismatch() ? "true" : "false"}
+            placeholder="Re-enter password"
+            required
+            type="password"
+            value={confirmPassword()}
+            onInput={(event) => setConfirmPassword(event.currentTarget.value)}
+          />
+          <Show when={passwordsMismatch()}>
+            <p class="field-note field-note--error">Passwords do not match.</p>
+          </Show>
+          <select
+            required
+            value={countryCode()}
+            onChange={(event) => setCountryCode(event.currentTarget.value)}
+          >
+            <option value="">Select country</option>
+            <For each={props.countries}>
+              {(country) => (
+                <option value={country.country_code}>
+                  {country.country_flag} {country.country_name}
+                </option>
+              )}
+            </For>
+          </select>
+          <select
+            required
+            value={languageCode()}
+            onChange={(event) => setLanguageCode(event.currentTarget.value)}
+          >
+            <option value="">Select language</option>
+            <For each={orderedLanguages()}>
+              {(language) => <option value={language.language_code}>{language.language_name}</option>}
+            </For>
+          </select>
+          <select
+            value={subdivisionId()}
+            disabled={subdivisions().length === 0}
+            onChange={(event) => setSubdivisionId(event.currentTarget.value)}
+          >
+            <option value="">No subdivision</option>
+            <For each={subdivisions()}>
+              {(subdivision) => (
+                <option value={subdivision.subdivision_id}>
+                  {subdivision.country_flag} {subdivision.subdivision_name}
+                </option>
+              )}
+            </For>
+          </select>
+          <NoticeView notice={notice()} />
+          <button class="primary-button" disabled={running() || passwordsMismatch()} type="submit">
+            {running() ? "Creating account" : "Create account"}
+          </button>
+          <button class="secondary-button" type="button" onClick={props.onSignIn}>
+            Back to sign in
+          </button>
+        </form>
       </div>
-      <form class="flow-panel" onSubmit={submit}>
-        <div class="field-grid">
-          <label class="field-control">
-            <span>Username</span>
-            <input autocomplete="username" required value={userName()} onInput={(event) => setUserName(event.currentTarget.value)} />
-          </label>
-          <label class="field-control">
-            <span>Email</span>
-            <input autocomplete="email" required type="email" value={email()} onInput={(event) => setEmail(event.currentTarget.value)} />
-          </label>
-          <label class="field-control">
-            <span>Password</span>
-            <input autocomplete="new-password" required type="password" value={password()} onInput={(event) => setPassword(event.currentTarget.value)} />
-          </label>
-          <label class="field-control">
-            <span>Country</span>
-            <select required value={countryCode()} onChange={(event) => setCountryCode(event.currentTarget.value)}>
-              <option value="">Select country</option>
-              <For each={props.countries}>
-                {(country) => (
-                  <option value={country.country_code}>
-                    {country.country_flag} {country.country_name}
-                  </option>
-                )}
-              </For>
-            </select>
-          </label>
-          <label class="field-control">
-            <span>Subdivision</span>
-            <select value={subdivisionId()} onChange={(event) => setSubdivisionId(event.currentTarget.value)}>
-              <option value="">None</option>
-              <For each={subdivisions()}>
-                {(subdivision) => (
-                  <option value={subdivision.subdivision_id}>
-                    {subdivision.country_flag} {subdivision.subdivision_name}
-                  </option>
-                )}
-              </For>
-            </select>
-          </label>
-          <label class="field-control">
-            <span>Primary language</span>
-            <select required value={languageCode()} onChange={(event) => setLanguageCode(event.currentTarget.value)}>
-              <For each={orderedLanguages()}>
-                {(language) => (
-                  <option value={language.language_code}>
-                    {language.language_name}
-                  </option>
-                )}
-              </For>
-            </select>
-          </label>
-        </div>
-        <button class="primary-button" disabled={running()} type="submit">
-          {running() ? "Creating" : "Create account"}
-        </button>
-        <NoticeView notice={notice()} />
-      </form>
     </section>
   );
 }
 
 interface SignInPageProps {
+  readonly onForgotPassword: () => void;
+  readonly onJoin: () => void;
   readonly onLogin: (response: LoginResponse) => void;
 }
 
@@ -457,34 +533,50 @@ function SignInPage(props: SignInPageProps) {
     setRunning(false);
 
     if (!result.ok || result.data === null) {
-      setNotice({ kind: "error", text: result.ok ? "Login response was empty." : result.error.message });
+      setNotice({
+        kind: "error",
+        text: result.ok ? "Login response was empty." : result.error.message
+      });
       return;
     }
 
-    setNotice({ kind: "success", text: `Signed in as ${result.data.claims.user_name}.` });
     props.onLogin(result.data);
   };
 
   return (
-    <section class="page-view form-layout form-layout--narrow">
-      <div class="section-heading">
+    <section class="page-view auth-page">
+      <div class="auth-card auth-card--narrow">
         <p class="eyebrow">Welcome back</p>
         <h1>Sign in</h1>
+        <form class="flow-form" onSubmit={submit}>
+          <input
+            autocomplete="email"
+            placeholder="Email"
+            required
+            type="email"
+            value={email()}
+            onInput={(event) => setEmail(event.currentTarget.value)}
+          />
+          <input
+            autocomplete="current-password"
+            placeholder="Password"
+            required
+            type="password"
+            value={password()}
+            onInput={(event) => setPassword(event.currentTarget.value)}
+          />
+          <button class="link-button" type="button" onClick={props.onForgotPassword}>
+            Forgot password?
+          </button>
+          <NoticeView notice={notice()} />
+          <button class="primary-button" disabled={running()} type="submit">
+            {running() ? "Signing in" : "Sign in"}
+          </button>
+          <button class="secondary-button" type="button" onClick={props.onJoin}>
+            Create account
+          </button>
+        </form>
       </div>
-      <form class="flow-panel" onSubmit={submit}>
-        <label class="field-control">
-          <span>Email</span>
-          <input autocomplete="email" required type="email" value={email()} onInput={(event) => setEmail(event.currentTarget.value)} />
-        </label>
-        <label class="field-control">
-          <span>Password</span>
-          <input autocomplete="current-password" required type="password" value={password()} onInput={(event) => setPassword(event.currentTarget.value)} />
-        </label>
-        <button class="primary-button" disabled={running()} type="submit">
-          {running() ? "Signing in" : "Sign in"}
-        </button>
-        <NoticeView notice={notice()} />
-      </form>
     </section>
   );
 }
@@ -493,153 +585,183 @@ interface AccountPageProps {
   readonly countries: readonly ReferenceCountryResponse[];
   readonly languages: readonly ReferenceLanguageResponse[];
   readonly profile: MeResponse | null;
-  readonly session: LoginResponse | null;
-  readonly token: string;
-  readonly onClear: () => void;
-  readonly onProfile: (profile: MeResponse | null) => void;
+  readonly onSignIn: () => void;
+  readonly onSignOut: () => void;
 }
 
 function AccountPage(props: AccountPageProps) {
-  const [notice, setNotice] = createSignal<Notice>(emptyNotice);
-  const [running, setRunning] = createSignal(false);
-
-  const loadProfile = async () => {
-    if (props.token.trim().length === 0) {
-      setNotice({ kind: "error", text: "Sign in or paste an access token first." });
-      return;
-    }
-
-    setRunning(true);
-    const result = await me(props.token);
-    setRunning(false);
-
-    if (!result.ok || result.data === null) {
-      setNotice({ kind: "error", text: result.ok ? "Profile response was empty." : result.error.message });
-      return;
-    }
-
-    props.onProfile(result.data);
-    setNotice({ kind: "success", text: "Profile refreshed." });
-  };
-
-  const signOut = async () => {
-    if (props.token.trim().length > 0) {
-      await logout(props.token);
-    }
-    props.onClear();
-    setNotice({ kind: "success", text: "Signed out." });
-  };
-
-  const visibleProfile = createMemo(() => props.profile ?? profileFromSession(props.session));
-
   return (
     <section class="page-view account-layout">
-      <div class="section-heading">
-        <p class="eyebrow">Session</p>
-        <h1>Your account</h1>
-      </div>
-      <div class="flow-panel">
-        <div class="action-row">
-          <button class="primary-button" disabled={running()} type="button" onClick={loadProfile}>
-            {running() ? "Refreshing" : "Refresh profile"}
-          </button>
-          <button class="secondary-button" type="button" onClick={signOut}>
-            Sign out
-          </button>
-        </div>
-        <Show when={visibleProfile()} fallback={<p class="empty-state">No active profile.</p>}>
-          {(resolvedProfile) => (
-            <ProfileSummary
-              countries={props.countries}
-              languages={props.languages}
-              profile={resolvedProfile()}
-            />
-          )}
-        </Show>
-        <NoticeView notice={notice()} />
-      </div>
+      <Show
+        when={props.profile}
+        fallback={
+          <div class="auth-card auth-card--narrow">
+            <p class="eyebrow">Account</p>
+            <h1>Sign in required</h1>
+            <p class="hero-text">Your profile is available after you sign in.</p>
+            <button class="primary-button" type="button" onClick={props.onSignIn}>
+              Sign in
+            </button>
+          </div>
+        }
+      >
+        {(profile) => (
+          <>
+            <div class="section-heading">
+              <p class="eyebrow">Account</p>
+              <h1>Your profile</h1>
+            </div>
+            <div class="profile-card">
+              <div class="profile-hero">
+                <div class="profile-avatar">{profile().user_info.user_name.slice(0, 1).toUpperCase()}</div>
+                <div>
+                  <h2>{profile().user_info.user_name}</h2>
+                  <p>{profile().user_info.user_email}</p>
+                </div>
+              </div>
+              <ProfileSummary countries={props.countries} languages={props.languages} profile={profile()} />
+              <button class="secondary-button" type="button" onClick={props.onSignOut}>
+                Sign out
+              </button>
+            </div>
+          </>
+        )}
+      </Show>
     </section>
   );
 }
 
-function RecoveryPage() {
+interface RecoveryPageProps {
+  readonly linkTokens: LinkTokens;
+  readonly onSignIn: () => void;
+}
+
+function RecoveryPage(props: RecoveryPageProps) {
   const [email, setEmail] = createSignal("");
-  const [resetToken, setResetToken] = createSignal("");
-  const [newPassword, setNewPassword] = createSignal("");
-  const [verificationToken, setVerificationToken] = createSignal("");
+  const [password, setPassword] = createSignal("");
+  const [confirmPassword, setConfirmPassword] = createSignal("");
   const [notice, setNotice] = createSignal<Notice>(emptyNotice);
   const [running, setRunning] = createSignal(false);
+  const [emailVerified, setEmailVerified] = createSignal(false);
+
+  const passwordsMismatch = createMemo(
+    () => password().length > 0 && confirmPassword().length > 0 && password() !== confirmPassword()
+  );
+
+  createEffect(() => {
+    const token = props.linkTokens.verificationToken;
+    if (token === null || emailVerified()) {
+      return;
+    }
+
+    setEmailVerified(true);
+    void verifyEmail(token).then((result) => {
+      setNotice(
+        result.ok
+          ? { kind: "success", text: "Email verified. You can now sign in." }
+          : { kind: "error", text: result.error.message }
+      );
+    });
+  });
 
   const requestReset = async (event: SubmitEvent) => {
     event.preventDefault();
     setRunning(true);
     const result = await requestPasswordReset({ user_email: email().trim() });
     setRunning(false);
-    setNotice(result.ok ? { kind: "success", text: "Password reset email queued." } : { kind: "error", text: result.error.message });
+    setNotice(
+      result.ok
+        ? { kind: "success", text: "Password reset email sent." }
+        : { kind: "error", text: result.error.message }
+    );
   };
 
   const applyReset = async (event: SubmitEvent) => {
     event.preventDefault();
+    const token = props.linkTokens.resetToken;
+    if (token === null) {
+      setNotice({ kind: "error", text: "Open the reset link from your email to change password." });
+      return;
+    }
+
+    if (passwordsMismatch()) {
+      setNotice({ kind: "error", text: "Passwords do not match." });
+      return;
+    }
+
     setRunning(true);
     const result = await resetPassword({
-      new_password: newPassword(),
-      password_reset_token: resetToken().trim()
+      new_password: password(),
+      password_reset_token: token
     });
     setRunning(false);
-    setNotice(result.ok ? { kind: "success", text: "Password changed." } : { kind: "error", text: result.error.message });
-  };
-
-  const verify = async (event: SubmitEvent) => {
-    event.preventDefault();
-    setRunning(true);
-    const result = await verifyEmail(verificationToken().trim());
-    setRunning(false);
-    setNotice(result.ok ? { kind: "success", text: "Email verified." } : { kind: "error", text: result.error.message });
+    setNotice(
+      result.ok
+        ? { kind: "success", text: "Password changed. You can now sign in." }
+        : { kind: "error", text: result.error.message }
+    );
   };
 
   return (
-    <section class="page-view form-layout">
-      <div class="section-heading">
+    <section class="page-view auth-page recovery-page">
+      <div class="auth-card auth-card--narrow">
         <p class="eyebrow">Recovery</p>
-        <h1>Secure recovery</h1>
+        <h1>Reset password</h1>
+        <Show
+          when={props.linkTokens.resetToken !== null}
+          fallback={
+            <form class="flow-form" onSubmit={requestReset}>
+              <p class="form-copy">Enter your email and we will send a reset link.</p>
+              <input
+                autocomplete="email"
+                placeholder="Email"
+                required
+                type="email"
+                value={email()}
+                onInput={(event) => setEmail(event.currentTarget.value)}
+              />
+              <NoticeView notice={notice()} />
+              <button class="primary-button" disabled={running()} type="submit">
+                {running() ? "Sending" : "Send reset link"}
+              </button>
+              <button class="secondary-button" type="button" onClick={props.onSignIn}>
+                Back to sign in
+              </button>
+            </form>
+          }
+        >
+          <form class="flow-form" onSubmit={applyReset}>
+            <p class="form-copy">Choose a new password for your account.</p>
+            <input
+              autocomplete="new-password"
+              placeholder="New password"
+              required
+              type="password"
+              value={password()}
+              onInput={(event) => setPassword(event.currentTarget.value)}
+            />
+            <input
+              autocomplete="new-password"
+              aria-invalid={passwordsMismatch() ? "true" : "false"}
+              placeholder="Re-enter new password"
+              required
+              type="password"
+              value={confirmPassword()}
+              onInput={(event) => setConfirmPassword(event.currentTarget.value)}
+            />
+            <Show when={passwordsMismatch()}>
+              <p class="field-note field-note--error">Passwords do not match.</p>
+            </Show>
+            <NoticeView notice={notice()} />
+            <button class="primary-button" disabled={running() || passwordsMismatch()} type="submit">
+              {running() ? "Changing password" : "Change password"}
+            </button>
+            <button class="secondary-button" type="button" onClick={props.onSignIn}>
+              Back to sign in
+            </button>
+          </form>
+        </Show>
       </div>
-      <div class="recovery-grid">
-        <form class="flow-panel" onSubmit={requestReset}>
-          <h2>Reset request</h2>
-          <label class="field-control">
-            <span>Email</span>
-            <input required type="email" value={email()} onInput={(event) => setEmail(event.currentTarget.value)} />
-          </label>
-          <button class="primary-button" disabled={running()} type="submit">
-            Send reset
-          </button>
-        </form>
-        <form class="flow-panel" onSubmit={applyReset}>
-          <h2>Change password</h2>
-          <label class="field-control">
-            <span>Reset token</span>
-            <input required value={resetToken()} onInput={(event) => setResetToken(event.currentTarget.value)} />
-          </label>
-          <label class="field-control">
-            <span>New password</span>
-            <input required type="password" value={newPassword()} onInput={(event) => setNewPassword(event.currentTarget.value)} />
-          </label>
-          <button class="primary-button" disabled={running()} type="submit">
-            Change password
-          </button>
-        </form>
-        <form class="flow-panel" onSubmit={verify}>
-          <h2>Email verification</h2>
-          <label class="field-control">
-            <span>Verification token</span>
-            <input required value={verificationToken()} onInput={(event) => setVerificationToken(event.currentTarget.value)} />
-          </label>
-          <button class="primary-button" disabled={running()} type="submit">
-            Verify email
-          </button>
-        </form>
-      </div>
-      <NoticeView notice={notice()} />
     </section>
   );
 }
@@ -651,17 +773,15 @@ interface ProfileSummaryProps {
 }
 
 function ProfileSummary(props: ProfileSummaryProps) {
-  const country = createMemo(() => countryLabel(props.countries, props.profile.user_info.user_country));
+  const country = createMemo(() =>
+    countryLabel(props.countries, props.profile.user_info.user_country)
+  );
   const language = createMemo(() =>
     languageLabel(props.languages, props.profile.user_info.user_language)
   );
 
   return (
     <dl class="profile-grid">
-      <div>
-        <dt>Name</dt>
-        <dd>{props.profile.user_info.user_name}</dd>
-      </div>
       <div>
         <dt>Email</dt>
         <dd>{props.profile.user_info.user_email}</dd>
@@ -679,7 +799,7 @@ function ProfileSummary(props: ProfileSummaryProps) {
         <dd>{language()}</dd>
       </div>
       <div>
-        <dt>Verified</dt>
+        <dt>Email verified</dt>
         <dd>{props.profile.user_info.user_is_email_verified ? "Yes" : "No"}</dd>
       </div>
     </dl>
@@ -705,6 +825,14 @@ function initialTheme(): ThemeMode {
   }
 
   return "light";
+}
+
+function readLinkTokens(): LinkTokens {
+  const searchParams = new URLSearchParams(window.location.search);
+  return {
+    resetToken: searchParams.get("password_reset_token") ?? searchParams.get("token"),
+    verificationToken: searchParams.get("email_validation_token_id")
+  };
 }
 
 function resultData<TData>(result: ApiCallResult<TData> | undefined): TData | null {
@@ -756,7 +884,9 @@ function languagesWithPrimaryFirst(
     return languages;
   }
 
-  const primaryLanguage = languages.find((language) => language.language_code === primaryLanguageCode);
+  const primaryLanguage = languages.find(
+    (language) => language.language_code === primaryLanguageCode
+  );
   if (primaryLanguage === undefined) {
     return languages;
   }
