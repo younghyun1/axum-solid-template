@@ -1,19 +1,99 @@
 Technical Architecture Goals:
-- Performance: all customer interactions (except signup) aimed at below 0.05ms; programming language with the fastest performance as well as the most correctness enforced being used
-- Affordability: being performant means being able to serve more customers with the same amount of computational resources rented. this server should achieve ~20,000 RPS or more at 20 pounds a month.
-- Maintainability: everything is documented in an agent-friendly manner for rapid but correct development; future developers will also benefit and business administration will also be able to implement features is the goal.
-- Reliability: all data backed up regularly. automated redeployment, recovery procedures.
-- Security: sensitive industry; no shortcuts taken (rust). everything will be encrypted and gated as much as possible. audits possible but expensive. photos and videos will not be
+- Performance: all customer interactions, except signup, should be extremely fast; the backend is Rust/Axum with async IO, a fast allocator, cached reference data, compressed static assets, and PostgreSQL through Diesel.
+- Affordability: the system is being shaped for high single-server throughput so the business can serve more customers with less rented compute.
+- Maintainability: backend conventions are documented in docs/design/be, code is split into layers, DTOs stay in src/dto, domain/database structs stay in src/domain, and OpenAPI is generated from the controller annotations.
+- Reliability: startup validates environment config, runs embedded Diesel migrations, initializes logging, builds the database pool, loads caches, and exits cleanly on failed initialization.
+- Security: passwords are Argon2-hashed, password-bearing DTOs zeroize on drop, JWTs are validated centrally, auth routes are rate-limited, and API failures return stable structured errors.
+
+Backend Scaffolded So Far:
+- A Rust 2024 backend under be/ using Axum, Tokio, Diesel async, PostgreSQL, utoipa Swagger UI, tower middleware, rustls TLS, lettre email, jsonwebtoken, nutype, zeroize, scc, and mimalloc.
+- Server startup flow:
+  - loads .env when DEPLOYMENT_ENVIRONMENT is absent;
+  - parses deployment, TLS, database, file store, chatbot, JWT, and mail settings from env;
+  - initializes structured tracing logs;
+  - runs embedded Diesel migrations from be/migrations;
+  - builds an async PostgreSQL pool sized from physical CPU parallelism;
+  - loads ISO reference data into an in-memory scc cache;
+  - constructs a mail sender, currently disabled or AWS SES SMTP;
+  - starts HTTP or HTTPS, with an HTTP-to-HTTPS redirector when TLS is enabled.
+- API routing:
+  - /api/v1/healthcheck confirms the server is accepting traffic.
+  - /api/v1/auth/signup creates a user, assigns a role, creates an email verification token, and queues a verification email.
+  - /api/v1/auth/login validates password and email verification status, updates last login best-effort, and returns a signed HS512 JWT with role and user claims.
+  - /api/v1/auth/me returns the current authenticated user and claims.
+  - /api/v1/auth/logout is client-side JWT discard guidance.
+  - /api/v1/auth/check-if-user-exists checks whether an email is already registered.
+  - /api/v1/auth/reset-password-request creates a reset token and queues reset email.
+  - /api/v1/auth/reset-password validates a reset token and changes the password transactionally.
+  - /api/v1/auth/verify-user-email validates the verification token and marks both user and token transactionally.
+  - /api/v1/users/{user_name} exposes public user profile basics.
+  - /api/v1/reference/countries, /languages, and /countries/{country_code}/subdivisions serve cached ISO reference data.
+- OpenAPI and docs:
+  - Swagger UI is mounted at /api/v1/swagger-ui.
+  - The OpenAPI JSON is mounted at /api/v1/api-docs/openapi.json.
+  - Current design docs cover backend layers, auth, database, errors, API responses, reference data, email, jobs, request/response logging, and Axum server behavior.
+- API response convention:
+  - All JSON API responses use a shared ApiEnvelope with success, data, error, and meta.
+  - Meta includes an ISO timestamp and request processing duration.
+  - Errors come from a central CodeError registry with stable numeric codes, HTTP status codes, public messages, and tracing levels.
+- Middleware and runtime behavior:
+  - Request/response logging records method, path, query, HTTP version, content metadata, status, and duration with structured tracing.
+  - API timing uses task-local timing so response envelopes can include processing duration.
+  - Optional auth context is attached when a bearer token exists.
+  - Protected auth routes require a valid bearer token.
+  - Public auth routes are rate-limited by IP using tower-governor.
+  - CORS is permissive in local/development and locked down by default in production.
+  - Gzip and zstd response compression are enabled.
+- Static frontend serving:
+  - The backend embeds be/fe through rust-embed.
+  - The static asset fallback serves the Solid/Vite SPA.
+  - It prefers precompressed .zst or .gz files based on Accept-Encoding, then falls back to identity.
+  - index.html is no-cache; hashed assets under assets/ are immutable for one year.
+- Database scaffold:
+  - PostgreSQL only; MySQL and SQLite config paths fail explicitly.
+  - Migrations define ISO language, currency, country, and subdivision tables.
+  - Migrations seed large ISO reference datasets, including countries, currencies, languages, subdivisions, flags, and country/language remapping.
+  - Auth tables exist for users, roles, permissions, role_permissions, user_roles, email verification tokens, and password reset tokens.
+  - UUID primary keys use PostgreSQL uuidv7().
+  - Column names follow the prefixed style, such as user_id and user_email.
+  - Indexes cover common lookup fields such as lower(user_email), lower(user_name), role names, token values, reference codes, and job scheduling fields.
+- Auth/domain model:
+  - Current roles are admin, moderator, service_provider, user, and guest.
+  - Signup supports normal users and service providers.
+  - JWT claims include issuer, subject, audience, expiry, jti, user identity, email verification state, country/language/subdivision, token version, role id/name/type, role access level, and ISO timestamps.
+  - Role helper methods support exact role checks and minimum access-level checks.
+  - User, token, role, ISO, and request/response shapes are separated into domain and DTO modules.
+- Reference data:
+  - ISO data is loaded once at startup in parallel from the database.
+  - Cache indexes support lookup by numeric code, alpha codes, names, country/subdivision mapping, and subdivisions by country.
+  - Public API responses sort countries, languages, and subdivisions by display name.
+- Email:
+  - Verification and reset emails are queued in background Tokio tasks.
+  - Mail can be disabled for local/dev or delivered through AWS SES SMTP.
+  - Failed delivery is logged without rolling back the already-completed auth transaction.
+- Tests currently present:
+  - API envelope serialization and timing behavior.
+  - static asset Accept-Encoding selection.
+  - signup role decoding/defaulting.
+  - role UUID/name/access helper behavior.
+  - API error/option/result helper behavior.
+
+What Is Not Built Yet:
+- The job_runs schema exists, but no actual job runner is implemented yet.
+- Service-provider verification beyond assigning the service_provider role is not implemented yet.
+- Business domain models, service booking flows, media/file upload handling, payments, search, chat, and admin workflows are not implemented yet.
+- Refresh-token persistence is not implemented; the current scaffold issues access tokens.
+- CI, integration test database setup, and full OpenAPI/regression checks are still listed as template gaps.
 
 Need to do:
-- lay out all the pages we need
-- discuss the actual behavior of functions; for example, what steps does a service provider need to go through to verify their status? is email-based signup good enough for users? should they be able to log in through google?
-- UK legal compliance; privacy requirements and such should be researched. ex) already architected a system where we can't see the users' passwords ourselves (ever) but should we also encrypt the email permanently or something?
-- certains like sending texts, emails, et cetera require third party audits from amazon and such; helps if we have a business
-    - 
+- Lay out all pages and primary product workflows.
+- Decide service-provider verification behavior.
+- Decide whether email/password signup is sufficient or whether Google/social login is required.
+- Research UK legal/privacy requirements, including whether any fields need encryption beyond password hashing.
+- Confirm third-party audit/business requirements for email, SMS, payments, and media handling.
 
-After that stuff:
-- estimate development time
-- estimate finances
-- regularize meets
-- commit to it
+After that:
+- Estimate development time.
+- Estimate finances.
+- Regularize meetings.
+- Commit to the build plan.
