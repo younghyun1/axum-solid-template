@@ -1,6 +1,6 @@
 #![allow(clippy::module_inception, clippy::question_mark)]
 
-use std::sync::Arc;
+use std::{sync::Arc, time::Instant};
 
 use crate::init::state::server_state::ServerState;
 use mimalloc::MiMalloc;
@@ -26,6 +26,7 @@ pub mod util;
 
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
+    let startup_started_at = Instant::now();
     let server_state: ServerState = match init::server_init::init_server_state().await {
         Ok(server_state) => server_state,
         Err(error) => {
@@ -37,7 +38,7 @@ async fn main() {
 
     let shared_state = Arc::new(server_state);
 
-    match init::server_init::run_server(shared_state).await {
+    match init::server_init::run_server(shared_state, startup_started_at).await {
         Ok(()) => {}
         Err(error) => {
             error!(error = %error, "Server failed");

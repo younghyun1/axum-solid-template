@@ -93,16 +93,21 @@ impl ReferenceDataCache {
             Ok(country_subdivisions) => country_subdivisions,
             Err(error) => return Err(error),
         };
+        let table_load_elapsed = started_at.elapsed();
+        let build_started_at = Instant::now();
         let cache = match Self::build(&countries, &currencies, &languages, &country_subdivisions) {
             Ok(cache) => cache,
             Err(error) => return Err(error),
         };
+        let cache_build_elapsed = build_started_at.elapsed();
 
         info!(
             countries = countries.len(),
             currencies = currencies.len(),
             languages = languages.len(),
             country_subdivisions = country_subdivisions.len(),
+            table_load_elapsed = ?table_load_elapsed,
+            cache_build_elapsed = ?cache_build_elapsed,
             elapsed = ?started_at.elapsed(),
             "Loaded reference data cache"
         );

@@ -1,4 +1,4 @@
-use std::{env, fmt, net::SocketAddr, path::Path, sync::Arc};
+use std::{env, fmt, net::SocketAddr, path::Path, sync::Arc, time::Instant};
 
 use axum::Router;
 use axum_server::tls_rustls::RustlsConfig;
@@ -34,6 +34,7 @@ pub enum ServerRunError {
     MissingTlsConfig,
     TlsConfig { error: String },
     HttpBind { error: String },
+    HttpsBind { error: String },
     HttpServe { error: String },
     HttpsServe { error: String },
 }
@@ -89,6 +90,9 @@ impl fmt::Display for ServerRunError {
             }
             ServerRunError::HttpBind { error } => {
                 write!(formatter, "failed to bind HTTP listener: {error}")
+            }
+            ServerRunError::HttpsBind { error } => {
+                write!(formatter, "failed to bind HTTPS listener: {error}")
             }
             ServerRunError::HttpServe { error } => write!(formatter, "HTTP server failed: {error}"),
             ServerRunError::HttpsServe { error } => {
@@ -157,7 +161,11 @@ pub async fn init_server_state() -> Result<ServerState, ServerInitError> {
     ))
 }
 
-pub async fn run_server(state: Arc<ServerState>) -> Result<(), ServerRunError> {
+pub async fn run_server(
+    state: Arc<ServerState>,
+    startup_started_at: Instant,
+) -> Result<(), ServerRunError> {
+    let axum_start_started_at = Instant::now();
     let bind_addr = SocketAddr::new(
         state.server_config.server_bind_ip,
         state.server_config.server_port,
@@ -171,12 +179,28 @@ pub async fn run_server(state: Arc<ServerState>) -> Result<(), ServerRunError> {
     );
 
     match state.server_config.https_enabled {
-        true => run_https_server(state, bind_addr, router).await,
-        false => run_http_server(bind_addr, router).await,
+        true => {
+            run_https_server(
+                state,
+                bind_addr,
+                router,
+                startup_started_at,
+                axum_start_started_at,
+            )
+            .await
+        }
+        false => {
+            run_http_server(bind_addr, router, startup_started_at, axum_start_started_at).await
+        }
     }
 }
 
-async fn run_http_server(bind_addr: SocketAddr, router: Router) -> Result<(), ServerRunError> {
+async fn run_http_server(
+    bind_addr: SocketAddr,
+    router: Router,
+    startup_started_at: Instant,
+    axum_start_started_at: Instant,
+) -> Result<(), ServerRunError> {
     let listener = match tokio::net::TcpListener::bind(bind_addr).await {
         Ok(listener) => listener,
         Err(error) => {
@@ -185,6 +209,14 @@ async fn run_http_server(bind_addr: SocketAddr, router: Router) -> Result<(), Se
             });
         }
     };
+
+    info!(
+        bind_addr = %bind_addr,
+        protocol = "http",
+        axum_start_elapsed = ?axum_start_started_at.elapsed(),
+        total_startup_elapsed = ?startup_started_at.elapsed(),
+        "Axum server started"
+    );
 
     match axum::serve(listener, router).await {
         Ok(()) => Ok(()),
@@ -198,6 +230,8 @@ async fn run_https_server(
     state: Arc<ServerState>,
     bind_addr: SocketAddr,
     router: Router,
+    startup_started_at: Instant,
+    axum_start_started_at: Instant,
 ) -> Result<(), ServerRunError> {
     match rustls::crypto::aws_lc_rs::default_provider().install_default() {
         Ok(()) => {}
@@ -232,10 +266,41 @@ async fn run_https_server(
         https: state.server_config.server_port,
     });
 
-    match axum_server::bind_rustls(bind_addr, tls_config)
-        .serve(router.into_make_service())
-        .await
-    {
+    let listener = match std::net::TcpListener::bind(bind_addr) {
+        Ok(listener) => listener,
+        Err(error) => {
+            return Err(ServerRunError::HttpsBind {
+                error: error.to_string(),
+            });
+        }
+    };
+    match listener.set_nonblocking(true) {
+        Ok(()) => {}
+        Err(error) => {
+            return Err(ServerRunError::HttpsBind {
+                error: error.to_string(),
+            });
+        }
+    }
+
+    info!(
+        bind_addr = %bind_addr,
+        protocol = "https",
+        axum_start_elapsed = ?axum_start_started_at.elapsed(),
+        total_startup_elapsed = ?startup_started_at.elapsed(),
+        "Axum server started"
+    );
+
+    let server = match axum_server::from_tcp_rustls(listener, tls_config) {
+        Ok(server) => server,
+        Err(error) => {
+            return Err(ServerRunError::HttpsBind {
+                error: error.to_string(),
+            });
+        }
+    };
+
+    match server.serve(router.into_make_service()).await {
         Ok(()) => Ok(()),
         Err(error) => Err(ServerRunError::HttpsServe {
             error: error.to_string(),
