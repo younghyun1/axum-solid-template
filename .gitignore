@@ -114,7 +114,7 @@ tmp/**
 out/
 
 # logs
-/logs
+*/logs
 
 # reference purpose code
 */ref_src

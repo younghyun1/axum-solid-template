@@ -1,9 +1,17 @@
-use std::{env, fmt, path::Path};
+use std::{env, fmt, net::SocketAddr, path::Path, sync::Arc};
+
+use axum::Router;
+use axum_server::tls_rustls::RustlsConfig;
+use tracing::{error, info};
 
 use crate::init::{
     logging::logging::{LoggerGuard, LoggerInitError, init_logger},
     server_config::server_config::{DEPLOYMENT_ENVIRONMENT_KEY, ServerConfig, ServerConfigError},
     state::server_state::ServerState,
+};
+use crate::router::{
+    app::build_router,
+    redirect::{RedirectPorts, build_redirect_router, redirect_socket_addr},
 };
 
 #[derive(Debug)]
@@ -12,6 +20,16 @@ pub enum ServerInitError {
     DotenvLoad(dotenvy::Error),
     Logger(LoggerInitError),
     ServerConfig(ServerConfigError),
+}
+
+#[derive(Debug)]
+pub enum ServerRunError {
+    RustlsCryptoProvider { error: String },
+    MissingTlsConfig,
+    TlsConfig { error: String },
+    HttpBind { error: String },
+    HttpServe { error: String },
+    HttpsServe { error: String },
 }
 
 impl fmt::Display for ServerInitError {
@@ -31,6 +49,32 @@ impl fmt::Display for ServerInitError {
             }
             ServerInitError::ServerConfig(error) => {
                 write!(formatter, "failed to build server config: {error}")
+            }
+        }
+    }
+}
+
+impl fmt::Display for ServerRunError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            ServerRunError::RustlsCryptoProvider { error } => {
+                write!(
+                    formatter,
+                    "failed to install rustls crypto provider: {error}"
+                )
+            }
+            ServerRunError::MissingTlsConfig => {
+                formatter.write_str("HTTPS is enabled but TLS config is missing")
+            }
+            ServerRunError::TlsConfig { error } => {
+                write!(formatter, "failed to load TLS config: {error}")
+            }
+            ServerRunError::HttpBind { error } => {
+                write!(formatter, "failed to bind HTTP listener: {error}")
+            }
+            ServerRunError::HttpServe { error } => write!(formatter, "HTTP server failed: {error}"),
+            ServerRunError::HttpsServe { error } => {
+                write!(formatter, "HTTPS server failed: {error}")
             }
         }
     }
@@ -59,6 +103,123 @@ pub fn init_server_state() -> Result<ServerState, ServerInitError> {
     };
 
     Ok(ServerState::new(server_config, logger_guard))
+}
+
+pub async fn run_server(state: Arc<ServerState>) -> Result<(), ServerRunError> {
+    let bind_addr = SocketAddr::new(
+        state.server_config.server_bind_ip,
+        state.server_config.server_port,
+    );
+    let router = build_router(state.clone());
+
+    info!(
+        bind_addr = %bind_addr,
+        https_enabled = state.server_config.https_enabled,
+        "Starting Axum server"
+    );
+
+    match state.server_config.https_enabled {
+        true => run_https_server(state, bind_addr, router).await,
+        false => run_http_server(bind_addr, router).await,
+    }
+}
+
+async fn run_http_server(bind_addr: SocketAddr, router: Router) -> Result<(), ServerRunError> {
+    let listener = match tokio::net::TcpListener::bind(bind_addr).await {
+        Ok(listener) => listener,
+        Err(error) => {
+            return Err(ServerRunError::HttpBind {
+                error: error.to_string(),
+            });
+        }
+    };
+
+    match axum::serve(listener, router).await {
+        Ok(()) => Ok(()),
+        Err(error) => Err(ServerRunError::HttpServe {
+            error: error.to_string(),
+        }),
+    }
+}
+
+async fn run_https_server(
+    state: Arc<ServerState>,
+    bind_addr: SocketAddr,
+    router: Router,
+) -> Result<(), ServerRunError> {
+    match rustls::crypto::aws_lc_rs::default_provider().install_default() {
+        Ok(()) => {}
+        Err(error) => {
+            return Err(ServerRunError::RustlsCryptoProvider {
+                error: format!("{error:?}"),
+            });
+        }
+    }
+
+    let cert_config = match &state.server_config.cert_config {
+        Some(cert_config) => cert_config,
+        None => return Err(ServerRunError::MissingTlsConfig),
+    };
+
+    let tls_config = match RustlsConfig::from_pem_file(
+        &cert_config.cert_chain_path,
+        &cert_config.private_key_path,
+    )
+    .await
+    {
+        Ok(tls_config) => tls_config,
+        Err(error) => {
+            return Err(ServerRunError::TlsConfig {
+                error: error.to_string(),
+            });
+        }
+    };
+
+    spawn_http_redirector(RedirectPorts {
+        http: state.server_config.http_redirect_port,
+        https: state.server_config.server_port,
+    });
+
+    match axum_server::bind_rustls(bind_addr, tls_config)
+        .serve(router.into_make_service())
+        .await
+    {
+        Ok(()) => Ok(()),
+        Err(error) => Err(ServerRunError::HttpsServe {
+            error: error.to_string(),
+        }),
+    }
+}
+
+fn spawn_http_redirector(ports: RedirectPorts) {
+    tokio::spawn(async move {
+        let addr = redirect_socket_addr(ports.http);
+        let router = build_redirect_router(ports);
+        let listener = match tokio::net::TcpListener::bind(addr).await {
+            Ok(listener) => listener,
+            Err(error) => {
+                error!(
+                    error = %error,
+                    bind_addr = %addr,
+                    "Failed to bind HTTP redirect listener"
+                );
+                return;
+            }
+        };
+
+        info!(
+            http_port = ports.http,
+            https_port = ports.https,
+            "HTTP to HTTPS redirector started"
+        );
+
+        match axum::serve(listener, router).await {
+            Ok(()) => {}
+            Err(error) => {
+                error!(error = %error, "HTTP redirector failed");
+            }
+        }
+    });
 }
 
 fn load_dotenv_if_deployment_environment_is_missing() -> Result<(), ServerInitError> {

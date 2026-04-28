@@ -1,4 +1,4 @@
-use std::{env, str::FromStr};
+use std::{env, net::IpAddr, str::FromStr};
 
 use crate::init::db_config::{DatabaseConnectionType, DatabaseType};
 
@@ -103,6 +103,50 @@ where
     match value.parse::<T>() {
         Ok(parsed) => Ok(parsed),
         Err(error) => Err(ServerConfigError::InvalidIntegerEnvironmentVariable {
+            env_key,
+            value,
+            error: error.to_string(),
+        }),
+    }
+}
+
+pub(super) fn optional_int_env<T>(
+    env_key: &'static str,
+    default_value: T,
+) -> Result<T, ServerConfigError>
+where
+    T: FromStr,
+    T::Err: ToString,
+{
+    let value = match optional_env(env_key) {
+        Ok(Some(value)) => value,
+        Ok(None) => return Ok(default_value),
+        Err(error) => return Err(error),
+    };
+
+    match value.parse::<T>() {
+        Ok(parsed) => Ok(parsed),
+        Err(error) => Err(ServerConfigError::InvalidIntegerEnvironmentVariable {
+            env_key,
+            value,
+            error: error.to_string(),
+        }),
+    }
+}
+
+pub(super) fn optional_ip_addr_env(
+    env_key: &'static str,
+    default_value: IpAddr,
+) -> Result<IpAddr, ServerConfigError> {
+    let value = match optional_env(env_key) {
+        Ok(Some(value)) => value,
+        Ok(None) => return Ok(default_value),
+        Err(error) => return Err(error),
+    };
+
+    match value.parse::<IpAddr>() {
+        Ok(parsed) => Ok(parsed),
+        Err(error) => Err(ServerConfigError::InvalidIpAddressEnvironmentVariable {
             env_key,
             value,
             error: error.to_string(),

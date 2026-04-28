@@ -1,3 +1,4 @@
 {
+  "context_server_timeout": 60,
   "disable_ai": false
 }

@@ -17,11 +17,25 @@ panic = "unwind"
 tokio = { version = "1.52.1", features = ["full"] }
 
 dotenvy = { version = "0.15.7" }
+mimalloc = "0.1.50"
+
+# web server
+axum = { version = "0.8.9", features = ["json", "tokio", "http1", "http2"] }
+axum-server = { version = "0.8.0", features = ["tls-rustls"] }
+mime_guess = "2.0.5"
+rust-embed = "8.11.0"
+rustls = { version = "0.23.39", features = ["aws_lc_rs"] }
+tower-http = { version = "0.6.8", features = ["compression-gzip", "compression-zstd", "cors"] }
+utoipa = { version = "5.4.0", features = ["macros"] }
+utoipa-swagger-ui = { version = "9.0.2", features = ["axum", "vendored"] }
 
 # loggers
 tracing = { version = "0.1.44", features = ["std"] }
 tracing-subscriber = { version = "0.3.23", features = ["fmt", "json"] }
 tracing-appender = "0.2.5"
+
+# serde
+serde = { version = "1.0.228", features = ["derive"] }
 
 [build-dependencies]
 chrono = { version = "0.4.44" }

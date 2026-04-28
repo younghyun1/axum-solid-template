@@ -1,4 +1,4 @@
-use std::fmt;
+use std::{fmt, net::IpAddr};
 
 use crate::init::{
     chatbot::chatbot_config::ChatbotConfig,
@@ -13,6 +13,9 @@ pub const DEPLOYMENT_ENVIRONMENT_KEY: &str = "DEPLOYMENT_ENVIRONMENT";
 pub struct ServerConfig {
     pub deployment_environment: DeploymentEnvironment,
     pub https_enabled: bool,
+    pub server_bind_ip: IpAddr,
+    pub server_port: u16,
+    pub http_redirect_port: u16,
     pub db_config: DatabaseConfig,
     pub file_store_config: FileStoreConfig,
     pub chatbot_config: ChatbotConfig,
@@ -35,6 +38,17 @@ pub enum DeploymentEnvironment {
     ProductionDockerized = 3,
 }
 
+impl DeploymentEnvironment {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            DeploymentEnvironment::Local => "local",
+            DeploymentEnvironment::Development => "development",
+            DeploymentEnvironment::Production => "production",
+            DeploymentEnvironment::ProductionDockerized => "production_dockerized",
+        }
+    }
+}
+
 #[derive(Debug)]
 pub enum ServerConfigError {
     MissingEnvironmentVariable {
@@ -46,6 +60,11 @@ pub enum ServerConfigError {
         expected: &'static str,
     },
     InvalidIntegerEnvironmentVariable {
+        env_key: &'static str,
+        value: String,
+        error: String,
+    },
+    InvalidIpAddressEnvironmentVariable {
         env_key: &'static str,
         value: String,
         error: String,
@@ -64,14 +83,7 @@ impl From<JwtConfigError> for ServerConfigError {
 
 impl fmt::Display for DeploymentEnvironment {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            DeploymentEnvironment::Local => formatter.write_str("local"),
-            DeploymentEnvironment::Development => formatter.write_str("development"),
-            DeploymentEnvironment::Production => formatter.write_str("production"),
-            DeploymentEnvironment::ProductionDockerized => {
-                formatter.write_str("production_dockerized")
-            }
-        }
+        formatter.write_str(self.as_str())
     }
 }
 
@@ -99,6 +111,14 @@ impl fmt::Display for ServerConfigError {
             } => write!(
                 formatter,
                 "invalid integer environment variable `{env_key}` value `{value}`: {error}"
+            ),
+            ServerConfigError::InvalidIpAddressEnvironmentVariable {
+                env_key,
+                value,
+                error,
+            } => write!(
+                formatter,
+                "invalid IP address environment variable `{env_key}` value `{value}`: {error}"
             ),
             ServerConfigError::EnvironmentVariableNotUnicode { env_key } => {
                 write!(

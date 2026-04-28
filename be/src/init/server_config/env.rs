@@ -7,13 +7,15 @@ use crate::init::{
     db_config::DatabaseConfig,
     file_store_config::FileStoreConfig,
 };
+use std::net::{IpAddr, Ipv4Addr};
 
 use super::{
     cert_env::cert_config_from_env,
     jwt_env::jwt_config_from_env,
     parsers::{
-        normalized_env_value, optional_env, parse_database_connection_type, parse_database_type,
-        parse_deployment_environment, required_bool_env, required_env, required_int_env,
+        normalized_env_value, optional_env, optional_int_env, optional_ip_addr_env,
+        parse_database_connection_type, parse_database_type, parse_deployment_environment,
+        required_bool_env, required_env, required_int_env,
     },
     server_config::{
         DEPLOYMENT_ENVIRONMENT_KEY, DeploymentEnvironment, ServerConfig, ServerConfigError,
@@ -32,6 +34,19 @@ impl ServerConfig {
         };
         let cert_config = match cert_config_from_env(https_enabled) {
             Ok(cert_config) => cert_config,
+            Err(error) => return Err(error),
+        };
+        let server_bind_ip =
+            match optional_ip_addr_env("SERVER_BIND_IP", IpAddr::V4(Ipv4Addr::new(127, 0, 0, 1))) {
+                Ok(server_bind_ip) => server_bind_ip,
+                Err(error) => return Err(error),
+            };
+        let server_port = match optional_int_env("SERVER_PORT", 3000_u16) {
+            Ok(server_port) => server_port,
+            Err(error) => return Err(error),
+        };
+        let http_redirect_port = match optional_int_env("HTTP_REDIRECT_PORT", 8080_u16) {
+            Ok(http_redirect_port) => http_redirect_port,
             Err(error) => return Err(error),
         };
         let db_config = match database_config_from_env() {
@@ -54,6 +69,9 @@ impl ServerConfig {
         Ok(Self {
             deployment_environment,
             https_enabled,
+            server_bind_ip,
+            server_port,
+            http_redirect_port,
             db_config,
             file_store_config,
             chatbot_config,
