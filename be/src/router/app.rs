@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use axum::{Router, routing::get};
+use axum::{Router, middleware::from_fn, routing::get};
 use tower_http::{compression::CompressionLayer, cors::CorsLayer};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -9,6 +9,7 @@ use crate::{
     controller::healthcheck::healthcheck, docs::api_doc::ApiDoc,
     init::server_config::server_config::DeploymentEnvironment,
     init::state::server_state::ServerState,
+    middleware::request_response_logging::log_request_response,
 };
 
 use super::static_assets::static_asset_handler;
@@ -26,9 +27,10 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
     Router::new()
         .merge(api_router)
         .merge(swagger_router)
+        .fallback(static_asset_handler)
         .layer(cors_layer)
         .layer(CompressionLayer::new().gzip(true).zstd(true))
-        .fallback(static_asset_handler)
+        .layer(from_fn(log_request_response))
 }
 
 fn cors_layer_for_environment(deployment_environment: DeploymentEnvironment) -> CorsLayer {

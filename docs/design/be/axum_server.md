@@ -9,6 +9,7 @@ The backend exposes a single Axum binary from `be/src/main.rs`.
 - Static frontend assets are embedded from `/fe` and served as the fallback route.
 - HTTPS uses rustls. When HTTPS is enabled, a separate HTTP listener redirects traffic to HTTPS.
 - Compression is centralized at the router boundary with gzip and zstd enabled.
+- Request and response logging is centralized at the router boundary in `be/src/middleware/request_response_logging.rs`.
 - CORS is permissive only for `local` and `development`; production modes use restrictive CORS defaults.
 
 Environment keys:

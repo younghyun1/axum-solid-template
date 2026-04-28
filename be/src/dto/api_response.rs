@@ -310,7 +310,7 @@ fn iso_timestamp_now() -> String {
     Utc::now().to_rfc3339_opts(SecondsFormat::Millis, true)
 }
 
-fn iso_duration_from_duration(duration: Duration) -> String {
+pub fn iso_duration_from_duration(duration: Duration) -> String {
     let seconds = duration.as_secs();
     let nanos = duration.subsec_nanos();
 
