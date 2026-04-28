@@ -14,7 +14,7 @@ pub struct IsoCountry {
     pub country_primary_language: i32,
     pub country_currency: i32,
     pub phone_prefix: String,
-    pub country_flag: Option<String>,
+    pub country_flag: String,
     pub is_country: bool,
 }
 

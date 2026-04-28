@@ -18,7 +18,7 @@ diesel::table! {
         country_primary_language -> Int4,
         country_currency -> Int4,
         phone_prefix -> Varchar,
-        country_flag -> Nullable<Bpchar>,
+        country_flag -> Bpchar,
         is_country -> Bool,
     }
 }

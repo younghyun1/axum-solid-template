@@ -1,8 +1,8 @@
 use std::{fmt, hash::Hash, time::Duration, time::Instant};
 
 use diesel_async::RunQueryDsl;
-scc::HashMap;
-use serde::Serialize;
+use scc::HashMap;
+use serde::{Serialize, Serializer, ser::SerializeStruct};
 use tracing::{error, info};
 
 use crate::{
@@ -16,42 +16,22 @@ const ISO_CURRENCY_TABLE: &str = "iso_currency";
 const ISO_LANGUAGE_TABLE: &str = "iso_language";
 const ISO_COUNTRY_SUBDIVISION_TABLE: &str = "iso_country_subdivision";
 
-#[derive(Serialize)]
 pub struct ReferenceDataCache {
-    pub countries: Vec<IsoCountry>,
-    pub currencies: Vec<IsoCurrency>,
-    pub languages: Vec<IsoLanguage>,
-    pub country_subdivisions: Vec<IsoCountrySubdivision>,
-    #[serde(skip_serializing)]
-    countries_by_code: HashMap<i32, IsoCountry>,
-    #[serde(skip_serializing)]
-    countries_by_alpha2: HashMap<String, IsoCountry>,
-    #[serde(skip_serializing)]
-    countries_by_alpha3: HashMap<String, IsoCountry>,
-    #[serde(skip_serializing)]
-    countries_by_english_name: HashMap<String, IsoCountry>,
-    #[serde(skip_serializing)]
-    currencies_by_code: HashMap<i32, IsoCurrency>,
-    #[serde(skip_serializing)]
-    currencies_by_alpha3: HashMap<String, IsoCurrency>,
-    #[serde(skip_serializing)]
-    currencies_by_english_name: HashMap<String, IsoCurrency>,
-    #[serde(skip_serializing)]
-    languages_by_code: HashMap<i32, IsoLanguage>,
-    #[serde(skip_serializing)]
-    languages_by_alpha2: HashMap<String, IsoLanguage>,
-    #[serde(skip_serializing)]
-    languages_by_alpha3: HashMap<String, IsoLanguage>,
-    #[serde(skip_serializing)]
-    languages_by_english_name: HashMap<String, IsoLanguage>,
-    #[serde(skip_serializing)]
-    subdivisions_by_id: HashMap<i32, IsoCountrySubdivision>,
-    #[serde(skip_serializing)]
-    subdivisions_by_code: HashMap<(i32, String), IsoCountrySubdivision>,
-    #[serde(skip_serializing)]
-    subdivisions_by_english_name: HashMap<(i32, String), IsoCountrySubdivision>,
-    #[serde(skip_serializing)]
-    subdivisions_by_country: HashMap<i32, Vec<IsoCountrySubdivision>>,
+    countries: HashMap<i32, IsoCountry>,
+    currencies: HashMap<i32, IsoCurrency>,
+    languages: HashMap<i32, IsoLanguage>,
+    country_subdivisions: HashMap<i32, IsoCountrySubdivision>,
+    country_codes_by_alpha2: HashMap<String, i32>,
+    country_codes_by_alpha3: HashMap<String, i32>,
+    country_codes_by_english_name: HashMap<String, i32>,
+    currency_codes_by_alpha3: HashMap<String, i32>,
+    currency_codes_by_english_name: HashMap<String, i32>,
+    language_codes_by_alpha2: HashMap<String, i32>,
+    language_codes_by_alpha3: HashMap<String, i32>,
+    language_codes_by_english_name: HashMap<String, i32>,
+    subdivision_ids_by_code: HashMap<(i32, String), i32>,
+    subdivision_ids_by_english_name: HashMap<(i32, String), i32>,
+    subdivisions_by_country: HashMap<i32, Vec<i32>>,
 }
 
 #[derive(Debug)]
@@ -95,13 +75,13 @@ impl ReferenceDataCache {
             Ok(country_subdivisions) => country_subdivisions,
             Err(error) => return Err(error),
         };
-        let indexes = match ReferenceDataCacheIndexes::build(
+        let cache = match Self::build(
             &countries,
             &currencies,
             &languages,
             &country_subdivisions,
         ) {
-            Ok(indexes) => indexes,
+            Ok(cache) => cache,
             Err(error) => return Err(error),
         };
 
@@ -114,87 +94,357 @@ impl ReferenceDataCache {
             "Loaded reference data cache"
         );
 
-        Ok(Self {
-            countries,
-            currencies,
-            languages,
-            country_subdivisions,
-            countries_by_code: indexes.countries_by_code,
-            countries_by_alpha2: indexes.countries_by_alpha2,
-            countries_by_alpha3: indexes.countries_by_alpha3,
-            countries_by_english_name: indexes.countries_by_english_name,
-            currencies_by_code: indexes.currencies_by_code,
-            currencies_by_alpha3: indexes.currencies_by_alpha3,
-            currencies_by_english_name: indexes.currencies_by_english_name,
-            languages_by_code: indexes.languages_by_code,
-            languages_by_alpha2: indexes.languages_by_alpha2,
-            languages_by_alpha3: indexes.languages_by_alpha3,
-            languages_by_english_name: indexes.languages_by_english_name,
-            subdivisions_by_id: indexes.subdivisions_by_id,
-            subdivisions_by_code: indexes.subdivisions_by_code,
-            subdivisions_by_english_name: indexes.subdivisions_by_english_name,
-            subdivisions_by_country: indexes.subdivisions_by_country,
-        })
+        Ok(cache)
+    }
+
+    fn build(
+        countries: &[IsoCountry],
+        currencies: &[IsoCurrency],
+        languages: &[IsoLanguage],
+        country_subdivisions: &[IsoCountrySubdivision],
+    ) -> Result<Self, ReferenceDataCacheError> {
+        let cache = Self::empty();
+
+        for country in countries {
+            match insert_unique(
+                &cache.countries,
+                country.country_code,
+                country.clone(),
+                "countries",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+            match insert_unique(
+                &cache.country_codes_by_alpha2,
+                text_key(&country.country_alpha2),
+                country.country_code,
+                "country_codes_by_alpha2",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+            match insert_unique(
+                &cache.country_codes_by_alpha3,
+                text_key(&country.country_alpha3),
+                country.country_code,
+                "country_codes_by_alpha3",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+            match insert_unique(
+                &cache.country_codes_by_english_name,
+                text_key(&country.country_eng_name),
+                country.country_code,
+                "country_codes_by_english_name",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+        }
+
+        for currency in currencies {
+            match insert_unique(
+                &cache.currencies,
+                currency.currency_code,
+                currency.clone(),
+                "currencies",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+            match insert_unique(
+                &cache.currency_codes_by_alpha3,
+                text_key(&currency.currency_alpha3),
+                currency.currency_code,
+                "currency_codes_by_alpha3",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+            match insert_unique(
+                &cache.currency_codes_by_english_name,
+                text_key(&currency.currency_name),
+                currency.currency_code,
+                "currency_codes_by_english_name",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+        }
+
+        for language in languages {
+            match insert_unique(
+                &cache.languages,
+                language.language_code,
+                language.clone(),
+                "languages",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+            match insert_unique(
+                &cache.language_codes_by_alpha2,
+                text_key(&language.language_alpha2),
+                language.language_code,
+                "language_codes_by_alpha2",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+            match insert_unique(
+                &cache.language_codes_by_alpha3,
+                text_key(&language.language_alpha3),
+                language.language_code,
+                "language_codes_by_alpha3",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+            match insert_unique(
+                &cache.language_codes_by_english_name,
+                text_key(&language.language_eng_name),
+                language.language_code,
+                "language_codes_by_english_name",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+        }
+
+        for subdivision in country_subdivisions {
+            match insert_unique(
+                &cache.country_subdivisions,
+                subdivision.subdivision_id,
+                subdivision.clone(),
+                "country_subdivisions",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+            match insert_unique(
+                &cache.subdivision_ids_by_code,
+                (
+                    subdivision.country_code,
+                    text_key(&subdivision.subdivision_code),
+                ),
+                subdivision.subdivision_id,
+                "subdivision_ids_by_code",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+            match insert_unique(
+                &cache.subdivision_ids_by_english_name,
+                (
+                    subdivision.country_code,
+                    text_key(&subdivision.subdivision_name),
+                ),
+                subdivision.subdivision_id,
+                "subdivision_ids_by_english_name",
+            ) {
+                Ok(()) => {}
+                Err(error) => return Err(error),
+            }
+            match cache.subdivisions_by_country.update_sync(
+                &subdivision.country_code,
+                |_, subdivision_ids| {
+                    subdivision_ids.push(subdivision.subdivision_id);
+                },
+            ) {
+                Some(()) => {}
+                None => {
+                    match cache
+                        .subdivisions_by_country
+                        .insert_sync(subdivision.country_code, vec![subdivision.subdivision_id])
+                    {
+                        Ok(()) => {}
+                        Err(_) => {
+                            return Err(ReferenceDataCacheError::DuplicateIndex {
+                                index: "subdivisions_by_country",
+                            });
+                        }
+                    }
+                }
+            }
+        }
+
+        Ok(cache)
+    }
+
+    fn empty() -> Self {
+        Self {
+            countries: HashMap::default(),
+            currencies: HashMap::default(),
+            languages: HashMap::default(),
+            country_subdivisions: HashMap::default(),
+            country_codes_by_alpha2: HashMap::default(),
+            country_codes_by_alpha3: HashMap::default(),
+            country_codes_by_english_name: HashMap::default(),
+            currency_codes_by_alpha3: HashMap::default(),
+            currency_codes_by_english_name: HashMap::default(),
+            language_codes_by_alpha2: HashMap::default(),
+            language_codes_by_alpha3: HashMap::default(),
+            language_codes_by_english_name: HashMap::default(),
+            subdivision_ids_by_code: HashMap::default(),
+            subdivision_ids_by_english_name: HashMap::default(),
+            subdivisions_by_country: HashMap::default(),
+        }
     }
 
     pub fn country_by_code(&self, country_code: i32) -> Option<IsoCountry> {
-        self.countries_by_code
+        self.countries
             .read_sync(&country_code, |_, country| country.clone())
     }
 
+    pub fn country_code_by_alpha2(&self, country_alpha2: &str) -> Option<i32> {
+        self.country_codes_by_alpha2
+            .read_sync(&text_key(country_alpha2), |_, country_code| *country_code)
+    }
+
+    pub fn country_code_by_alpha3(&self, country_alpha3: &str) -> Option<i32> {
+        self.country_codes_by_alpha3
+            .read_sync(&text_key(country_alpha3), |_, country_code| *country_code)
+    }
+
+    pub fn country_code_by_english_name(&self, country_eng_name: &str) -> Option<i32> {
+        self.country_codes_by_english_name
+            .read_sync(&text_key(country_eng_name), |_, country_code| *country_code)
+    }
+
     pub fn country_by_alpha2(&self, country_alpha2: &str) -> Option<IsoCountry> {
-        self.countries_by_alpha2
-            .read_sync(&text_key(country_alpha2), |_, country| country.clone())
+        let country_code = match self.country_code_by_alpha2(country_alpha2) {
+            Some(country_code) => country_code,
+            None => return None,
+        };
+
+        self.country_by_code(country_code)
     }
 
     pub fn country_by_alpha3(&self, country_alpha3: &str) -> Option<IsoCountry> {
-        self.countries_by_alpha3
-            .read_sync(&text_key(country_alpha3), |_, country| country.clone())
+        let country_code = match self.country_code_by_alpha3(country_alpha3) {
+            Some(country_code) => country_code,
+            None => return None,
+        };
+
+        self.country_by_code(country_code)
     }
 
     pub fn country_by_english_name(&self, country_eng_name: &str) -> Option<IsoCountry> {
-        self.countries_by_english_name
-            .read_sync(&text_key(country_eng_name), |_, country| country.clone())
+        let country_code = match self.country_code_by_english_name(country_eng_name) {
+            Some(country_code) => country_code,
+            None => return None,
+        };
+
+        self.country_by_code(country_code)
     }
 
     pub fn currency_by_code(&self, currency_code: i32) -> Option<IsoCurrency> {
-        self.currencies_by_code
+        self.currencies
             .read_sync(&currency_code, |_, currency| currency.clone())
     }
 
+    pub fn currency_code_by_alpha3(&self, currency_alpha3: &str) -> Option<i32> {
+        self.currency_codes_by_alpha3
+            .read_sync(&text_key(currency_alpha3), |_, currency_code| *currency_code)
+    }
+
+    pub fn currency_code_by_english_name(&self, currency_name: &str) -> Option<i32> {
+        self.currency_codes_by_english_name
+            .read_sync(&text_key(currency_name), |_, currency_code| *currency_code)
+    }
+
     pub fn currency_by_alpha3(&self, currency_alpha3: &str) -> Option<IsoCurrency> {
-        self.currencies_by_alpha3
-            .read_sync(&text_key(currency_alpha3), |_, currency| currency.clone())
+        let currency_code = match self.currency_code_by_alpha3(currency_alpha3) {
+            Some(currency_code) => currency_code,
+            None => return None,
+        };
+
+        self.currency_by_code(currency_code)
     }
 
     pub fn currency_by_english_name(&self, currency_name: &str) -> Option<IsoCurrency> {
-        self.currencies_by_english_name
-            .read_sync(&text_key(currency_name), |_, currency| currency.clone())
+        let currency_code = match self.currency_code_by_english_name(currency_name) {
+            Some(currency_code) => currency_code,
+            None => return None,
+        };
+
+        self.currency_by_code(currency_code)
     }
 
     pub fn language_by_code(&self, language_code: i32) -> Option<IsoLanguage> {
-        self.languages_by_code
+        self.languages
             .read_sync(&language_code, |_, language| language.clone())
     }
 
+    pub fn language_code_by_alpha2(&self, language_alpha2: &str) -> Option<i32> {
+        self.language_codes_by_alpha2
+            .read_sync(&text_key(language_alpha2), |_, language_code| *language_code)
+    }
+
+    pub fn language_code_by_alpha3(&self, language_alpha3: &str) -> Option<i32> {
+        self.language_codes_by_alpha3
+            .read_sync(&text_key(language_alpha3), |_, language_code| *language_code)
+    }
+
+    pub fn language_code_by_english_name(&self, language_eng_name: &str) -> Option<i32> {
+        self.language_codes_by_english_name
+            .read_sync(&text_key(language_eng_name), |_, language_code| *language_code)
+    }
+
     pub fn language_by_alpha2(&self, language_alpha2: &str) -> Option<IsoLanguage> {
-        self.languages_by_alpha2
-            .read_sync(&text_key(language_alpha2), |_, language| language.clone())
+        let language_code = match self.language_code_by_alpha2(language_alpha2) {
+            Some(language_code) => language_code,
+            None => return None,
+        };
+
+        self.language_by_code(language_code)
     }
 
     pub fn language_by_alpha3(&self, language_alpha3: &str) -> Option<IsoLanguage> {
-        self.languages_by_alpha3
-            .read_sync(&text_key(language_alpha3), |_, language| language.clone())
+        let language_code = match self.language_code_by_alpha3(language_alpha3) {
+            Some(language_code) => language_code,
+            None => return None,
+        };
+
+        self.language_by_code(language_code)
     }
 
     pub fn language_by_english_name(&self, language_eng_name: &str) -> Option<IsoLanguage> {
-        self.languages_by_english_name
-            .read_sync(&text_key(language_eng_name), |_, language| language.clone())
+        let language_code = match self.language_code_by_english_name(language_eng_name) {
+            Some(language_code) => language_code,
+            None => return None,
+        };
+
+        self.language_by_code(language_code)
     }
 
     pub fn subdivision_by_id(&self, subdivision_id: i32) -> Option<IsoCountrySubdivision> {
-        self.subdivisions_by_id
+        self.country_subdivisions
             .read_sync(&subdivision_id, |_, subdivision| subdivision.clone())
+    }
+
+    pub fn subdivision_id_by_code(
+        &self,
+        country_code: i32,
+        subdivision_code: &str,
+    ) -> Option<i32> {
+        self.subdivision_ids_by_code.read_sync(
+            &(country_code, text_key(subdivision_code)),
+            |_, subdivision_id| *subdivision_id,
+        )
+    }
+
+    pub fn subdivision_id_by_english_name(
+        &self,
+        country_code: i32,
+        subdivision_name: &str,
+    ) -> Option<i32> {
+        self.subdivision_ids_by_english_name.read_sync(
+            &(country_code, text_key(subdivision_name)),
+            |_, subdivision_id| *subdivision_id,
+        )
     }
 
     pub fn subdivision_by_code(
@@ -202,10 +452,12 @@ impl ReferenceDataCache {
         country_code: i32,
         subdivision_code: &str,
     ) -> Option<IsoCountrySubdivision> {
-        self.subdivisions_by_code.read_sync(
-            &(country_code, text_key(subdivision_code)),
-            |_, subdivision| subdivision.clone(),
-        )
+        let subdivision_id = match self.subdivision_id_by_code(country_code, subdivision_code) {
+            Some(subdivision_id) => subdivision_id,
+            None => return None,
+        };
+
+        self.subdivision_by_id(subdivision_id)
     }
 
     pub fn subdivision_by_english_name(
@@ -213,10 +465,13 @@ impl ReferenceDataCache {
         country_code: i32,
         subdivision_name: &str,
     ) -> Option<IsoCountrySubdivision> {
-        self.subdivisions_by_english_name.read_sync(
-            &(country_code, text_key(subdivision_name)),
-            |_, subdivision| subdivision.clone(),
-        )
+        let subdivision_id =
+            match self.subdivision_id_by_english_name(country_code, subdivision_name) {
+                Some(subdivision_id) => subdivision_id,
+                None => return None,
+            };
+
+        self.subdivision_by_id(subdivision_id)
     }
 
     pub fn country_currency(&self, country_code: i32) -> Option<IsoCurrency> {
@@ -247,13 +502,59 @@ impl ReferenceDataCache {
     }
 
     pub fn country_subdivisions(&self, country_code: i32) -> Vec<IsoCountrySubdivision> {
-        match self
+        let subdivision_ids = match self
             .subdivisions_by_country
-            .read_sync(&country_code, |_, subdivisions| subdivisions.clone())
+            .read_sync(&country_code, |_, subdivision_ids| subdivision_ids.clone())
         {
-            Some(subdivisions) => subdivisions,
-            None => Vec::new(),
+            Some(subdivision_ids) => subdivision_ids,
+            None => return Vec::new(),
+        };
+        let mut subdivisions = Vec::with_capacity(subdivision_ids.len());
+
+        for subdivision_id in subdivision_ids {
+            match self.subdivision_by_id(subdivision_id) {
+                Some(subdivision) => subdivisions.push(subdivision),
+                None => {}
+            }
         }
+
+        subdivisions
+    }
+
+    pub fn countries(&self) -> Vec<IsoCountry> {
+        let mut countries = Vec::new();
+        self.countries.iter_sync(|_, country| {
+            countries.push(country.clone());
+            true
+        });
+        countries
+    }
+
+    pub fn currencies(&self) -> Vec<IsoCurrency> {
+        let mut currencies = Vec::new();
+        self.currencies.iter_sync(|_, currency| {
+            currencies.push(currency.clone());
+            true
+        });
+        currencies
+    }
+
+    pub fn languages(&self) -> Vec<IsoLanguage> {
+        let mut languages = Vec::new();
+        self.languages.iter_sync(|_, language| {
+            languages.push(language.clone());
+            true
+        });
+        languages
+    }
+
+    pub fn all_country_subdivisions(&self) -> Vec<IsoCountrySubdivision> {
+        let mut country_subdivisions = Vec::new();
+        self.country_subdivisions.iter_sync(|_, subdivision| {
+            country_subdivisions.push(subdivision.clone());
+            true
+        });
+        country_subdivisions
     }
 }
 
@@ -269,227 +570,62 @@ impl fmt::Debug for ReferenceDataCache {
     }
 }
 
+impl Serialize for ReferenceDataCache {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: Serializer,
+    {
+        let countries = self.countries();
+        let currencies = self.currencies();
+        let languages = self.languages();
+        let country_subdivisions = self.all_country_subdivisions();
+
+        let mut state = match serializer.serialize_struct("ReferenceDataCache", 4) {
+            Ok(state) => state,
+            Err(error) => return Err(error),
+        };
+        match state.serialize_field("countries", &countries) {
+            Ok(()) => {}
+            Err(error) => return Err(error),
+        }
+        match state.serialize_field("currencies", &currencies) {
+            Ok(()) => {}
+            Err(error) => return Err(error),
+        }
+        match state.serialize_field("languages", &languages) {
+            Ok(()) => {}
+            Err(error) => return Err(error),
+        }
+        match state.serialize_field("country_subdivisions", &country_subdivisions) {
+            Ok(()) => {}
+            Err(error) => return Err(error),
+        }
+
+        match state.end() {
+            Ok(serialized) => Ok(serialized),
+            Err(error) => Err(error),
+        }
+    }
+}
+
 impl fmt::Display for ReferenceDataCacheError {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::DbPool { table, error } => {
-                write!(formatter, "failed to get database connection for `{table}`: {error}")
+                write!(
+                    formatter,
+                    "failed to get database connection for `{table}`: {error}"
+                )
             }
             Self::Query { table, error } => {
-                write!(formatter, "failed to load `{table}` reference data: {error}")
+                write!(
+                    formatter,
+                    "failed to load `{table}` reference data: {error}"
+                )
             }
             Self::DuplicateIndex { index } => {
                 write!(formatter, "duplicate reference data cache index `{index}`")
             }
-        }
-    }
-}
-
-struct ReferenceDataCacheIndexes {
-    countries_by_code: HashMap<i32, IsoCountry>,
-    countries_by_alpha2: HashMap<String, IsoCountry>,
-    countries_by_alpha3: HashMap<String, IsoCountry>,
-    countries_by_english_name: HashMap<String, IsoCountry>,
-    currencies_by_code: HashMap<i32, IsoCurrency>,
-    currencies_by_alpha3: HashMap<String, IsoCurrency>,
-    currencies_by_english_name: HashMap<String, IsoCurrency>,
-    languages_by_code: HashMap<i32, IsoLanguage>,
-    languages_by_alpha2: HashMap<String, IsoLanguage>,
-    languages_by_alpha3: HashMap<String, IsoLanguage>,
-    languages_by_english_name: HashMap<String, IsoLanguage>,
-    subdivisions_by_id: HashMap<i32, IsoCountrySubdivision>,
-    subdivisions_by_code: HashMap<(i32, String), IsoCountrySubdivision>,
-    subdivisions_by_english_name: HashMap<(i32, String), IsoCountrySubdivision>,
-    subdivisions_by_country: HashMap<i32, Vec<IsoCountrySubdivision>>,
-}
-
-impl ReferenceDataCacheIndexes {
-    fn build(
-        countries: &[IsoCountry],
-        currencies: &[IsoCurrency],
-        languages: &[IsoLanguage],
-        country_subdivisions: &[IsoCountrySubdivision],
-    ) -> Result<Self, ReferenceDataCacheError> {
-        let indexes = Self::empty();
-
-        for country in countries {
-            match insert_unique(
-                &indexes.countries_by_code,
-                country.country_code,
-                country.clone(),
-                "countries_by_code",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-            match insert_unique(
-                &indexes.countries_by_alpha2,
-                text_key(&country.country_alpha2),
-                country.clone(),
-                "countries_by_alpha2",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-            match insert_unique(
-                &indexes.countries_by_alpha3,
-                text_key(&country.country_alpha3),
-                country.clone(),
-                "countries_by_alpha3",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-            match insert_unique(
-                &indexes.countries_by_english_name,
-                text_key(&country.country_eng_name),
-                country.clone(),
-                "countries_by_english_name",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-        }
-
-        for currency in currencies {
-            match insert_unique(
-                &indexes.currencies_by_code,
-                currency.currency_code,
-                currency.clone(),
-                "currencies_by_code",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-            match insert_unique(
-                &indexes.currencies_by_alpha3,
-                text_key(&currency.currency_alpha3),
-                currency.clone(),
-                "currencies_by_alpha3",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-            match insert_unique(
-                &indexes.currencies_by_english_name,
-                text_key(&currency.currency_name),
-                currency.clone(),
-                "currencies_by_english_name",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-        }
-
-        for language in languages {
-            match insert_unique(
-                &indexes.languages_by_code,
-                language.language_code,
-                language.clone(),
-                "languages_by_code",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-            match insert_unique(
-                &indexes.languages_by_alpha2,
-                text_key(&language.language_alpha2),
-                language.clone(),
-                "languages_by_alpha2",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-            match insert_unique(
-                &indexes.languages_by_alpha3,
-                text_key(&language.language_alpha3),
-                language.clone(),
-                "languages_by_alpha3",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-            match insert_unique(
-                &indexes.languages_by_english_name,
-                text_key(&language.language_eng_name),
-                language.clone(),
-                "languages_by_english_name",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-        }
-
-        for subdivision in country_subdivisions {
-            match insert_unique(
-                &indexes.subdivisions_by_id,
-                subdivision.subdivision_id,
-                subdivision.clone(),
-                "subdivisions_by_id",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-            match insert_unique(
-                &indexes.subdivisions_by_code,
-                (subdivision.country_code, text_key(&subdivision.subdivision_code)),
-                subdivision.clone(),
-                "subdivisions_by_code",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-            match insert_unique(
-                &indexes.subdivisions_by_english_name,
-                (subdivision.country_code, text_key(&subdivision.subdivision_name)),
-                subdivision.clone(),
-                "subdivisions_by_english_name",
-            ) {
-                Ok(()) => {}
-                Err(error) => return Err(error),
-            }
-            match indexes
-                .subdivisions_by_country
-                .update_sync(&subdivision.country_code, |_, subdivisions| {
-                    subdivisions.push(subdivision.clone());
-                }) {
-                Some(()) => {}
-                None => {
-                    match indexes.subdivisions_by_country.insert_sync(
-                        subdivision.country_code,
-                        vec![subdivision.clone()],
-                    ) {
-                        Ok(()) => {}
-                        Err(_) => {
-                            return Err(ReferenceDataCacheError::DuplicateIndex {
-                                index: "subdivisions_by_country",
-                            });
-                        }
-                    }
-                }
-            }
-        }
-
-        Ok(indexes)
-    }
-
-    fn empty() -> Self {
-        Self {
-            countries_by_code: HashMap::default(),
-            countries_by_alpha2: HashMap::default(),
-            countries_by_alpha3: HashMap::default(),
-            countries_by_english_name: HashMap::default(),
-            currencies_by_code: HashMap::default(),
-            currencies_by_alpha3: HashMap::default(),
-            currencies_by_english_name: HashMap::default(),
-            languages_by_code: HashMap::default(),
-            languages_by_alpha2: HashMap::default(),
-            languages_by_alpha3: HashMap::default(),
-            languages_by_english_name: HashMap::default(),
-            subdivisions_by_id: HashMap::default(),
-            subdivisions_by_code: HashMap::default(),
-            subdivisions_by_english_name: HashMap::default(),
-            subdivisions_by_country: HashMap::default(),
         }
     }
 }
@@ -568,7 +704,10 @@ async fn load_currencies(db_pool: &DbPool) -> Result<Vec<IsoCurrency>, Reference
         }
     };
 
-    let rows = match iso_currency::table.load::<IsoCurrency>(&mut connection).await {
+    let rows = match iso_currency::table
+        .load::<IsoCurrency>(&mut connection)
+        .await
+    {
         Ok(rows) => rows,
         Err(error) => {
             error!(
@@ -610,7 +749,10 @@ async fn load_languages(db_pool: &DbPool) -> Result<Vec<IsoLanguage>, ReferenceD
         }
     };
 
-    let rows = match iso_language::table.load::<IsoLanguage>(&mut connection).await {
+    let rows = match iso_language::table
+        .load::<IsoLanguage>(&mut connection)
+        .await
+    {
         Ok(rows) => rows,
         Err(error) => {
             error!(

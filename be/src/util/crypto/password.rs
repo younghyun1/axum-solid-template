@@ -2,9 +2,8 @@ use std::fmt;
 
 use argon2::{
     Algorithm, Argon2, Params, PasswordHash, PasswordHasher, PasswordVerifier, Version,
-    password_hash::SaltString,
+    password_hash::{SaltString, rand_core::OsRng},
 };
-use rand::rngs::OsRng;
 
 #[derive(Debug)]
 pub enum PasswordCryptoError {
