@@ -28,11 +28,6 @@ type PageId = "home" | "join" | "signin" | "account" | "recovery";
 type ThemeMode = "light" | "dark";
 type NoticeKind = "idle" | "success" | "error";
 
-interface PageDefinition {
-  readonly id: PageId;
-  readonly label: string;
-}
-
 interface Notice {
   readonly kind: NoticeKind;
   readonly text: string;
@@ -42,14 +37,6 @@ interface LinkTokens {
   readonly resetToken: string | null;
   readonly verificationToken: string | null;
 }
-
-const pages: readonly PageDefinition[] = [
-  { id: "home", label: "Home" },
-  { id: "join", label: "Create account" },
-  { id: "signin", label: "Sign in" },
-  { id: "account", label: "Account" },
-  { id: "recovery", label: "Recovery" }
-];
 
 const emptyNotice: Notice = {
   kind: "idle",
@@ -117,27 +104,13 @@ export function App() {
     <div class="app-shell">
       <header class="top-bar">
         <button class="brand-button" type="button" onClick={() => setActivePage("home")}>
-          Home
+          Account portal
         </button>
-
-        <nav class="page-nav" aria-label="Primary navigation">
-          <For each={pages}>
-            {(page) => (
-              <button
-                class="nav-button"
-                classList={{ "nav-button--active": activePage() === page.id }}
-                type="button"
-                onClick={() => setActivePage(page.id)}
-              >
-                {page.label}
-              </button>
-            )}
-          </For>
-        </nav>
 
         <div class="top-actions">
           <button
-            aria-label="Toggle color theme"
+            aria-label={theme() === "light" ? "Switch to dark theme" : "Switch to light theme"}
+            aria-pressed={theme() === "dark" ? "true" : "false"}
             class="utility-button utility-button--icon"
             type="button"
             onClick={toggleTheme}
@@ -161,9 +134,11 @@ export function App() {
             when={isSignedIn() && currentUser() !== null}
             fallback={
               <div class="guest-actions">
-                <span class="session-dot session-dot--out" aria-hidden="true" />
                 <button class="secondary-button" type="button" onClick={() => setActivePage("signin")}>
                   Sign in
+                </button>
+                <button class="primary-button" type="button" onClick={() => setActivePage("join")}>
+                  Create account
                 </button>
               </div>
             }
@@ -262,10 +237,10 @@ function HomePage(props: HomePageProps) {
     <section class="page-view landing-layout">
       <div class="landing-copy">
         <p class="eyebrow">Account portal</p>
-        <h1>Access your account without the backend getting in the way.</h1>
+        <h1>Sign in, create an account, or recover access.</h1>
         <p class="hero-text">
-          Sign in, create an account, manage your profile, and recover access from one clean
-          customer-facing flow.
+          A focused customer-facing flow for everything related to your account — nothing else gets
+          in the way.
         </p>
         <div class="hero-actions">
           <button class="primary-button" type="button" onClick={props.onCreateAccount}>
@@ -277,28 +252,22 @@ function HomePage(props: HomePageProps) {
         </div>
       </div>
 
-      <aside class="portal-panel">
+      <aside class="portal-panel" aria-label="Service status">
         <div class="portal-panel__header">
-          <span class={props.serviceOnline ? "status-light status-light--ok" : "status-light"} />
+          <span
+            aria-hidden="true"
+            class={props.serviceOnline ? "status-light status-light--ok" : "status-light"}
+          />
           <div>
-            <p class="eyebrow">Service</p>
-            <h2>{props.serviceOnline ? "Available" : "Checking status"}</h2>
+            <p class="eyebrow">Service status</p>
+            <h2>{props.serviceOnline ? "All systems available" : "Checking status…"}</h2>
           </div>
         </div>
-        <dl class="summary-list">
-          <div>
-            <dt>Session</dt>
-            <dd>{props.isSignedIn ? "Signed in" : "Guest"}</dd>
-          </div>
-          <div>
-            <dt>Recovery</dt>
-            <dd>Email link</dd>
-          </div>
-          <div>
-            <dt>Profile</dt>
-            <dd>Protected</dd>
-          </div>
-        </dl>
+        <p class="form-copy">
+          {props.isSignedIn
+            ? "You are signed in. Manage your profile from the account view."
+            : "Sign in or create an account to get started."}
+        </p>
       </aside>
     </section>
   );
@@ -426,6 +395,7 @@ function JoinPage(props: JoinPageProps) {
         <h1>Create your account</h1>
         <form class="flow-form" onSubmit={submit}>
           <input
+            aria-label="Username"
             autocomplete="username"
             placeholder="Username"
             required
@@ -433,6 +403,7 @@ function JoinPage(props: JoinPageProps) {
             onInput={(event) => setUserName(event.currentTarget.value)}
           />
           <input
+            aria-label="Email"
             autocomplete="email"
             placeholder="Email"
             required
@@ -441,6 +412,7 @@ function JoinPage(props: JoinPageProps) {
             onInput={(event) => setEmail(event.currentTarget.value)}
           />
           <input
+            aria-label="Password"
             autocomplete="new-password"
             placeholder="Password"
             required
@@ -449,8 +421,9 @@ function JoinPage(props: JoinPageProps) {
             onInput={(event) => setPassword(event.currentTarget.value)}
           />
           <input
-            autocomplete="new-password"
             aria-invalid={passwordsMismatch() ? "true" : "false"}
+            aria-label="Re-enter password"
+            autocomplete="new-password"
             placeholder="Re-enter password"
             required
             type="password"
@@ -461,6 +434,7 @@ function JoinPage(props: JoinPageProps) {
             <p class="field-note field-note--error">Passwords do not match.</p>
           </Show>
           <select
+            aria-label="Country"
             required
             value={countryCode()}
             onChange={(event) => setCountryCode(event.currentTarget.value)}
@@ -475,6 +449,7 @@ function JoinPage(props: JoinPageProps) {
             </For>
           </select>
           <select
+            aria-label="Language"
             required
             value={languageCode()}
             onChange={(event) => setLanguageCode(event.currentTarget.value)}
@@ -485,6 +460,7 @@ function JoinPage(props: JoinPageProps) {
             </For>
           </select>
           <select
+            aria-label="Subdivision"
             value={subdivisionId()}
             disabled={subdivisions().length === 0}
             onChange={(event) => setSubdivisionId(event.currentTarget.value)}
@@ -550,6 +526,7 @@ function SignInPage(props: SignInPageProps) {
         <h1>Sign in</h1>
         <form class="flow-form" onSubmit={submit}>
           <input
+            aria-label="Email"
             autocomplete="email"
             placeholder="Email"
             required
@@ -558,6 +535,7 @@ function SignInPage(props: SignInPageProps) {
             onInput={(event) => setEmail(event.currentTarget.value)}
           />
           <input
+            aria-label="Password"
             autocomplete="current-password"
             placeholder="Password"
             required
@@ -713,6 +691,7 @@ function RecoveryPage(props: RecoveryPageProps) {
             <form class="flow-form" onSubmit={requestReset}>
               <p class="form-copy">Enter your email and we will send a reset link.</p>
               <input
+                aria-label="Email"
                 autocomplete="email"
                 placeholder="Email"
                 required
@@ -733,6 +712,7 @@ function RecoveryPage(props: RecoveryPageProps) {
           <form class="flow-form" onSubmit={applyReset}>
             <p class="form-copy">Choose a new password for your account.</p>
             <input
+              aria-label="New password"
               autocomplete="new-password"
               placeholder="New password"
               required
@@ -741,8 +721,9 @@ function RecoveryPage(props: RecoveryPageProps) {
               onInput={(event) => setPassword(event.currentTarget.value)}
             />
             <input
-              autocomplete="new-password"
               aria-invalid={passwordsMismatch() ? "true" : "false"}
+              aria-label="Re-enter new password"
+              autocomplete="new-password"
               placeholder="Re-enter new password"
               required
               type="password"
