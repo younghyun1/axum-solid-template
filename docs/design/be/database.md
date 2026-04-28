@@ -14,8 +14,10 @@ MySQL and SQLite configuration values are parsed but fail during pool/migration 
 
 Persistence code lives in repository modules. The current concrete repository implementation is PostgreSQL-only under `be/src/repository/**/postgres`. Services call concrete repository functions after a single datasource check at the service boundary; hot query paths do not use trait-object dispatch.
 
-Migrations run at startup through `diesel_async::AsyncMigrationHarness` on a direct startup connection.
+Migrations run at startup through `diesel_async::AsyncMigrationHarness` on a direct startup connection. Startup logs must include the database type, each applied migration version, and the final applied migration count. A count of zero is still logged so successful no-op migration checks are visible.
 
 The migrations target PostgreSQL 18. UUID primary keys use PostgreSQL's native `uuidv7()` default. No custom UUIDv7 function, `uuid-ossp`, or `pgcrypto` extension is used for UUID generation.
 
 Large ISO language, currency, country, country flag, and subdivision seed migrations are copied from `be/ref_src/migrations`.
+
+Durable scheduled job run history is stored in `job_runs`; see `docs/design/be/jobs.md`.

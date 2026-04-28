@@ -1,4 +1,4 @@
-use std::{fmt, hash::Hash, time::Duration, time::Instant};
+use std::{fmt, hash::Hash, time::Instant};
 
 use diesel_async::RunQueryDsl;
 use scc::HashMap;
@@ -25,12 +25,12 @@ pub struct ReferenceDataCache {
     country_codes_by_alpha3: HashMap<String, i32>,
     country_codes_by_english_name: HashMap<String, i32>,
     currency_codes_by_alpha3: HashMap<String, i32>,
-    currency_codes_by_english_name: HashMap<String, i32>,
+    currency_codes_by_english_name: HashMap<String, Vec<i32>>,
     language_codes_by_alpha2: HashMap<String, i32>,
     language_codes_by_alpha3: HashMap<String, i32>,
     language_codes_by_english_name: HashMap<String, i32>,
     subdivision_ids_by_code: HashMap<(i32, String), i32>,
-    subdivision_ids_by_english_name: HashMap<(i32, String), i32>,
+    subdivision_ids_by_english_name: HashMap<(i32, String), Vec<i32>>,
     subdivisions_by_country: HashMap<i32, Vec<i32>>,
 }
 
@@ -47,31 +47,49 @@ pub enum ReferenceDataCacheError {
     DuplicateIndex {
         index: &'static str,
     },
+    TaskJoin {
+        task: &'static str,
+        error: String,
+    },
 }
 
 impl ReferenceDataCache {
     pub async fn load(db_pool: &DbPool) -> Result<Self, ReferenceDataCacheError> {
         let started_at = Instant::now();
+        let country_pool = db_pool.clone();
+        let currency_pool = db_pool.clone();
+        let language_pool = db_pool.clone();
+        let subdivision_pool = db_pool.clone();
+
+        let countries_task = tokio::spawn(async move { load_countries(&country_pool).await });
+        let currencies_task = tokio::spawn(async move { load_currencies(&currency_pool).await });
+        let languages_task = tokio::spawn(async move { load_languages(&language_pool).await });
+        let country_subdivisions_task =
+            tokio::spawn(async move { load_country_subdivisions(&subdivision_pool).await });
+
         let (countries, currencies, languages, country_subdivisions) = tokio::join!(
-            load_countries(db_pool),
-            load_currencies(db_pool),
-            load_languages(db_pool),
-            load_country_subdivisions(db_pool),
+            countries_task,
+            currencies_task,
+            languages_task,
+            country_subdivisions_task,
         );
 
-        let countries = match countries {
+        let countries = match resolve_reference_data_task(ISO_COUNTRY_TABLE, countries) {
             Ok(countries) => countries,
             Err(error) => return Err(error),
         };
-        let currencies = match currencies {
+        let currencies = match resolve_reference_data_task(ISO_CURRENCY_TABLE, currencies) {
             Ok(currencies) => currencies,
             Err(error) => return Err(error),
         };
-        let languages = match languages {
+        let languages = match resolve_reference_data_task(ISO_LANGUAGE_TABLE, languages) {
             Ok(languages) => languages,
             Err(error) => return Err(error),
         };
-        let country_subdivisions = match country_subdivisions {
+        let country_subdivisions = match resolve_reference_data_task(
+            ISO_COUNTRY_SUBDIVISION_TABLE,
+            country_subdivisions,
+        ) {
             Ok(country_subdivisions) => country_subdivisions,
             Err(error) => return Err(error),
         };
@@ -85,7 +103,7 @@ impl ReferenceDataCache {
             currencies = currencies.len(),
             languages = languages.len(),
             country_subdivisions = country_subdivisions.len(),
-            elapsed_ms = elapsed_ms(started_at.elapsed()),
+            elapsed = ?started_at.elapsed(),
             "Loaded reference data cache"
         );
 
@@ -158,7 +176,7 @@ impl ReferenceDataCache {
                 Ok(()) => {}
                 Err(error) => return Err(error),
             }
-            match insert_unique(
+            match insert_index_value(
                 &cache.currency_codes_by_english_name,
                 text_key(&currency.currency_name),
                 currency.currency_code,
@@ -230,7 +248,7 @@ impl ReferenceDataCache {
                 Ok(()) => {}
                 Err(error) => return Err(error),
             }
-            match insert_unique(
+            match insert_index_value(
                 &cache.subdivision_ids_by_english_name,
                 (
                     subdivision.country_code,
@@ -348,8 +366,22 @@ impl ReferenceDataCache {
     }
 
     pub fn currency_code_by_english_name(&self, currency_name: &str) -> Option<i32> {
+        let currency_codes = match self.currency_codes_by_english_name(currency_name) {
+            Some(currency_codes) => currency_codes,
+            None => return None,
+        };
+        if currency_codes.len() != 1 {
+            return None;
+        }
+
+        Some(currency_codes[0])
+    }
+
+    pub fn currency_codes_by_english_name(&self, currency_name: &str) -> Option<Vec<i32>> {
         self.currency_codes_by_english_name
-            .read_sync(&text_key(currency_name), |_, currency_code| *currency_code)
+            .read_sync(&text_key(currency_name), |_, currency_codes| {
+                currency_codes.clone()
+            })
     }
 
     pub fn currency_by_alpha3(&self, currency_alpha3: &str) -> Option<IsoCurrency> {
@@ -440,9 +472,26 @@ impl ReferenceDataCache {
         country_code: i32,
         subdivision_name: &str,
     ) -> Option<i32> {
+        let subdivision_ids =
+            match self.subdivision_ids_by_english_name(country_code, subdivision_name) {
+                Some(subdivision_ids) => subdivision_ids,
+                None => return None,
+            };
+        if subdivision_ids.len() != 1 {
+            return None;
+        }
+
+        Some(subdivision_ids[0])
+    }
+
+    pub fn subdivision_ids_by_english_name(
+        &self,
+        country_code: i32,
+        subdivision_name: &str,
+    ) -> Option<Vec<i32>> {
         self.subdivision_ids_by_english_name.read_sync(
             &(country_code, text_key(subdivision_name)),
-            |_, subdivision_id| *subdivision_id,
+            |_, subdivision_ids| subdivision_ids.clone(),
         )
     }
 
@@ -626,7 +675,26 @@ impl fmt::Display for ReferenceDataCacheError {
             Self::DuplicateIndex { index } => {
                 write!(formatter, "duplicate reference data cache index `{index}`")
             }
+            Self::TaskJoin { task, error } => {
+                write!(
+                    formatter,
+                    "reference data cache task `{task}` failed: {error}"
+                )
+            }
         }
+    }
+}
+
+fn resolve_reference_data_task<T>(
+    task: &'static str,
+    result: Result<Result<T, ReferenceDataCacheError>, tokio::task::JoinError>,
+) -> Result<T, ReferenceDataCacheError> {
+    match result {
+        Ok(task_result) => task_result,
+        Err(error) => Err(ReferenceDataCacheError::TaskJoin {
+            task,
+            error: error.to_string(),
+        }),
     }
 }
 
@@ -642,6 +710,26 @@ where
     match map.insert_sync(key, value) {
         Ok(()) => Ok(()),
         Err(_) => Err(ReferenceDataCacheError::DuplicateIndex { index }),
+    }
+}
+
+fn insert_index_value<K>(
+    map: &HashMap<K, Vec<i32>>,
+    key: K,
+    value: i32,
+    index: &'static str,
+) -> Result<(), ReferenceDataCacheError>
+where
+    K: Eq + Hash,
+{
+    match map.update_sync(&key, |_, values| {
+        values.push(value);
+    }) {
+        Some(()) => Ok(()),
+        None => match map.insert_sync(key, vec![value]) {
+            Ok(()) => Ok(()),
+            Err(_) => Err(ReferenceDataCacheError::DuplicateIndex { index }),
+        },
     }
 }
 
@@ -680,7 +768,7 @@ async fn load_countries(db_pool: &DbPool) -> Result<Vec<IsoCountry>, ReferenceDa
     info!(
         table = ISO_COUNTRY_TABLE,
         row_count = rows.len(),
-        elapsed_ms = elapsed_ms(started_at.elapsed()),
+        elapsed = ?started_at.elapsed(),
         "Loaded reference data cache table"
     );
 
@@ -725,7 +813,7 @@ async fn load_currencies(db_pool: &DbPool) -> Result<Vec<IsoCurrency>, Reference
     info!(
         table = ISO_CURRENCY_TABLE,
         row_count = rows.len(),
-        elapsed_ms = elapsed_ms(started_at.elapsed()),
+        elapsed = ?started_at.elapsed(),
         "Loaded reference data cache table"
     );
 
@@ -770,7 +858,7 @@ async fn load_languages(db_pool: &DbPool) -> Result<Vec<IsoLanguage>, ReferenceD
     info!(
         table = ISO_LANGUAGE_TABLE,
         row_count = rows.len(),
-        elapsed_ms = elapsed_ms(started_at.elapsed()),
+        elapsed = ?started_at.elapsed(),
         "Loaded reference data cache table"
     );
 
@@ -817,22 +905,89 @@ async fn load_country_subdivisions(
     info!(
         table = ISO_COUNTRY_SUBDIVISION_TABLE,
         row_count = rows.len(),
-        elapsed_ms = elapsed_ms(started_at.elapsed()),
+        elapsed = ?started_at.elapsed(),
         "Loaded reference data cache table"
     );
 
     Ok(rows)
 }
 
-fn elapsed_ms(duration: Duration) -> u64 {
-    let millis = duration.as_millis();
-    if millis > u128::from(u64::MAX) {
-        return u64::MAX;
-    }
-
-    millis as u64
-}
-
 fn text_key(value: &str) -> String {
     value.trim().to_ascii_lowercase()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn currency(currency_code: i32, currency_alpha3: &str, currency_name: &str) -> IsoCurrency {
+        IsoCurrency {
+            currency_code,
+            currency_alpha3: String::from(currency_alpha3),
+            currency_name: String::from(currency_name),
+        }
+    }
+
+    fn subdivision(
+        subdivision_id: i32,
+        country_code: i32,
+        subdivision_code: &str,
+        subdivision_name: &str,
+    ) -> IsoCountrySubdivision {
+        IsoCountrySubdivision {
+            subdivision_id,
+            country_code,
+            subdivision_code: String::from(subdivision_code),
+            subdivision_name: String::from(subdivision_name),
+            subdivision_type: None,
+        }
+    }
+
+    #[test]
+    fn currency_name_index_allows_ambiguous_iso_names() -> Result<(), String> {
+        let currencies = vec![
+            currency(112, "BYB", "Belarusian Ruble"),
+            currency(933, "BYN", "Belarusian Ruble"),
+            currency(840, "USD", "US Dollar"),
+        ];
+        let cache = match ReferenceDataCache::build(&[], &currencies, &[], &[]) {
+            Ok(cache) => cache,
+            Err(error) => return Err(error.to_string()),
+        };
+
+        assert_eq!(
+            cache.currency_codes_by_english_name("belarusian ruble"),
+            Some(vec![112, 933])
+        );
+        assert_eq!(
+            cache.currency_code_by_english_name("Belarusian Ruble"),
+            None
+        );
+        assert_eq!(cache.currency_code_by_english_name("US Dollar"), Some(840));
+        Ok(())
+    }
+
+    #[test]
+    fn subdivision_name_index_allows_ambiguous_iso_names() -> Result<(), String> {
+        let subdivisions = vec![
+            subdivision(12255, 4, "URU", "Uruzgān"),
+            subdivision(48898, 4, "ORU", "Uruzgān"),
+            subdivision(12267, 4, "BDS", "Badakhshān"),
+        ];
+        let cache = match ReferenceDataCache::build(&[], &[], &[], &subdivisions) {
+            Ok(cache) => cache,
+            Err(error) => return Err(error.to_string()),
+        };
+
+        assert_eq!(
+            cache.subdivision_ids_by_english_name(4, "uruzgān"),
+            Some(vec![12255, 48898])
+        );
+        assert_eq!(cache.subdivision_id_by_english_name(4, "Uruzgān"), None);
+        assert_eq!(
+            cache.subdivision_id_by_english_name(4, "Badakhshān"),
+            Some(12267)
+        );
+        Ok(())
+    }
 }

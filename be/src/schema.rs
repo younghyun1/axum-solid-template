@@ -1,3 +1,9 @@
+pub mod sql_types {
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[diesel(postgres_type(name = "job_run_status"))]
+    pub struct JobRunStatus;
+}
+
 diesel::table! {
     email_verification_tokens (email_verification_token_id) {
         email_verification_token_id -> Uuid,
@@ -47,6 +53,27 @@ diesel::table! {
         language_alpha2 -> Bpchar,
         language_alpha3 -> Bpchar,
         language_eng_name -> Varchar,
+    }
+}
+
+diesel::table! {
+    use diesel::sql_types::*;
+    use super::sql_types::JobRunStatus;
+
+    job_runs (job_run_id) {
+        job_run_id -> Uuid,
+        job_run_name -> Text,
+        job_run_status -> JobRunStatus,
+        job_run_scheduled_for -> Timestamptz,
+        job_run_started_at -> Nullable<Timestamptz>,
+        job_run_finished_at -> Nullable<Timestamptz>,
+        job_run_duration_ms -> Nullable<Int8>,
+        job_run_attempt -> Int4,
+        job_run_error_code -> Nullable<Text>,
+        job_run_error_message -> Nullable<Text>,
+        job_run_metadata -> Jsonb,
+        job_run_created_at -> Timestamptz,
+        job_run_updated_at -> Timestamptz,
     }
 }
 
@@ -130,6 +157,7 @@ diesel::allow_tables_to_appear_in_same_query!(
     iso_country_subdivision,
     iso_currency,
     iso_language,
+    job_runs,
     password_reset_tokens,
     permissions,
     role_permissions,
