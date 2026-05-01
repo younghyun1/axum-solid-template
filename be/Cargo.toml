@@ -29,13 +29,13 @@ axum-extra = { version = "0.12.6", features = ["typed-header"] }
 bytes = "1.11.1"
 mime_guess = "2.0.5"
 rust-embed = "8.11.0"
-rustls = { version = "0.23.39", features = ["aws_lc_rs"] }
+rustls = { version = "0.23.40", features = ["aws_lc_rs"] }
 tower-http = { version = "0.6.8", features = ["compression-gzip", "compression-zstd", "cors"] }
 tower_governor = "0.8.0"
 
 # database
-diesel = { version = "2.3.8", features = ["postgres", "chrono", "uuid"] }
-diesel-async = { version = "0.8.0", features = ["postgres", "bb8", "migrations"] }
+diesel = { version = "2.3.9", features = ["postgres", "chrono", "uuid"] }
+diesel-async = { version = "0.9.0", features = ["postgres", "bb8", "migrations"] }
 diesel_migrations = { version = "2.3.2", features = ["postgres"] }
 scc = "3.7.0"
 
