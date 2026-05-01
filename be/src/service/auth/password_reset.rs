@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use chrono::{Duration, Utc};
 use diesel_async::AsyncConnection;
-use diesel_async::scoped_futures::ScopedFutureExt;
 use uuid::Uuid;
 use zeroize::Zeroize;
 
@@ -102,66 +101,65 @@ pub async fn reset_password(
     request.zeroize();
 
     let now = Utc::now();
-    let user = match conn
-        .transaction::<_, ApiError, _>(|conn| {
-            async move {
+    let user = {
+        let conn = &mut *conn;
+        conn.transaction::<_, ApiError, _>(async |conn| {
                 let reset_token = match password_reset_token_repository::find_by_token(
-                    conn,
+                    &mut *conn,
                     password_reset_token,
                 )
-                .await
-                {
-                    Ok(Some(reset_token)) => reset_token,
-                    Ok(None) => {
-                        return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_INVALID));
-                    }
-                    Err(error) => {
-                        return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error));
-                    }
-                };
+            .await
+            {
+                Ok(Some(reset_token)) => reset_token,
+                Ok(None) => {
+                    return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_INVALID));
+                }
+                Err(error) => {
+                    return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error));
+                }
+            };
 
-                if reset_token.password_reset_token_used_at.is_some() {
-                    return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_ALREADY_USED));
-                }
-                if reset_token.password_reset_token_created_at > now
-                    || reset_token.password_reset_token_expires_at < now
-                {
-                    return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_EXPIRED));
-                }
+            if reset_token.password_reset_token_used_at.is_some() {
+                return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_ALREADY_USED));
+            }
+            if reset_token.password_reset_token_created_at > now
+                || reset_token.password_reset_token_expires_at < now
+            {
+                return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_EXPIRED));
+            }
 
                 let user = match user_repository::update_password_after_reset(
-                    conn,
+                    &mut *conn,
                     reset_token.user_id,
                     new_password_hash,
                     now,
-                )
-                .await
-                {
-                    Ok(user) => user,
-                    Err(error) => {
-                        return Err(ApiError::from_source(CodeError::DB_UPDATE_ERROR, error));
-                    }
-                };
+            )
+            .await
+            {
+                Ok(user) => user,
+                Err(error) => {
+                    return Err(ApiError::from_source(CodeError::DB_UPDATE_ERROR, error));
+                }
+            };
 
                 match password_reset_token_repository::mark_used(
-                    conn,
+                    &mut *conn,
                     reset_token.password_reset_token_id,
                     now,
                 )
-                .await
-                {
-                    Ok(_) => {}
-                    Err(error) => {
-                        return Err(ApiError::from_source(CodeError::DB_UPDATE_ERROR, error));
-                    }
+            .await
+            {
+                Ok(_) => {}
+                Err(error) => {
+                    return Err(ApiError::from_source(CodeError::DB_UPDATE_ERROR, error));
                 }
-
-                Ok(user)
             }
-            .scope_boxed()
+
+            Ok(user)
         })
         .await
-    {
+    };
+    let user = match user {
         Ok(user) => user,
         Err(error) => return Err(error),
     };

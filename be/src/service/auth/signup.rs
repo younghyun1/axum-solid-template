@@ -2,7 +2,6 @@ use std::sync::Arc;
 
 use chrono::{Duration, Utc};
 use diesel_async::AsyncConnection;
-use diesel_async::scoped_futures::ScopedFutureExt;
 use uuid::Uuid;
 use zeroize::Zeroize;
 
@@ -89,54 +88,54 @@ pub async fn signup_user(
         SignupRole::User => RoleType::User,
         SignupRole::ServiceProvider => RoleType::ServiceProvider,
     };
-    let signup_result = conn
-        .transaction::<_, ApiError, _>(|conn| {
-            async move {
-                let new_user = NewUser {
-                    user_name: user_name.into_inner(),
-                    user_email: user_email.into_inner(),
-                    user_password_hash: password_hash,
-                    user_country,
-                    user_language,
-                    user_subdivision,
-                };
+    let signup_result = {
+        let conn = &mut *conn;
 
-                let user = match user_repository::insert_user(conn, new_user).await {
-                    Ok(user) => user,
-                    Err(InsertUserError::UniqueViolation) => {
-                        return Err(ApiError::new(CodeError::EMAIL_ALREADY_EXISTS));
-                    }
-                    Err(error) => {
-                        return Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error));
-                    }
-                };
+        conn.transaction::<_, ApiError, _>(async |conn| {
+            let new_user = NewUser {
+                user_name: user_name.into_inner(),
+                user_email: user_email.into_inner(),
+                user_password_hash: password_hash,
+                user_country,
+                user_language,
+                user_subdivision,
+            };
 
-                match user_role_repository::insert_for_user(conn, user.user_id, user_role).await {
-                    Ok(()) => {}
-                    Err(error) => {
-                        return Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error));
-                    }
+                let user = match user_repository::insert_user(&mut *conn, new_user).await {
+                Ok(user) => user,
+                Err(InsertUserError::UniqueViolation) => {
+                    return Err(ApiError::new(CodeError::EMAIL_ALREADY_EXISTS));
                 }
-
-                let new_token = NewEmailVerificationToken {
-                    user_id: user.user_id,
-                    email_verification_token,
-                    email_verification_token_expires_at: verify_by,
-                    email_verification_token_created_at: now,
-                };
-
-                match email_verification_token_repository::insert_token(conn, new_token).await {
-                    Ok(_) => {}
-                    Err(error) => {
-                        return Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error));
-                    }
+                Err(error) => {
+                    return Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error));
                 }
+            };
 
-                Ok(user)
+                match user_role_repository::insert_for_user(&mut *conn, user.user_id, user_role).await {
+                Ok(()) => {}
+                Err(error) => {
+                    return Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error));
+                }
             }
-            .scope_boxed()
+
+            let new_token = NewEmailVerificationToken {
+                user_id: user.user_id,
+                email_verification_token,
+                email_verification_token_expires_at: verify_by,
+                email_verification_token_created_at: now,
+            };
+
+                match email_verification_token_repository::insert_token(&mut *conn, new_token).await {
+                Ok(_) => {}
+                Err(error) => {
+                    return Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error));
+                }
+            }
+
+            Ok(user)
         })
-        .await;
+        .await
+    };
 
     request.zeroize();
     let user = match signup_result {
