@@ -1,3 +1,0 @@
-- countering webcrawlers and scrapers
-- they take clips of the videos for big streams and reconstitute it
-- 
