@@ -127,3 +127,7 @@ out/
 
 # zed
 .zed
+
+# docker build
+build/docker-target/
+build/cargo-home/

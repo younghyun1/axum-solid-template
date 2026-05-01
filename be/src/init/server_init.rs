@@ -340,9 +340,7 @@ fn load_dotenv_if_deployment_environment_is_missing() -> Result<(), ServerInitEr
     match env::var(DEPLOYMENT_ENVIRONMENT_KEY) {
         Ok(_) => Ok(()),
         Err(env::VarError::NotPresent) => {
-            let dotenv_path = Path::new(env!("CARGO_MANIFEST_DIR")).join(".env");
-
-            match dotenvy::from_path(dotenv_path) {
+            match dotenvy::dotenv() {
                 Ok(_) => Ok(()),
                 Err(error) => Err(ServerInitError::DotenvLoad(error)),
             }

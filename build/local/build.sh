@@ -20,10 +20,10 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 bin_dir="$repo_root/build/bin"
 be_static_dir="$repo_root/be/fe"
-docker_image="${RUST_BUILD_IMAGE:-rust:1-bookworm}"
+docker_image="${RUST_BUILD_IMAGE:-rust-solid-template-be-builder:nightly-bookworm}"
 docker_target_dir="$repo_root/build/docker-target"
 docker_cargo_home="$repo_root/build/cargo-home"
-docker_rustflags="${RUSTFLAGS:+$RUSTFLAGS }-C target-cpu=znver3"
+docker_rustflags="${RUSTFLAGS:+$RUSTFLAGS }-C target-cpu=znver3 -C link-arg=--ld-path=mold"
 
 cd "$repo_root/fe"
 if [ -f package-lock.json ]; then
@@ -61,7 +61,20 @@ find . -type f | while IFS= read -r file; do
 done
 
 mkdir -p "$docker_target_dir" "$docker_cargo_home"
+if [ -z "${RUST_BUILD_IMAGE:-}" ]; then
+  docker build --network host -t "$docker_image" -f - "$script_dir" <<'DOCKERFILE'
+FROM rust:1-bookworm
+
+RUN apt-get update \
+  && apt-get install -y --no-install-recommends ca-certificates clang mold \
+  && rm -rf /var/lib/apt/lists/*
+
+RUN rustup toolchain install nightly --profile minimal --component rust-src
+DOCKERFILE
+fi
+
 docker run --rm \
+  --network host \
   --user "$(id -u):$(id -g)" \
   -v "$repo_root:/workspace" \
   -w /workspace/be \
@@ -69,7 +82,7 @@ docker run --rm \
   -e CARGO_TARGET_DIR=/workspace/build/docker-target \
   -e RUSTFLAGS="$docker_rustflags" \
   "$docker_image" \
-  cargo build --release
+  cargo +nightly build --release
 
 mkdir -p "$bin_dir"
 cp "$docker_target_dir/release/be" "$bin_dir/be"
