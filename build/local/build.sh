@@ -11,8 +11,7 @@ require_command() {
   fi
 }
 
-require_command rustup "rustup is required but was not found in PATH"
-require_command cargo "cargo is required but was not found in PATH"
+require_command docker "docker is required for backend builds but was not found in PATH"
 require_command npm "npm is required but was not found in PATH"
 require_command zstd "zstd is required for frontend asset compression but was not found in PATH"
 require_command gzip "gzip is required for frontend asset compression but was not found in PATH"
@@ -21,6 +20,10 @@ script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 repo_root=$(CDPATH= cd -- "$script_dir/../.." && pwd)
 bin_dir="$repo_root/build/bin"
 be_static_dir="$repo_root/be/fe"
+docker_image="${RUST_BUILD_IMAGE:-rust:1-bookworm}"
+docker_target_dir="$repo_root/build/docker-target"
+docker_cargo_home="$repo_root/build/cargo-home"
+docker_rustflags="${RUSTFLAGS:+$RUSTFLAGS }-C target-cpu=znver3"
 
 cd "$repo_root/fe"
 if [ -f package-lock.json ]; then
@@ -57,9 +60,17 @@ find . -type f | while IFS= read -r file; do
   cp "$file" "$target"
 done
 
-cd "$repo_root/be"
-RUSTFLAGS="${RUSTFLAGS:+$RUSTFLAGS }-C target-cpu=native" cargo build --release
+mkdir -p "$docker_target_dir" "$docker_cargo_home"
+docker run --rm \
+  --user "$(id -u):$(id -g)" \
+  -v "$repo_root:/workspace" \
+  -w /workspace/be \
+  -e CARGO_HOME=/workspace/build/cargo-home \
+  -e CARGO_TARGET_DIR=/workspace/build/docker-target \
+  -e RUSTFLAGS="$docker_rustflags" \
+  "$docker_image" \
+  cargo build --release
 
 mkdir -p "$bin_dir"
-cp "$repo_root/be/target/release/be" "$bin_dir/be"
+cp "$docker_target_dir/release/be" "$bin_dir/be"
 echo "Built $bin_dir/be"
