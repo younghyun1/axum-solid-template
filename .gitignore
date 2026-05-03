@@ -67,9 +67,6 @@ Pipfile.lock
 uv.lock
 .venv
 
-# project-local agent/docs markers
-AGENTS.md
-
 # PostgreSQL / local DB artifacts
 **/*.db
 **/*.sqlite
