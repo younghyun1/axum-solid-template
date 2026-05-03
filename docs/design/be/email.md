@@ -21,4 +21,9 @@ Configuration keys:
 
 When mail is disabled, sends are logged and treated as successful. Signup queues an email verification message. Password reset requests queue a reset token message.
 
-Current templates are intentionally generic token emails in `be/src/util/email/templates.rs`; service-specific branding should be added later.
+Email verification messages link to the frontend verification page using `PUBLIC_APP_BASE_URL` and
+`/verify-email?email_validation_token_id=<uuid>`. The backend no longer sends the raw verification
+token as the primary email content.
+
+Current templates live in `be/src/util/email/templates.rs`; service-specific branding should be
+expanded later.

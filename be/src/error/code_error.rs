@@ -181,6 +181,48 @@ impl CodeError {
         message: "Reference data not found!",
         log_level: Level::INFO,
     };
+    pub const EMAIL_VERIFICATION_CHALLENGE_INVALID: CodeError = CodeError {
+        success: false,
+        error_code: 25,
+        http_status_code: StatusCode::BAD_REQUEST,
+        message: "Invalid email verification challenge!",
+        log_level: Level::INFO,
+    };
+    pub const EMAIL_VERIFICATION_CHALLENGE_EXPIRED: CodeError = CodeError {
+        success: false,
+        error_code: 26,
+        http_status_code: StatusCode::BAD_REQUEST,
+        message: "Email verification challenge expired!",
+        log_level: Level::INFO,
+    };
+    pub const EMAIL_VERIFICATION_CHALLENGE_FAILED: CodeError = CodeError {
+        success: false,
+        error_code: 27,
+        http_status_code: StatusCode::BAD_REQUEST,
+        message: "Email verification challenge failed!",
+        log_level: Level::INFO,
+    };
+    pub const EMAIL_VERIFICATION_ANSWER_INVALID: CodeError = CodeError {
+        success: false,
+        error_code: 28,
+        http_status_code: StatusCode::BAD_REQUEST,
+        message: "Email verification answer is incorrect!",
+        log_level: Level::INFO,
+    };
+    pub const ADMIN_REQUIRED: CodeError = CodeError {
+        success: false,
+        error_code: 29,
+        http_status_code: StatusCode::FORBIDDEN,
+        message: "Admin access required!",
+        log_level: Level::INFO,
+    };
+    pub const VALIDATION_FAILED: CodeError = CodeError {
+        success: false,
+        error_code: 30,
+        http_status_code: StatusCode::BAD_REQUEST,
+        message: "Validation failed!",
+        log_level: Level::INFO,
+    };
     pub const INTERNAL_ERROR: CodeError = CodeError {
         success: false,
         error_code: 255,

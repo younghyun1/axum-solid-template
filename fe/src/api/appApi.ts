@@ -3,6 +3,10 @@ import type {
   ApiCallResult,
   CheckIfUserExistsRequest,
   CheckIfUserExistsResponse,
+  CreateEmailVerificationQuestionAnswerRequest,
+  CreateEmailVerificationQuestionRequest,
+  EmailVerificationChallengeResponse,
+  EmailVerificationQuestionnaireResponse,
   HealthcheckResponse,
   LoginRequest,
   LoginResponse,
@@ -17,6 +21,7 @@ import type {
   ResetPasswordResponse,
   SignupRequest,
   SignupResponse,
+  VerifyEmailChallengeRequest,
   VerifyEmailResponse
 } from "./types";
 
@@ -112,14 +117,85 @@ export function resetPassword(
   });
 }
 
-export function verifyEmail(
+export function issueEmailVerificationChallenge(
   emailValidationTokenId: string
-): Promise<ApiCallResult<VerifyEmailResponse>> {
+): Promise<ApiCallResult<EmailVerificationChallengeResponse>> {
   return requestApi({
     method: "GET",
-    path: "/api/v1/auth/verify-user-email",
+    path: "/api/v1/auth/email-verification/challenge",
     query: {
       email_validation_token_id: emailValidationTokenId
     }
+  });
+}
+
+export function verifyEmail(
+  body: VerifyEmailChallengeRequest
+): Promise<ApiCallResult<VerifyEmailResponse>> {
+  return requestApi<VerifyEmailResponse, VerifyEmailChallengeRequest>({
+    body,
+    method: "POST",
+    path: "/api/v1/auth/verify-user-email"
+  });
+}
+
+export function getEmailVerificationQuestions(
+  token: string
+): Promise<ApiCallResult<EmailVerificationQuestionnaireResponse>> {
+  return requestApi({
+    method: "GET",
+    path: "/api/v1/admin/email-verification/questions",
+    token
+  });
+}
+
+export function createEmailVerificationQuestion(
+  token: string,
+  body: CreateEmailVerificationQuestionRequest
+): Promise<ApiCallResult<EmailVerificationQuestionnaireResponse>> {
+  return requestApi<EmailVerificationQuestionnaireResponse, CreateEmailVerificationQuestionRequest>({
+    body,
+    method: "POST",
+    path: "/api/v1/admin/email-verification/questions",
+    token
+  });
+}
+
+export function deleteEmailVerificationQuestion(
+  token: string,
+  questionId: string
+): Promise<ApiCallResult<EmailVerificationQuestionnaireResponse>> {
+  return requestApi({
+    method: "DELETE",
+    path: `/api/v1/admin/email-verification/questions/${questionId}`,
+    token
+  });
+}
+
+export function createEmailVerificationQuestionAnswer(
+  token: string,
+  questionId: string,
+  body: CreateEmailVerificationQuestionAnswerRequest
+): Promise<ApiCallResult<EmailVerificationQuestionnaireResponse>> {
+  return requestApi<
+    EmailVerificationQuestionnaireResponse,
+    CreateEmailVerificationQuestionAnswerRequest
+  >({
+    body,
+    method: "POST",
+    path: `/api/v1/admin/email-verification/questions/${questionId}/answers`,
+    token
+  });
+}
+
+export function deleteEmailVerificationQuestionAnswer(
+  token: string,
+  questionId: string,
+  answerId: string
+): Promise<ApiCallResult<EmailVerificationQuestionnaireResponse>> {
+  return requestApi({
+    method: "DELETE",
+    path: `/api/v1/admin/email-verification/questions/${questionId}/answers/${answerId}`,
+    token
   });
 }

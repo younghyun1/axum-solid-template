@@ -1,4 +1,4 @@
-export type ApiMethod = "GET" | "POST";
+export type ApiMethod = "DELETE" | "GET" | "POST";
 
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
@@ -89,6 +89,23 @@ export interface ResetPasswordProcessRequest extends JsonObject {
   readonly new_password: string;
 }
 
+export interface VerifyEmailChallengeRequest extends JsonObject {
+  readonly email_validation_token_id: string;
+  readonly email_verification_challenge_id: string;
+  readonly email_verification_pow_nonce: string;
+  readonly email_verification_answer: string;
+  readonly email_verification_honeypot: string;
+}
+
+export interface CreateEmailVerificationQuestionRequest extends JsonObject {
+  readonly email_verification_question_prompt: string;
+  readonly email_verification_question_answers: string[];
+}
+
+export interface CreateEmailVerificationQuestionAnswerRequest extends JsonObject {
+  readonly email_verification_question_answer_text: string;
+}
+
 export interface SignupResponse {
   readonly user_id: string;
   readonly user_name: string;
@@ -173,6 +190,35 @@ export interface VerifyEmailResponse {
   readonly user_id: string;
   readonly user_email: string;
   readonly verified_at: string;
+}
+
+export interface EmailVerificationChallengeResponse {
+  readonly email_verification_challenge_id: string;
+  readonly email_verification_question_id: string;
+  readonly email_verification_question_prompt: string;
+  readonly email_verification_pow_salt: string;
+  readonly email_verification_pow_difficulty_bits: number;
+  readonly email_verification_pow_algorithm: string;
+  readonly email_verification_minimum_elapsed_ms: number;
+  readonly email_verification_challenge_expires_at: string;
+  readonly email_verification_questionnaire_revision: number;
+}
+
+export interface EmailVerificationQuestionnaireResponse {
+  readonly email_verification_questionnaire_revision: number;
+  readonly email_verification_questions: readonly EmailVerificationQuestion[];
+}
+
+export interface EmailVerificationQuestion {
+  readonly email_verification_question_id: string;
+  readonly email_verification_question_prompt: string;
+  readonly email_verification_question_answers: readonly EmailVerificationQuestionAnswer[];
+}
+
+export interface EmailVerificationQuestionAnswer {
+  readonly email_verification_question_answer_id: string;
+  readonly email_verification_question_answer_text: string;
+  readonly email_verification_question_answer_normalized: string;
 }
 
 export interface PublicUserInfoResponse {

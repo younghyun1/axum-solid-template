@@ -94,6 +94,37 @@ pub async fn require_auth(
     Ok(next.run(request).await)
 }
 
+pub async fn require_admin(
+    State(state): State<Arc<ServerState>>,
+    mut request: Request<Body>,
+    next: Next,
+) -> Result<Response<Body>, ApiError> {
+    if !auth_context_attached(&request) {
+        let token = match bearer_token(&request) {
+            Some(token) => token,
+            None => return Err(ApiError::new(CodeError::UNAUTHORIZED)),
+        };
+
+        let auth_context = match auth_context_from_token(&state, token) {
+            Ok(auth_context) => auth_context,
+            Err(error) => return Err(error),
+        };
+
+        request.extensions_mut().insert(auth_context);
+    }
+
+    let auth_context = match request.extensions().get::<AuthContext>() {
+        Some(auth_context) => auth_context,
+        None => return Err(ApiError::new(CodeError::UNAUTHORIZED)),
+    };
+
+    if !auth_context.is_admin() {
+        return Err(ApiError::new(CodeError::ADMIN_REQUIRED));
+    }
+
+    Ok(next.run(request).await)
+}
+
 fn auth_context_from_token(state: &ServerState, token: &str) -> Result<AuthContext, ApiError> {
     let claims = match decode_access_token(&state.server_config.jwt_config, token) {
         Ok(claims) => claims,

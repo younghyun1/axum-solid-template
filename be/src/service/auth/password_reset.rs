@@ -104,10 +104,10 @@ pub async fn reset_password(
     let user = {
         let conn = &mut *conn;
         conn.transaction::<_, ApiError, _>(async |conn| {
-                let reset_token = match password_reset_token_repository::find_by_token(
-                    &mut *conn,
-                    password_reset_token,
-                )
+            let reset_token = match password_reset_token_repository::find_by_token(
+                &mut *conn,
+                password_reset_token,
+            )
             .await
             {
                 Ok(Some(reset_token)) => reset_token,
@@ -128,11 +128,11 @@ pub async fn reset_password(
                 return Err(ApiError::new(CodeError::PASSWORD_RESET_TOKEN_EXPIRED));
             }
 
-                let user = match user_repository::update_password_after_reset(
-                    &mut *conn,
-                    reset_token.user_id,
-                    new_password_hash,
-                    now,
+            let user = match user_repository::update_password_after_reset(
+                &mut *conn,
+                reset_token.user_id,
+                new_password_hash,
+                now,
             )
             .await
             {
@@ -142,11 +142,11 @@ pub async fn reset_password(
                 }
             };
 
-                match password_reset_token_repository::mark_used(
-                    &mut *conn,
-                    reset_token.password_reset_token_id,
-                    now,
-                )
+            match password_reset_token_repository::mark_used(
+                &mut *conn,
+                reset_token.password_reset_token_id,
+                now,
+            )
             .await
             {
                 Ok(_) => {}

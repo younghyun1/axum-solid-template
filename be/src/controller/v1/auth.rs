@@ -1,20 +1,25 @@
-use std::sync::Arc;
+use std::{net::SocketAddr, sync::Arc};
 
 use axum::{
     Extension, Json,
-    extract::{Path, Query, State},
+    extract::{ConnectInfo, Path, Query, State},
+    http::HeaderMap,
 };
+use uuid::Uuid;
 
 use crate::{
     dto::{
         api_response::{ApiEnvelope, ApiResponse, ApiResponseResult, ApiResult},
         auth::{
             request::{
-                CheckIfUserExistsRequest, EmailValidationToken, LoginRequest,
+                CheckIfUserExistsRequest, CreateEmailVerificationQuestionAnswerRequest,
+                CreateEmailVerificationQuestionRequest, EmailValidationToken, LoginRequest,
                 ResetPasswordProcessRequest, ResetPasswordRequest, SignupRequest,
+                VerifyEmailChallengeRequest,
             },
             response::{
-                CheckIfUserExistsResponse, LoginResponse, LogoutResponse, MeResponse,
+                CheckIfUserExistsResponse, EmailVerificationChallengeResponse,
+                EmailVerificationQuestionnaireResponse, LoginResponse, LogoutResponse, MeResponse,
                 PublicUserInfoResponse, ResetPasswordRequestResponse, ResetPasswordResponse,
                 SignupResponse, VerifyEmailResponse,
             },
@@ -30,7 +35,15 @@ use crate::{
         user::{
             check_if_user_exists as check_if_user_exists_service, current_user, public_user_info,
         },
-        verification::verify_user_email as verify_user_email_service,
+        verification::{
+            admin::{
+                add_email_verification_question_answer, create_email_verification_question,
+                delete_email_verification_question, delete_email_verification_question_answer,
+                list_email_verification_questions,
+            },
+            issue::issue_email_verification_challenge,
+            submit::verify_user_email as verify_user_email_service,
+        },
     },
 };
 
@@ -131,16 +144,117 @@ pub async fn reset_password(
 
 #[utoipa::path(
     get,
-    path = "/api/v1/auth/verify-user-email",
+    path = "/api/v1/auth/email-verification/challenge",
     tag = "auth",
     params(("email_validation_token_id" = Uuid, Query, description = "Email validation token")),
+    responses((status = 200, description = "Email verification challenge", body = ApiEnvelope<EmailVerificationChallengeResponse>))
+)]
+pub async fn email_verification_challenge(
+    State(state): State<Arc<ServerState>>,
+    Query(token): Query<EmailValidationToken>,
+    ConnectInfo(client_addr): ConnectInfo<SocketAddr>,
+    headers: HeaderMap,
+) -> ApiResponseResult<EmailVerificationChallengeResponse> {
+    response_from_result(
+        issue_email_verification_challenge(state, token, Some(client_addr), user_agent(&headers))
+            .await,
+    )
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/verify-user-email",
+    tag = "auth",
+    request_body = VerifyEmailChallengeRequest,
     responses((status = 200, description = "Email verified", body = ApiEnvelope<VerifyEmailResponse>))
 )]
 pub async fn verify_user_email(
     State(state): State<Arc<ServerState>>,
-    Query(token): Query<EmailValidationToken>,
+    Json(request): Json<VerifyEmailChallengeRequest>,
 ) -> ApiResponseResult<VerifyEmailResponse> {
-    response_from_result(verify_user_email_service(state, token).await)
+    response_from_result(verify_user_email_service(state, request).await)
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/admin/email-verification/questions",
+    tag = "admin",
+    responses((status = 200, description = "Email verification questionnaire", body = ApiEnvelope<EmailVerificationQuestionnaireResponse>))
+)]
+pub async fn admin_email_verification_questions(
+    State(state): State<Arc<ServerState>>,
+) -> ApiResponseResult<EmailVerificationQuestionnaireResponse> {
+    response_from_result(list_email_verification_questions(state).await)
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/admin/email-verification/questions",
+    tag = "admin",
+    request_body = CreateEmailVerificationQuestionRequest,
+    responses((status = 200, description = "Email verification questionnaire", body = ApiEnvelope<EmailVerificationQuestionnaireResponse>))
+)]
+pub async fn admin_create_email_verification_question(
+    Extension(auth_context): Extension<AuthContext>,
+    State(state): State<Arc<ServerState>>,
+    Json(request): Json<CreateEmailVerificationQuestionRequest>,
+) -> ApiResponseResult<EmailVerificationQuestionnaireResponse> {
+    response_from_result(create_email_verification_question(state, auth_context, request).await)
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/admin/email-verification/questions/{question_id}",
+    tag = "admin",
+    params(("question_id" = Uuid, Path, description = "Question id")),
+    responses((status = 200, description = "Email verification questionnaire", body = ApiEnvelope<EmailVerificationQuestionnaireResponse>))
+)]
+pub async fn admin_delete_email_verification_question(
+    Extension(auth_context): Extension<AuthContext>,
+    State(state): State<Arc<ServerState>>,
+    Path(question_id): Path<Uuid>,
+) -> ApiResponseResult<EmailVerificationQuestionnaireResponse> {
+    response_from_result(delete_email_verification_question(state, auth_context, question_id).await)
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/admin/email-verification/questions/{question_id}/answers",
+    tag = "admin",
+    params(("question_id" = Uuid, Path, description = "Question id")),
+    request_body = CreateEmailVerificationQuestionAnswerRequest,
+    responses((status = 200, description = "Email verification questionnaire", body = ApiEnvelope<EmailVerificationQuestionnaireResponse>))
+)]
+pub async fn admin_add_email_verification_question_answer(
+    Extension(auth_context): Extension<AuthContext>,
+    State(state): State<Arc<ServerState>>,
+    Path(question_id): Path<Uuid>,
+    Json(request): Json<CreateEmailVerificationQuestionAnswerRequest>,
+) -> ApiResponseResult<EmailVerificationQuestionnaireResponse> {
+    response_from_result(
+        add_email_verification_question_answer(state, auth_context, question_id, request).await,
+    )
+}
+
+#[utoipa::path(
+    delete,
+    path = "/api/v1/admin/email-verification/questions/{question_id}/answers/{answer_id}",
+    tag = "admin",
+    params(
+        ("question_id" = Uuid, Path, description = "Question id"),
+        ("answer_id" = Uuid, Path, description = "Answer id")
+    ),
+    responses((status = 200, description = "Email verification questionnaire", body = ApiEnvelope<EmailVerificationQuestionnaireResponse>))
+)]
+pub async fn admin_delete_email_verification_question_answer(
+    Extension(auth_context): Extension<AuthContext>,
+    State(state): State<Arc<ServerState>>,
+    Path((question_id, answer_id)): Path<(Uuid, Uuid)>,
+) -> ApiResponseResult<EmailVerificationQuestionnaireResponse> {
+    response_from_result(
+        delete_email_verification_question_answer(state, auth_context, question_id, answer_id)
+            .await,
+    )
 }
 
 #[utoipa::path(
@@ -161,5 +275,16 @@ fn response_from_result<T>(result: ApiResult<T>) -> ApiResponseResult<T> {
     match result {
         Ok(response) => Ok(api_ok(response)),
         Err(error) => Err(error),
+    }
+}
+
+fn user_agent(headers: &HeaderMap) -> Option<String> {
+    let value = match headers.get(axum::http::header::USER_AGENT) {
+        Some(value) => value,
+        None => return None,
+    };
+    match value.to_str() {
+        Ok(value) => Some(value.to_string()),
+        Err(_) => None,
     }
 }

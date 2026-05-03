@@ -44,6 +44,16 @@ Implemented endpoints:
 - `POST /api/v1/auth/reset-password-request`
 - `POST /api/v1/auth/reset-password`
 - `GET /api/v1/auth/verify-user-email`
+
+Email verification now uses a challenge step before the token is consumed:
+
+- `GET /api/v1/auth/email-verification/challenge`
+- `POST /api/v1/auth/verify-user-email`
+
+The challenge step combines an emailed token, server-issued proof-of-work, a honeypot field,
+minimum elapsed time, and a case-insensitive local question answer. Questionnaire data is persisted
+in PostgreSQL and mirrored in RAM on `ServerState`; admin mutations write DB first, bump the
+questionnaire revision, and refresh RAM before returning.
 - `GET /api/v1/users/{user_name}`
 
 Signup accepts `user_role` as either `user` or `service_provider`. Omitted role values default to

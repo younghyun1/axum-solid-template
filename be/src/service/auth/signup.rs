@@ -101,7 +101,7 @@ pub async fn signup_user(
                 user_subdivision,
             };
 
-                let user = match user_repository::insert_user(&mut *conn, new_user).await {
+            let user = match user_repository::insert_user(&mut *conn, new_user).await {
                 Ok(user) => user,
                 Err(InsertUserError::UniqueViolation) => {
                     return Err(ApiError::new(CodeError::EMAIL_ALREADY_EXISTS));
@@ -111,7 +111,7 @@ pub async fn signup_user(
                 }
             };
 
-                match user_role_repository::insert_for_user(&mut *conn, user.user_id, user_role).await {
+            match user_role_repository::insert_for_user(&mut *conn, user.user_id, user_role).await {
                 Ok(()) => {}
                 Err(error) => {
                     return Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error));
@@ -125,7 +125,7 @@ pub async fn signup_user(
                 email_verification_token_created_at: now,
             };
 
-                match email_verification_token_repository::insert_token(&mut *conn, new_token).await {
+            match email_verification_token_repository::insert_token(&mut *conn, new_token).await {
                 Ok(_) => {}
                 Err(error) => {
                     return Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error));

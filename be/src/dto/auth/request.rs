@@ -52,6 +52,26 @@ pub struct EmailValidationToken {
     pub email_validation_token_id: Uuid,
 }
 
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct VerifyEmailChallengeRequest {
+    pub email_validation_token_id: Uuid,
+    pub email_verification_challenge_id: Uuid,
+    pub email_verification_pow_nonce: String,
+    pub email_verification_answer: String,
+    pub email_verification_honeypot: String,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CreateEmailVerificationQuestionRequest {
+    pub email_verification_question_prompt: String,
+    pub email_verification_question_answers: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct CreateEmailVerificationQuestionAnswerRequest {
+    pub email_verification_question_answer_text: String,
+}
+
 #[cfg(test)]
 mod tests {
     use serde_json::json;

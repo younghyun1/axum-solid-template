@@ -6,7 +6,7 @@ use axum::{
     http::Response,
     middleware::{from_fn, from_fn_with_state},
     response::IntoResponse,
-    routing::{get, post},
+    routing::{delete, get, post},
 };
 use tower_governor::{
     GovernorError, GovernorLayer, governor::GovernorConfigBuilder,
@@ -20,8 +20,11 @@ use utoipa_swagger_ui::SwaggerUi;
 use crate::{
     controller::v1::{
         auth::{
-            check_if_user_exists, get_user_info, login, logout, me, reset_password,
-            reset_password_request, signup, verify_user_email,
+            admin_add_email_verification_question_answer, admin_create_email_verification_question,
+            admin_delete_email_verification_question,
+            admin_delete_email_verification_question_answer, admin_email_verification_questions,
+            check_if_user_exists, email_verification_challenge, get_user_info, login, logout, me,
+            reset_password, reset_password_request, signup, verify_user_email,
         },
         healthcheck::healthcheck,
         reference_data::{
@@ -36,7 +39,7 @@ use crate::{
     init::state::server_state::ServerState,
     middleware::{
         api_timing::time_api_request,
-        auth::{attach_optional_auth_context, require_auth},
+        auth::{attach_optional_auth_context, require_admin, require_auth},
         request_response_logging::log_request_response,
     },
 };
@@ -66,6 +69,7 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
 fn build_api_v1_router(state: Arc<ServerState>) -> Router {
     let public_auth_router = apply_auth_rate_limit(build_public_auth_router());
     let protected_auth_router = build_protected_auth_router(state.clone());
+    let admin_router = build_admin_router(state.clone());
 
     Router::new()
         .route("/healthcheck", get(healthcheck))
@@ -77,6 +81,7 @@ fn build_api_v1_router(state: Arc<ServerState>) -> Router {
         )
         .merge(public_auth_router)
         .merge(protected_auth_router)
+        .merge(admin_router)
         .layer(from_fn_with_state(
             state.clone(),
             attach_optional_auth_context,
@@ -92,7 +97,11 @@ fn build_public_auth_router() -> Router<Arc<ServerState>> {
         .route("/auth/check-if-user-exists", post(check_if_user_exists))
         .route("/auth/reset-password-request", post(reset_password_request))
         .route("/auth/reset-password", post(reset_password))
-        .route("/auth/verify-user-email", get(verify_user_email))
+        .route(
+            "/auth/email-verification/challenge",
+            get(email_verification_challenge),
+        )
+        .route("/auth/verify-user-email", post(verify_user_email))
         .route("/users/{user_name}", get(get_user_info))
 }
 
@@ -101,6 +110,27 @@ fn build_protected_auth_router(state: Arc<ServerState>) -> Router<Arc<ServerStat
         .route("/auth/me", get(me))
         .route("/auth/logout", post(logout))
         .layer(from_fn_with_state(state, require_auth))
+}
+
+fn build_admin_router(state: Arc<ServerState>) -> Router<Arc<ServerState>> {
+    Router::new()
+        .route(
+            "/admin/email-verification/questions",
+            get(admin_email_verification_questions).post(admin_create_email_verification_question),
+        )
+        .route(
+            "/admin/email-verification/questions/{question_id}",
+            delete(admin_delete_email_verification_question),
+        )
+        .route(
+            "/admin/email-verification/questions/{question_id}/answers",
+            post(admin_add_email_verification_question_answer),
+        )
+        .route(
+            "/admin/email-verification/questions/{question_id}/answers/{answer_id}",
+            delete(admin_delete_email_verification_question_answer),
+        )
+        .layer(from_fn_with_state(state, require_admin))
 }
 
 fn cors_layer_for_environment(deployment_environment: DeploymentEnvironment) -> CorsLayer {

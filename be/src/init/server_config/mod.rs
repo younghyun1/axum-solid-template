@@ -1,5 +1,6 @@
 mod cert_env;
 pub mod chatbot;
+mod chatbot_env;
 pub mod db_config;
 pub mod env;
 pub mod file_store_config;

@@ -27,7 +27,7 @@ pub mod util;
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
     let startup_started_at = Instant::now();
-    let server_state: ServerState = match init::server_init::init_server_state().await {
+    let server_state: ServerState = match init::server_init::lifecycle::init_server_state().await {
         Ok(server_state) => server_state,
         Err(error) => {
             eprintln!("Failed to initialize server state");
@@ -39,7 +39,7 @@ async fn main() {
     let shared_state = Arc::new(server_state);
 
     let server_task = tokio::spawn(async move {
-        init::server_init::run_server(shared_state, startup_started_at).await
+        init::server_init::runtime::run_server(shared_state, startup_started_at).await
     });
 
     match server_task.await {

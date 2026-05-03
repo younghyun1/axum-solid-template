@@ -1,0 +1,67 @@
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    scroll-behavior: auto !important;
+    transition-duration: 1ms !important;
+  }
+}
+
+@media (max-width: 920px) {
+  :root {
+    --space-page: 18px;
+  }
+
+  .top-bar {
+    flex-wrap: wrap;
+    padding: 10px var(--space-page);
+  }
+
+  .landing-layout {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 32px 0 24px;
+  }
+}
+
+@media (max-width: 560px) {
+  :root {
+    --space-page: 14px;
+  }
+
+  h1 {
+    font-size: 1.55rem;
+  }
+
+  .top-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .auth-card {
+    padding: 20px;
+  }
+
+  .segmented-control__options {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-list div,
+  .profile-grid div {
+    grid-template-columns: 1fr;
+    gap: 2px;
+  }
+
+  .summary-list dd,
+  .profile-grid dd {
+    text-align: left;
+  }
+
+  .question-item__header,
+  .answer-item,
+  .answer-add-row {
+    grid-template-columns: 1fr;
+  }
+}

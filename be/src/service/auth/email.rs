@@ -16,7 +16,8 @@ pub fn queue_verification_email(
     verify_by: DateTime<Utc>,
 ) {
     tokio::spawn(async move {
-        let html = email_verification_html(token, verify_by);
+        let html =
+            email_verification_html(token, verify_by, &state.server_config.public_app_base_url);
         match state
             .mail_sender
             .send_html(&user_email, "Verify your email", html)

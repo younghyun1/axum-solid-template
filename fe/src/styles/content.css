@@ -1,0 +1,255 @@
+.landing-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 360px);
+  gap: 32px;
+  align-items: start;
+  padding: 56px 0 24px;
+}
+
+.landing-copy {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.hero-text,
+.form-copy {
+  max-width: 620px;
+  margin-bottom: 0;
+  color: var(--color-text-muted);
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.portal-panel,
+.auth-card,
+.profile-card {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+}
+
+.portal-panel {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 20px;
+}
+
+.portal-panel__header {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.portal-panel__header h2 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--color-accent);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.auth-page {
+  display: grid;
+  justify-items: center;
+  padding: 48px 0;
+}
+
+.auth-card {
+  display: grid;
+  gap: 14px;
+  width: min(520px, 100%);
+  padding: 26px;
+}
+
+.auth-card--narrow {
+  width: min(420px, 100%);
+}
+
+.auth-card h1 {
+  font-size: 1.65rem;
+}
+
+.flow-form {
+  display: grid;
+  gap: 10px;
+}
+
+.flow-form input,
+.flow-form textarea,
+.flow-form select {
+  width: 100%;
+  min-height: 40px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  color: var(--color-text);
+  padding: 8px 10px;
+  font-weight: 500;
+}
+
+.flow-form textarea,
+.admin-form textarea {
+  min-height: 104px;
+  resize: vertical;
+}
+
+.flow-form input::placeholder {
+  color: var(--color-text-muted);
+}
+
+.flow-form input[aria-invalid="true"] {
+  border-color: var(--color-danger);
+}
+
+.field-note {
+  margin: 0;
+  font-size: 0.84rem;
+  font-weight: 500;
+}
+
+.field-note--error {
+  color: var(--color-danger);
+}
+
+.segmented-control {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+
+.segmented-control legend {
+  color: var(--color-text-muted);
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.segmented-control__options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+  padding: 4px;
+}
+
+.segmented-option {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  border-radius: var(--radius-sm);
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  font-weight: 700;
+  transition:
+    background-color 110ms ease,
+    color 110ms ease;
+}
+
+.segmented-option input {
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.segmented-option span {
+  pointer-events: none;
+}
+
+.segmented-option:focus-within {
+  outline: 2px solid color-mix(in srgb, var(--color-accent) 60%, transparent);
+  outline-offset: 2px;
+}
+
+.segmented-option--active {
+  background: var(--color-primary);
+  color: var(--color-bg-elevated);
+}
+
+:root[data-theme="dark"] .segmented-option--active {
+  color: var(--color-bg);
+}
+
+.primary-button {
+  min-height: 40px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-bg-elevated);
+  padding: 0 16px;
+  font-weight: 600;
+  transition:
+    background-color 110ms ease,
+    transform 110ms ease,
+    opacity 110ms ease;
+}
+
+:root[data-theme="dark"] .primary-button {
+  color: var(--color-bg);
+}
+
+.primary-button:hover {
+  background: var(--color-primary-strong);
+}
+
+.primary-button:active,
+.secondary-button:active,
+.utility-button:active {
+  transform: translateY(1px);
+}
+
+.primary-button:disabled,
+.secondary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.link-button {
+  justify-self: end;
+  min-height: 28px;
+  border: 0;
+  background: transparent;
+  color: var(--color-accent);
+  padding: 0;
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.section-heading {
+  display: grid;
+  gap: 8px;
+  padding: 36px 0 20px;
+}
+
+.account-layout {
+  display: grid;
+  gap: 16px;
+  width: min(720px, 100%);
+}

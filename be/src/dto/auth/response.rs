@@ -3,7 +3,9 @@ use serde::Serialize;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-use crate::{domain::auth::jwt::AccessTokenClaims, domain::auth::user::UserInfo};
+use crate::domain::auth::{
+    email_verification_challenge::EmailVerificationQuestion, jwt::AccessTokenClaims, user::UserInfo,
+};
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct SignupResponse {
@@ -57,6 +59,25 @@ pub struct VerifyEmailResponse {
     pub user_id: Uuid,
     pub user_email: String,
     pub verified_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct EmailVerificationChallengeResponse {
+    pub email_verification_challenge_id: Uuid,
+    pub email_verification_question_id: Uuid,
+    pub email_verification_question_prompt: String,
+    pub email_verification_pow_salt: String,
+    pub email_verification_pow_difficulty_bits: i32,
+    pub email_verification_pow_algorithm: String,
+    pub email_verification_minimum_elapsed_ms: i32,
+    pub email_verification_challenge_expires_at: DateTime<Utc>,
+    pub email_verification_questionnaire_revision: i64,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct EmailVerificationQuestionnaireResponse {
+    pub email_verification_questionnaire_revision: i64,
+    pub email_verification_questions: Vec<EmailVerificationQuestion>,
 }
 
 #[derive(Debug, Serialize, ToSchema)]

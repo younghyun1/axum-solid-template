@@ -1,16 +1,9 @@
-use crate::init::server_config::{
-    chatbot::{
-        chatbot_config::{ChatbotConfig, ChatbotProvider, RagStorageProvider},
-        claude::ClaudeConfig,
-        mistral::MistralConfig,
-    },
-    db_config::DatabaseConfig,
-    file_store_config::FileStoreConfig,
-};
+use crate::init::server_config::{db_config::DatabaseConfig, file_store_config::FileStoreConfig};
 use std::net::{IpAddr, Ipv4Addr};
 
 use super::{
     cert_env::cert_config_from_env,
+    chatbot_env::chatbot_config_from_env,
     jwt_env::jwt_config_from_env,
     mail_env::mail_config_from_env,
     parsers::{
@@ -46,6 +39,11 @@ impl ServerConfig {
             Ok(server_port) => server_port,
             Err(error) => return Err(error),
         };
+        let public_app_base_url = match optional_env("PUBLIC_APP_BASE_URL") {
+            Ok(Some(public_app_base_url)) => public_app_base_url,
+            Ok(None) => format!("http://127.0.0.1:{server_port}"),
+            Err(error) => return Err(error),
+        };
         let http_redirect_port = match optional_int_env("HTTP_REDIRECT_PORT", 8080_u16) {
             Ok(http_redirect_port) => http_redirect_port,
             Err(error) => return Err(error),
@@ -76,6 +74,7 @@ impl ServerConfig {
             https_enabled,
             server_bind_ip,
             server_port,
+            public_app_base_url,
             http_redirect_port,
             db_config,
             file_store_config,
@@ -196,105 +195,4 @@ fn aws_s3_file_store_config_from_env() -> Result<FileStoreConfig, ServerConfigEr
         aws_s3_secret_key,
         aws_s3_region,
     ))
-}
-
-fn chatbot_config_from_env() -> Result<ChatbotConfig, ServerConfigError> {
-    let chatbot_provider = match chatbot_provider_from_env() {
-        Ok(chatbot_provider) => chatbot_provider,
-        Err(error) => return Err(error),
-    };
-    let chatbot_rag_storage_provider = match rag_storage_provider_from_env() {
-        Ok(chatbot_rag_storage_provider) => chatbot_rag_storage_provider,
-        Err(error) => return Err(error),
-    };
-
-    Ok(ChatbotConfig {
-        chatbot_provider,
-        chatbot_rag_storage_provider,
-    })
-}
-
-fn chatbot_provider_from_env() -> Result<Option<ChatbotProvider>, ServerConfigError> {
-    let provider = match optional_env("CHATBOT_PROVIDER") {
-        Ok(provider) => provider,
-        Err(error) => return Err(error),
-    };
-
-    match provider {
-        Some(value) => chatbot_provider_from_value(value),
-        None => Ok(None),
-    }
-}
-
-fn chatbot_provider_from_value(
-    value: String,
-) -> Result<Option<ChatbotProvider>, ServerConfigError> {
-    match normalized_env_value(&value).as_str() {
-        "" | "none" | "disabled" => Ok(None),
-        "claude" | "anthropic" => claude_chatbot_provider_from_env(),
-        "mistral" => mistral_chatbot_provider_from_env(),
-        _ => Err(ServerConfigError::InvalidEnvironmentVariable {
-            env_key: "CHATBOT_PROVIDER",
-            value,
-            expected: "none, disabled, claude, anthropic, or mistral",
-        }),
-    }
-}
-
-fn claude_chatbot_provider_from_env() -> Result<Option<ChatbotProvider>, ServerConfigError> {
-    let anthropic_api_key = match required_env("ANTHROPIC_API_KEY") {
-        Ok(value) => value,
-        Err(error) => return Err(error),
-    };
-    let anthropic_model = match required_env("ANTHROPIC_MODEL") {
-        Ok(value) => value,
-        Err(error) => return Err(error),
-    };
-    let anthropic_max_tokens = match required_int_env("ANTHROPIC_MAX_TOKENS") {
-        Ok(value) => value,
-        Err(error) => return Err(error),
-    };
-
-    Ok(Some(ChatbotProvider::Claude(ClaudeConfig::public_api(
-        anthropic_api_key,
-        anthropic_model,
-        anthropic_max_tokens,
-    ))))
-}
-
-fn mistral_chatbot_provider_from_env() -> Result<Option<ChatbotProvider>, ServerConfigError> {
-    let mistral_api_key = match required_env("MISTRAL_API_KEY") {
-        Ok(value) => value,
-        Err(error) => return Err(error),
-    };
-    let mistral_model = match required_env("MISTRAL_MODEL") {
-        Ok(value) => value,
-        Err(error) => return Err(error),
-    };
-
-    Ok(Some(ChatbotProvider::Mistral(MistralConfig::public_api(
-        mistral_api_key,
-        mistral_model,
-    ))))
-}
-
-fn rag_storage_provider_from_env() -> Result<Option<RagStorageProvider>, ServerConfigError> {
-    let provider = match optional_env("CHATBOT_RAG_STORAGE_PROVIDER") {
-        Ok(provider) => provider,
-        Err(error) => return Err(error),
-    };
-
-    match provider {
-        Some(value) => match normalized_env_value(&value).as_str() {
-            "" | "none" | "disabled" => Ok(None),
-            "in_ram" | "in-memory" | "memory" => Ok(Some(RagStorageProvider::InRam)),
-            "pg_vector" | "pgvector" => Ok(Some(RagStorageProvider::PgVector)),
-            _ => Err(ServerConfigError::InvalidEnvironmentVariable {
-                env_key: "CHATBOT_RAG_STORAGE_PROVIDER",
-                value,
-                expected: "none, disabled, in_ram, memory, pg_vector, or pgvector",
-            }),
-        },
-        None => Ok(None),
-    }
 }

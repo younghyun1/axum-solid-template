@@ -16,6 +16,7 @@ pub struct ServerConfig {
     pub https_enabled: bool,
     pub server_bind_ip: IpAddr,
     pub server_port: u16,
+    pub public_app_base_url: String,
     pub http_redirect_port: u16,
     pub db_config: DatabaseConfig,
     pub file_store_config: FileStoreConfig,
