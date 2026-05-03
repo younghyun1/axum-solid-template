@@ -7,6 +7,12 @@ pub(super) enum ContentCodingPreference {
     Identity,
 }
 
+/// Parses a `q` parameter string into `f32` and returns 0.0 when invalid.
+///
+/// # Arguments
+/// * `raw` -
+/// # Returns
+/// Returns the value produced by this function.
 fn parse_quality(raw: &str) -> f32 {
     match raw.trim().parse::<f32>() {
         Ok(value) if (0.0..=1.0).contains(&value) => value,
@@ -15,6 +21,13 @@ fn parse_quality(raw: &str) -> f32 {
     }
 }
 
+/// Updates an optional quality slot only when the new score is higher.
+///
+/// # Arguments
+/// * `slot` -
+/// * `quality` -
+/// # Returns
+/// No value is returned.
 fn set_max_quality(slot: &mut Option<f32>, quality: f32) {
     match *slot {
         Some(current) if current >= quality => {}
@@ -22,6 +35,12 @@ fn set_max_quality(slot: &mut Option<f32>, quality: f32) {
     }
 }
 
+/// Parses a `q=...` attribute and extracts its numeric quality value.
+///
+/// # Arguments
+/// * `parameter` -
+/// # Returns
+/// Returns the value produced by this function.
 fn q_value_from_parameter(parameter: &str) -> Option<f32> {
     let mut key_value = parameter.trim().splitn(2, '=');
     let key = match key_value.next() {
@@ -38,6 +57,12 @@ fn q_value_from_parameter(parameter: &str) -> Option<f32> {
     }
 }
 
+/// Applies RFC-style `Accept-Encoding` negotiation with wildcard and identity fallback.
+///
+/// # Arguments
+/// * `super) fn select_static_encoding(headers` -
+/// # Returns
+/// Returns the value produced by this function.
 #[allow(clippy::manual_unwrap_or, clippy::single_match)]
 pub(super) fn select_static_encoding(headers: &HeaderMap) -> ContentCodingPreference {
     let accept_encoding = match headers.get(header::ACCEPT_ENCODING) {
@@ -126,12 +151,22 @@ mod tests {
 
     use super::*;
 
+    /// Builds a test-only header map containing one `Accept-Encoding` value.
+    ///
+    /// # Arguments
+    /// * `value` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn accept_encoding_headers(value: &'static str) -> HeaderMap {
         let mut headers = HeaderMap::new();
         headers.insert(header::ACCEPT_ENCODING, HeaderValue::from_static(value));
         headers
     }
 
+    /// Asserts zstd is selected when it has the highest advertised quality.
+    ///
+    /// # Returns
+    /// No value is returned.
     #[test]
     fn select_static_encoding_prefers_zstd_when_quality_is_highest() {
         let headers = accept_encoding_headers("gzip;q=0.8, zstd;q=1.0");
@@ -142,6 +177,10 @@ mod tests {
         );
     }
 
+    /// Asserts zstd is ignored when quality is explicitly set to 0.
+    ///
+    /// # Returns
+    /// No value is returned.
     #[test]
     fn select_static_encoding_respects_disabled_zstd() {
         let headers = accept_encoding_headers("zstd;q=0, gzip;q=1.0");
@@ -152,6 +191,10 @@ mod tests {
         );
     }
 
+    /// Asserts identity is used when clients send no `Accept-Encoding` header.
+    ///
+    /// # Returns
+    /// No value is returned (`()`).
     #[test]
     fn select_static_encoding_defaults_to_identity_without_header() {
         let headers = HeaderMap::new();

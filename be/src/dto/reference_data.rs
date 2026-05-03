@@ -35,6 +35,12 @@ pub struct ReferenceSubdivisionResponse {
 }
 
 impl ReferenceCountryResponse {
+    /// Converts a domain-country model into the API country DTO shape.
+    ///
+    /// # Arguments
+    /// * `country` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn from_domain(country: IsoCountry) -> Self {
         Self {
             country_code: country.country_code,
@@ -51,6 +57,12 @@ impl ReferenceCountryResponse {
 }
 
 impl ReferenceLanguageResponse {
+    /// Converts a domain-language model into the API language DTO shape.
+    ///
+    /// # Arguments
+    /// * `language` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn from_domain(language: IsoLanguage) -> Self {
         Self {
             language_code: language.language_code,
@@ -62,6 +74,13 @@ impl ReferenceLanguageResponse {
 }
 
 impl ReferenceSubdivisionResponse {
+    /// Converts a country subdivision domain model and country flag into an API DTO.
+    ///
+    /// # Arguments
+    /// * `subdivision` -
+    /// * `country_flag` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn from_domain(subdivision: IsoCountrySubdivision, country_flag: String) -> Self {
         Self {
             subdivision_id: subdivision.subdivision_id,

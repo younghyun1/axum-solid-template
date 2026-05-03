@@ -5,6 +5,10 @@ use crate::error::{
     code_error::CodeError,
 };
 
+/// Verifies `Result::api_err` maps library errors into configured `ApiError` values.
+///
+/// # Returns
+/// No value is returned.
 #[test]
 fn result_extension_maps_library_error_to_api_error() {
     let result: Result<(), std::io::Error> = Err(std::io::Error::other("disk unavailable"));
@@ -19,6 +23,10 @@ fn result_extension_maps_library_error_to_api_error() {
     assert_eq!(api_error.code_error().error_code, 255);
 }
 
+/// Verifies `Option::api_ok_or` maps missing values to configured `ApiError` values.
+///
+/// # Returns
+/// No value is returned.
 #[test]
 fn option_extension_maps_none_to_api_error() {
     let missing: Option<u8> = None;
@@ -36,6 +44,10 @@ fn option_extension_maps_none_to_api_error() {
     );
 }
 
+/// Verifies converting `CodeError` into an HTTP response preserves configured status code.
+///
+/// # Returns
+/// No value is returned.
 #[test]
 fn api_error_into_response_uses_configured_status_code() {
     let response = CodeError::INTERNAL_ERROR.into_response();

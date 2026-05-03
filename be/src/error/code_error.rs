@@ -233,6 +233,13 @@ impl CodeError {
 }
 
 impl fmt::Display for CodeError {
+    /// Formats a `CodeError` as its public message for Display output.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(self.message)
     }

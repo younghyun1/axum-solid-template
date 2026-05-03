@@ -183,6 +183,10 @@ impl ReferenceDataCache {
         Ok(cache)
     }
 
+    /// Perform the `empty` operation as implemented by this function.
+    ///
+    /// # Returns
+    /// Returns the value produced by this function.
     fn empty() -> Self {
         Self {
             countries: HashMap::default(),

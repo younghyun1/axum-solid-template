@@ -10,6 +10,10 @@ pub struct ChatGenerationConfig {
 }
 
 impl ChatGenerationConfig {
+    /// Perform the `disabled` operation as implemented by this function.
+    ///
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn disabled() -> Self {
         Self {
             max_output_tokens: None,

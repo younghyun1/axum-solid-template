@@ -30,6 +30,12 @@ pub enum MailSenderError {
 }
 
 impl MailSender {
+    /// Perform the `from_config` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `config` -
+    /// # Returns
+    /// A `Result`, either containing the function output or an error.
     pub fn from_config(config: &MailConfig) -> Result<Self, MailSenderError> {
         match &config.provider {
             MailProvider::Disabled => Ok(Self {
@@ -123,6 +129,13 @@ impl MailSender {
 }
 
 impl fmt::Debug for MailSender {
+    /// Perform the `fmt` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.inner.as_ref() {
             MailSenderInner::Disabled => formatter
@@ -138,6 +151,13 @@ impl fmt::Debug for MailSender {
 }
 
 impl fmt::Display for MailSenderError {
+    /// Perform the `fmt` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Address { error } => write!(formatter, "invalid email address: {error}"),

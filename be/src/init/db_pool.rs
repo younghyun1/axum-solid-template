@@ -23,6 +23,13 @@ pub enum DbPoolInitError {
 }
 
 impl fmt::Display for DbPoolInitError {
+    /// Formats database pool initialization failures for `DbPoolInitError` display.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::UnsupportedDatabase { database_type } => {
@@ -40,6 +47,12 @@ impl fmt::Display for DbPoolInitError {
     }
 }
 
+/// Builds an async PostgreSQL connection pool and returns it when initialization succeeds.
+///
+/// # Arguments
+/// * `db_config` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub async fn build_db_pool(db_config: &DatabaseConfig) -> Result<DbPool, DbPoolInitError> {
     match db_config.database_type {
         DatabaseType::Postgres => {}
@@ -73,6 +86,12 @@ pub async fn build_db_pool(db_config: &DatabaseConfig) -> Result<DbPool, DbPoolI
     Ok(pool)
 }
 
+/// Acquires a temporary connection and executes pending Diesel migrations.
+///
+/// # Arguments
+/// * `db_config` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub async fn run_db_migrations(db_config: &DatabaseConfig) -> Result<(), DbPoolInitError> {
     match db_config.database_type {
         DatabaseType::Postgres => {}
@@ -122,6 +141,12 @@ pub async fn run_db_migrations(db_config: &DatabaseConfig) -> Result<(), DbPoolI
     }
 }
 
+/// Checks out a connection from the pooled datasource.
+///
+/// # Arguments
+/// * `pool` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub async fn get_conn(pool: &DbPool) -> Result<DbConnection<'_>, DbPoolInitError> {
     match pool.get().await {
         Ok(connection) => Ok(connection),
@@ -131,6 +156,10 @@ pub async fn get_conn(pool: &DbPool) -> Result<DbConnection<'_>, DbPoolInitError
     }
 }
 
+/// Returns available CPU parallelism as the basis for pool sizing and idle constraints.
+///
+/// # Returns
+/// Returns the value produced by this function.
 fn physical_parallelism() -> u32 {
     let parallelism = match std::thread::available_parallelism() {
         Ok(value) => value.get(),
@@ -145,6 +174,12 @@ fn physical_parallelism() -> u32 {
 }
 
 impl DatabaseConfig {
+    /// Builds a Postgres connection string from sanitized fields in `DatabaseConfig`.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn postgres_connection_string(&self) -> String {
         match self.database_connection_type {
             DatabaseConnectionType::Local
@@ -162,6 +197,13 @@ impl DatabaseConfig {
 }
 
 impl fmt::Display for DatabaseType {
+    /// Formats database type for logs and error messages.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Postgres => formatter.write_str("postgres"),
@@ -171,6 +213,12 @@ impl fmt::Display for DatabaseType {
     }
 }
 
+/// Escapes and single-quotes a Postgres connection-string component.
+///
+/// # Arguments
+/// * `value` -
+/// # Returns
+/// Returns the value produced by this function.
 fn postgres_value(value: &str) -> String {
     let mut escaped = String::with_capacity(value.len() + 2);
     escaped.push('\'');

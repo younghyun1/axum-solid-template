@@ -50,6 +50,12 @@ const AUTH_RATE_LIMIT_REPLENISHED_EVERY_MILLISECONDS: u64 = 63;
 const AUTH_RATE_LIMIT_BURST_SIZE: u32 = 1024;
 const API_V1_PREFIX: &str = "/api/v1";
 
+/// Builds the root Axum router with API v1 routes, Swagger UI, static assets, and middleware.
+///
+/// # Arguments
+/// * `state` -
+/// # Returns
+/// Returns the value produced by this function.
 pub fn build_router(state: Arc<ServerState>) -> Router {
     let cors_layer = cors_layer_for_environment(state.server_config.deployment_environment);
     let api_v1_router = build_api_v1_router(state);
@@ -66,6 +72,12 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
         .layer(from_fn(log_request_response))
 }
 
+/// Composes all public/auth/admin API v1 routes and wires auth context/timing middleware.
+///
+/// # Arguments
+/// * `state` -
+/// # Returns
+/// Returns the value produced by this function.
 fn build_api_v1_router(state: Arc<ServerState>) -> Router {
     let public_auth_router = apply_auth_rate_limit(build_public_auth_router());
     let protected_auth_router = build_protected_auth_router(state.clone());
@@ -90,6 +102,10 @@ fn build_api_v1_router(state: Arc<ServerState>) -> Router {
         .with_state(state)
 }
 
+/// Builds routes that do not require authentication (signup/login/reset/etc.).
+///
+/// # Returns
+/// Returns the value produced by this function.
 fn build_public_auth_router() -> Router<Arc<ServerState>> {
     Router::new()
         .route("/auth/signup", post(signup))
@@ -105,6 +121,12 @@ fn build_public_auth_router() -> Router<Arc<ServerState>> {
         .route("/users/{user_name}", get(get_user_info))
 }
 
+/// Builds routes that require an attached `AuthContext`.
+///
+/// # Arguments
+/// * `state` -
+/// # Returns
+/// Returns the value produced by this function.
 fn build_protected_auth_router(state: Arc<ServerState>) -> Router<Arc<ServerState>> {
     Router::new()
         .route("/auth/me", get(me))
@@ -112,6 +134,12 @@ fn build_protected_auth_router(state: Arc<ServerState>) -> Router<Arc<ServerStat
         .layer(from_fn_with_state(state, require_auth))
 }
 
+/// Builds admin-only routes for email verification question management.
+///
+/// # Arguments
+/// * `state` -
+/// # Returns
+/// Returns the value produced by this function.
 fn build_admin_router(state: Arc<ServerState>) -> Router<Arc<ServerState>> {
     Router::new()
         .route(
@@ -133,6 +161,12 @@ fn build_admin_router(state: Arc<ServerState>) -> Router<Arc<ServerState>> {
         .layer(from_fn_with_state(state, require_admin))
 }
 
+/// Applies permissive CORS locally/development, and constrained CORS in production.
+///
+/// # Arguments
+/// * `deployment_environment` -
+/// # Returns
+/// Returns the value produced by this function.
 fn cors_layer_for_environment(deployment_environment: DeploymentEnvironment) -> CorsLayer {
     match deployment_environment {
         DeploymentEnvironment::Local | DeploymentEnvironment::Development => {
@@ -144,6 +178,12 @@ fn cors_layer_for_environment(deployment_environment: DeploymentEnvironment) -> 
     }
 }
 
+/// Applies rate limiting middleware to public auth endpoints and falls back gracefully on config failure.
+///
+/// # Arguments
+/// * `public_auth_router` -
+/// # Returns
+/// Returns the value produced by this function.
 fn apply_auth_rate_limit(public_auth_router: Router<Arc<ServerState>>) -> Router<Arc<ServerState>> {
     let mut builder = GovernorConfigBuilder::default();
     let config = builder
@@ -168,6 +208,12 @@ fn apply_auth_rate_limit(public_auth_router: Router<Arc<ServerState>>) -> Router
     }
 }
 
+/// Translates governor errors into API error responses and attaches retry headers where available.
+///
+/// # Arguments
+/// * `error` -
+/// # Returns
+/// Returns the value produced by this function.
 fn rate_limit_error_response(error: GovernorError) -> Response<Body> {
     match error {
         GovernorError::TooManyRequests { wait_time, headers } => {

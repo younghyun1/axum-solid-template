@@ -19,10 +19,20 @@ pub enum LoggerInitError {
 }
 
 impl LoggerGuard {
+    /// Perform the `console_only` operation as implemented by this function.
+    ///
+    /// # Returns
+    /// Returns the value produced by this function.
     fn console_only() -> Self {
         Self { _file_guard: None }
     }
 
+    /// Perform the `with_file_guard` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `file_guard` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn with_file_guard(file_guard: WorkerGuard) -> Self {
         Self {
             _file_guard: Some(file_guard),
@@ -31,6 +41,13 @@ impl LoggerGuard {
 }
 
 impl fmt::Debug for LoggerGuard {
+    /// Perform the `fmt` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter
             .debug_struct("LoggerGuard")
@@ -40,6 +57,13 @@ impl fmt::Debug for LoggerGuard {
 }
 
 impl fmt::Display for LoggerInitError {
+    /// Perform the `fmt` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             LoggerInitError::SubscriberInit { error } => {
@@ -52,6 +76,12 @@ impl fmt::Display for LoggerInitError {
     }
 }
 
+/// Perform the `init_logger` operation as implemented by this function.
+///
+/// # Arguments
+/// * `server_config` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub fn init_logger(server_config: &ServerConfig) -> Result<LoggerGuard, LoggerInitError> {
     let console_layer = tracing_subscriber::fmt::layer()
         .with_ansi(true)

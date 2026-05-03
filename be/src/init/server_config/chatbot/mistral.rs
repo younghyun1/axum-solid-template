@@ -19,6 +19,13 @@ pub struct MistralConfig {
 }
 
 impl MistralConfig {
+    /// Perform the `public_api` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `api_key` -
+    /// * `model` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn public_api(api_key: String, model: String) -> Self {
         Self {
             mistral_api_key: api_key,

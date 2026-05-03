@@ -42,6 +42,12 @@ pub enum DeploymentEnvironment {
 }
 
 impl DeploymentEnvironment {
+    /// Perform the `as_str` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn as_str(self) -> &'static str {
         match self {
             DeploymentEnvironment::Local => "local",
@@ -79,18 +85,38 @@ pub enum ServerConfigError {
 }
 
 impl From<JwtConfigError> for ServerConfigError {
+    /// Perform the `from` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `error` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn from(error: JwtConfigError) -> Self {
         Self::JwtConfig(error)
     }
 }
 
 impl fmt::Display for DeploymentEnvironment {
+    /// Perform the `fmt` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         formatter.write_str(self.as_str())
     }
 }
 
 impl fmt::Display for ServerConfigError {
+    /// Perform the `fmt` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ServerConfigError::MissingEnvironmentVariable { env_key } => {

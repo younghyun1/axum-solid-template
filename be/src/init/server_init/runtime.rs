@@ -154,6 +154,12 @@ async fn run_https_server(
     }
 }
 
+/// Perform the `spawn_http_redirector` operation as implemented by this function.
+///
+/// # Arguments
+/// * `ports` -
+/// # Returns
+/// No value is returned (`()`).
 fn spawn_http_redirector(ports: RedirectPorts) {
     tokio::spawn(async move {
         let addr = redirect_socket_addr(ports.http);

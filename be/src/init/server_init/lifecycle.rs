@@ -13,6 +13,10 @@ use crate::init::{
 };
 use crate::util::email::sender::MailSender;
 
+/// Perform the `init_server_state` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub async fn init_server_state() -> Result<ServerState, ServerInitError> {
     match load_dotenv_if_deployment_environment_is_missing() {
         Ok(()) => {}
@@ -80,6 +84,12 @@ pub async fn init_server_state() -> Result<ServerState, ServerInitError> {
     ))
 }
 
+/// Perform the `load_dotenv_if_deployment_environment_is_missing` operation as implemented by this function.
+///
+/// # Arguments
+/// * `) -> Result<(` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn load_dotenv_if_deployment_environment_is_missing() -> Result<(), ServerInitError> {
     match env::var(DEPLOYMENT_ENVIRONMENT_KEY) {
         Ok(_) => Ok(()),

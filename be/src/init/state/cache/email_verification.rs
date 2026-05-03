@@ -37,6 +37,12 @@ struct RateLimitBucket {
 }
 
 impl EmailVerificationChallengeCache {
+    /// Perform the `load` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `db_pool` -
+    /// # Returns
+    /// A `Result`, either containing the function output or an error.
     pub async fn load(db_pool: &DbPool) -> Result<Self, EmailVerificationChallengeCacheError> {
         let mut conn = match get_conn(db_pool).await {
             Ok(conn) => conn,
@@ -64,6 +70,12 @@ impl EmailVerificationChallengeCache {
         })
     }
 
+    /// Perform the `questionnaire_snapshot` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub async fn questionnaire_snapshot(&self) -> EmailVerificationQuestionnaireSnapshot {
         self.questionnaire.read().await.clone()
     }
@@ -115,6 +127,13 @@ impl EmailVerificationChallengeCache {
         Ok(questionnaire)
     }
 
+    /// Perform the `store_challenge` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `challenge` -
+    /// # Returns
+    /// No value is returned (`()`).
     pub async fn store_challenge(&self, challenge: EmailVerificationChallengeRow) {
         self.active_challenges
             .write()
@@ -122,6 +141,13 @@ impl EmailVerificationChallengeCache {
             .insert(challenge.email_verification_challenge_id, challenge);
     }
 
+    /// Perform the `challenge` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `challenge_id` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub async fn challenge(&self, challenge_id: Uuid) -> Option<EmailVerificationChallengeRow> {
         self.active_challenges
             .read()
@@ -130,10 +156,26 @@ impl EmailVerificationChallengeCache {
             .cloned()
     }
 
+    /// Perform the `remove_challenge` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `challenge_id` -
+    /// # Returns
+    /// No value is returned (`()`).
     pub async fn remove_challenge(&self, challenge_id: Uuid) {
         self.active_challenges.write().await.remove(&challenge_id);
     }
 
+    /// Perform the `check_rate_limit` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `key` -
+    /// * `limit` -
+    /// * `window` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub async fn check_rate_limit(&self, key: String, limit: u32, window: Duration) -> bool {
         let now = Instant::now();
         let mut rate_limits = self.rate_limits.write().await;
@@ -167,6 +209,12 @@ impl EmailVerificationChallengeCache {
 }
 
 impl EmailVerificationQuestionnaireSnapshot {
+    /// Perform the `public_questions` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn public_questions(&self) -> Vec<EmailVerificationQuestion> {
         self.email_verification_questions
             .iter()
@@ -177,6 +225,13 @@ impl EmailVerificationQuestionnaireSnapshot {
 }
 
 impl fmt::Display for EmailVerificationChallengeCacheError {
+    /// Perform the `fmt` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::DbPool { error } => {

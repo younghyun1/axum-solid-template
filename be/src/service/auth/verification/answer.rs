@@ -12,6 +12,13 @@ pub struct NormalizedAnswer {
     pub answer_normalized: String,
 }
 
+/// Normalize answer submissions and return deduplicated canonical answer pairs.
+///
+/// # Arguments
+/// * `answers` - Raw answer strings from the caller.
+///
+/// # Returns
+/// A vector of unique `NormalizedAnswer` entries, with display text and normalized variants.
 pub fn normalize_answer_set(answers: Vec<String>) -> Vec<NormalizedAnswer> {
     let mut seen = HashSet::new();
     let mut normalized_answers = Vec::new();
@@ -32,6 +39,13 @@ pub fn normalize_answer_set(answers: Vec<String>) -> Vec<NormalizedAnswer> {
     normalized_answers
 }
 
+/// Normalize an answer for matching by lowercasing and collapsing whitespace.
+///
+/// # Arguments
+/// * `answer` - Raw answer text.
+///
+/// # Returns
+/// A normalized string used for case-insensitive comparison.
 pub fn normalize_answer(answer: &str) -> String {
     answer
         .split_whitespace()
@@ -40,6 +54,14 @@ pub fn normalize_answer(answer: &str) -> String {
         .join(" ")
 }
 
+/// Resolve a question in a snapshot by identifier.
+///
+/// # Arguments
+/// * `snapshot` - Snapshot containing available questions.
+/// * `question_id` - Question UUID to locate.
+///
+/// # Returns
+/// The matching `EmailVerificationQuestion`, or `None` when absent.
 pub fn find_question(
     snapshot: &EmailVerificationQuestionnaireSnapshot,
     question_id: Uuid,
@@ -55,12 +77,14 @@ pub fn find_question(
 mod tests {
     use super::normalize_answer;
 
+    /// Test that normalization ignores case when producing equivalent values.
     #[test]
     fn answer_normalization_is_case_insensitive() {
         assert_eq!(normalize_answer(" Blue "), "blue");
         assert_eq!(normalize_answer("bLuE"), "blue");
     }
 
+    /// Test that normalization collapses repeated whitespace and tabs.
     #[test]
     fn answer_normalization_collapses_whitespace() {
         assert_eq!(

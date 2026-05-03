@@ -11,6 +11,13 @@ use crate::{
     init::state::server_state::ServerState,
 };
 
+/// Reads all country records from cache, filters to country entries, sorts by
+/// display name, and maps them to API DTOs.
+///
+/// # Arguments
+/// * `state` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub fn countries(state: Arc<ServerState>) -> ApiResult<Vec<ReferenceCountryResponse>> {
     let mut countries: Vec<ReferenceCountryResponse> = state
         .reference_data_cache
@@ -25,6 +32,13 @@ pub fn countries(state: Arc<ServerState>) -> ApiResult<Vec<ReferenceCountryRespo
     Ok(countries)
 }
 
+/// Reads all language records from cache, sorts them by language name, and maps
+/// them to API DTOs.
+///
+/// # Arguments
+/// * `state` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub fn languages(state: Arc<ServerState>) -> ApiResult<Vec<ReferenceLanguageResponse>> {
     let mut languages: Vec<ReferenceLanguageResponse> = state
         .reference_data_cache
@@ -38,6 +52,13 @@ pub fn languages(state: Arc<ServerState>) -> ApiResult<Vec<ReferenceLanguageResp
     Ok(languages)
 }
 
+/// Reads subdivisions for a country code, returning HTTP-friendly DTOs for callers.
+///
+/// # Arguments
+/// * `state` - Shared server state containing reference data cache.
+/// * `country_code` - ISO country code used to scope subdivision lookup.
+/// # Returns
+/// A sorted list of subdivision DTOs or `REFERENCE_DATA_NOT_FOUND` if the code is invalid.
 pub fn country_subdivisions(
     state: Arc<ServerState>,
     country_code: i32,

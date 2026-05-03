@@ -2,6 +2,14 @@ use crate::domain::iso::{IsoCountrySubdivision, IsoCurrency};
 
 use super::types::ReferenceDataCache;
 
+/// Perform the `currency` operation as implemented by this function.
+///
+/// # Arguments
+/// * `currency_code` -
+/// * `currency_alpha3` -
+/// * `currency_name` -
+/// # Returns
+/// Returns the value produced by this function.
 fn currency(currency_code: i32, currency_alpha3: &str, currency_name: &str) -> IsoCurrency {
     IsoCurrency {
         currency_code,
@@ -25,6 +33,12 @@ fn subdivision(
     }
 }
 
+/// Perform the `currency_name_index_allows_ambiguous_iso_names` operation as implemented by this function.
+///
+/// # Arguments
+/// * `) -> Result<(` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 #[test]
 fn currency_name_index_allows_ambiguous_iso_names() -> Result<(), String> {
     let currencies = vec![
@@ -49,6 +63,12 @@ fn currency_name_index_allows_ambiguous_iso_names() -> Result<(), String> {
     Ok(())
 }
 
+/// Perform the `subdivision_name_index_allows_ambiguous_iso_names` operation as implemented by this function.
+///
+/// # Arguments
+/// * `) -> Result<(` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 #[test]
 fn subdivision_name_index_allows_ambiguous_iso_names() -> Result<(), String> {
     let subdivisions = vec![

@@ -7,6 +7,12 @@ use crate::{
     },
 };
 
+/// Perform the `postgres_conn` operation as implemented by this function.
+///
+/// # Arguments
+/// * `state` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub async fn postgres_conn(state: &ServerState) -> ApiResult<DbConnection<'_>> {
     match state.server_config.db_config.database_type {
         DatabaseType::Postgres => {}

@@ -18,6 +18,10 @@ use crate::{
         )
     )
 )]
+/// Return the current liveness state for load-balancer and operations checks.
+///
+/// # Returns
+/// `ApiResponse<HealthcheckResponse>` indicating that the server is accepting traffic.
 pub async fn healthcheck() -> ApiResponse<HealthcheckResponse> {
     api_ok(HealthcheckResponse::accepting_traffic())
 }

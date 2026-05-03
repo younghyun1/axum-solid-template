@@ -19,30 +19,74 @@ pub struct AuthContext {
 }
 
 impl AuthContext {
+    /// Checks whether the token includes a specific role.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `role_type` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn has_role(&self, role_type: RoleType) -> bool {
         self.claims.has_role(role_type)
     }
 
+    /// Checks whether the token role is at least the requested minimum.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `minimum_role` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn has_min_role(&self, minimum_role: RoleType) -> bool {
         self.claims.has_min_role(minimum_role)
     }
 
+    /// Checks for admin role.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_admin(&self) -> bool {
         self.claims.is_admin()
     }
 
+    /// Checks for moderator role.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_moderator(&self) -> bool {
         self.claims.is_moderator()
     }
 
+    /// Checks for service provider role.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_service_provider(&self) -> bool {
         self.claims.is_service_provider()
     }
 
+    /// Checks for user/client role.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_user_client(&self) -> bool {
         self.claims.is_user_client()
     }
 
+    /// Checks for guest role.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_guest(&self) -> bool {
         self.claims.is_guest()
     }
@@ -125,6 +169,13 @@ pub async fn require_admin(
     Ok(next.run(request).await)
 }
 
+/// Validates the bearer token and decodes claims into an `AuthContext`.
+///
+/// # Arguments
+/// * `state` -
+/// * `token` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn auth_context_from_token(state: &ServerState, token: &str) -> Result<AuthContext, ApiError> {
     let claims = match decode_access_token(&state.server_config.jwt_config, token) {
         Ok(claims) => claims,
@@ -137,10 +188,22 @@ fn auth_context_from_token(state: &ServerState, token: &str) -> Result<AuthConte
     Ok(AuthContext { claims })
 }
 
+/// Detects whether an `AuthContext` extension is already attached to request metadata.
+///
+/// # Arguments
+/// * `request` -
+/// # Returns
+/// Returns the value produced by this function.
 fn auth_context_attached(request: &Request<Body>) -> bool {
     request.extensions().get::<AuthContext>().is_some()
 }
 
+/// Parses and validates the `Authorization` header as `Bearer <token>`.
+///
+/// # Arguments
+/// * `request` -
+/// # Returns
+/// Returns the value produced by this function.
 fn bearer_token(request: &Request<Body>) -> Option<&str> {
     let value = match request.headers().get(JWT_AUTHORIZATION_HEADER_NAME) {
         Some(value) => value,

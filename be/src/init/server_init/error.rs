@@ -35,6 +35,13 @@ pub enum ServerRunError {
 }
 
 impl fmt::Display for ServerInitError {
+    /// Perform the `fmt` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ServerInitError::DeploymentEnvironmentNotUnicode => {
@@ -75,6 +82,13 @@ impl fmt::Display for ServerInitError {
 }
 
 impl fmt::Display for ServerRunError {
+    /// Perform the `fmt` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             ServerRunError::RustlsCryptoProvider { error } => {

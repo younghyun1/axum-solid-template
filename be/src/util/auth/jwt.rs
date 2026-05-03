@@ -37,6 +37,13 @@ pub enum JwtError {
 }
 
 impl fmt::Display for JwtError {
+    /// Perform the `fmt` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::InvalidClock => formatter.write_str("system clock produced invalid JWT time"),
@@ -143,10 +150,22 @@ pub fn decode_access_token(
     Ok(token_data.claims)
 }
 
+/// Perform the `jwt_audience` operation as implemented by this function.
+///
+/// # Arguments
+/// * `jwt_config` -
+/// # Returns
+/// Returns the value produced by this function.
 pub fn jwt_audience(jwt_config: &JwtConfig) -> String {
     format!("{}-api", jwt_config.issuer.0)
 }
 
+/// Perform the `validate_access_token_claims` operation as implemented by this function.
+///
+/// # Arguments
+/// * `claims` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn validate_access_token_claims(claims: &AccessTokenClaims) -> Result<(), JwtError> {
     match claims.token_type {
         JwtTokenType::Access => {}

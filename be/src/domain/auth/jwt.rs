@@ -38,30 +38,74 @@ pub enum JwtTokenType {
 }
 
 impl AccessTokenClaims {
+    /// Perform the `has_role` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `role_type` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn has_role(&self, role_type: RoleType) -> bool {
         self.role_type == role_type
     }
 
+    /// Perform the `has_min_role` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `minimum_role` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn has_min_role(&self, minimum_role: RoleType) -> bool {
         self.role_type.has_min_access_level(minimum_role)
     }
 
+    /// Perform the `is_admin` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_admin(&self) -> bool {
         self.role_type.is_admin()
     }
 
+    /// Perform the `is_moderator` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_moderator(&self) -> bool {
         self.role_type.is_moderator()
     }
 
+    /// Perform the `is_service_provider` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_service_provider(&self) -> bool {
         self.role_type.is_service_provider()
     }
 
+    /// Perform the `is_user_client` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_user_client(&self) -> bool {
         self.role_type.is_user_client()
     }
 
+    /// Perform the `is_guest` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_guest(&self) -> bool {
         self.role_type.is_guest()
     }

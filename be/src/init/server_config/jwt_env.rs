@@ -7,6 +7,12 @@ use super::{
     server_config::ServerConfigError,
 };
 
+/// Perform the `jwt_config_from_env` operation as implemented by this function.
+///
+/// # Arguments
+/// * `super) fn jwt_config_from_env(` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub(super) fn jwt_config_from_env() -> Result<JwtConfig, ServerConfigError> {
     let secret_key_value = match required_env("JWT_SECRET_KEY") {
         Ok(value) => value,

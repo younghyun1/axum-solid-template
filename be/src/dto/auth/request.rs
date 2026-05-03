@@ -78,6 +78,10 @@ mod tests {
 
     use super::{SignupRequest, SignupRole};
 
+    /// Perform the `signup_role_defaults_to_user` operation as implemented by this function.
+    ///
+    /// # Returns
+    /// No value is returned (`()`).
     #[test]
     fn signup_role_defaults_to_user() {
         let decoded = serde_json::from_value::<SignupRequest>(json!({
@@ -101,6 +105,10 @@ mod tests {
         assert_eq!(request.user_role, SignupRole::User);
     }
 
+    /// Perform the `signup_role_accepts_service_provider` operation as implemented by this function.
+    ///
+    /// # Returns
+    /// No value is returned (`()`).
     #[test]
     fn signup_role_accepts_service_provider() {
         let decoded = serde_json::from_value::<SignupRequest>(json!({

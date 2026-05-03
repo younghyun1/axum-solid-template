@@ -23,6 +23,12 @@ pub struct AwsS3Config {
 }
 
 impl FileStoreConfig {
+    /// Perform the `local` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `local_file_store_base_path` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn local(local_file_store_base_path: String) -> Self {
         Self {
             file_store_type: FileStoreType::Local(LocalFileStoreConfig {

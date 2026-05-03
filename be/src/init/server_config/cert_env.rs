@@ -12,6 +12,10 @@ pub(super) fn cert_config_from_env(
     }
 }
 
+/// Perform the `cert_config_when_https_enabled` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn cert_config_when_https_enabled() -> Result<Option<CertConfig>, ServerConfigError> {
     let cert_chain_path = match required_env("HTTPS_CERT_CHAIN_PATH") {
         Ok(value) => value,

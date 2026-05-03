@@ -3,6 +3,12 @@ use super::jwt_config::{
 };
 
 impl JwtConfig {
+    /// Perform the `validate` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self) -> Result<(` -
+    /// # Returns
+    /// A `Result`, either containing the function output or an error.
     pub fn validate(&self) -> Result<(), JwtConfigError> {
         match self.issuer.validate() {
             Ok(()) => {}
@@ -35,6 +41,12 @@ impl JwtConfig {
 }
 
 impl JwtIssuer {
+    /// Perform the `validate` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self) -> Result<(` -
+    /// # Returns
+    /// A `Result`, either containing the function output or an error.
     pub fn validate(&self) -> Result<(), JwtConfigError> {
         if self.0.trim().is_empty() {
             return Err(JwtConfigError::EmptyIssuer);
@@ -45,6 +57,12 @@ impl JwtIssuer {
 }
 
 impl JwtSecretKey {
+    /// Perform the `new` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `bytes` -
+    /// # Returns
+    /// A `Result`, either containing the function output or an error.
     pub fn new(bytes: Vec<u8>) -> Result<Self, JwtConfigError> {
         if bytes.len() < JWT_MIN_SECRET_KEY_BYTES {
             return Err(JwtConfigError::SecretKeyTooShort {
@@ -56,10 +74,22 @@ impl JwtSecretKey {
         Ok(Self { bytes })
     }
 
+    /// Perform the `as_bytes` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn as_bytes(&self) -> &[u8] {
         self.bytes.as_slice()
     }
 
+    /// Perform the `validate` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self) -> Result<(` -
+    /// # Returns
+    /// A `Result`, either containing the function output or an error.
     pub fn validate(&self) -> Result<(), JwtConfigError> {
         if self.bytes.len() < JWT_MIN_SECRET_KEY_BYTES {
             return Err(JwtConfigError::SecretKeyTooShort {

@@ -16,6 +16,13 @@ pub enum PasswordCryptoError {
 }
 
 impl fmt::Display for PasswordCryptoError {
+    /// Perform the `fmt` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::Params { error } => write!(formatter, "failed to configure Argon2id: {error}"),
@@ -27,6 +34,12 @@ impl fmt::Display for PasswordCryptoError {
     }
 }
 
+/// Perform the `hash_password` operation as implemented by this function.
+///
+/// # Arguments
+/// * `password` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub async fn hash_password(password: String) -> Result<String, PasswordCryptoError> {
     let join_result = tokio::task::spawn_blocking(move || {
         let mut password = password;
@@ -105,6 +118,10 @@ pub async fn verify_password(
     }
 }
 
+/// Perform the `strong_argon2` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn strong_argon2() -> Result<Argon2<'static>, PasswordCryptoError> {
     let params = match Params::new(64 * 1024, 3, 1, Some(32)) {
         Ok(params) => params,

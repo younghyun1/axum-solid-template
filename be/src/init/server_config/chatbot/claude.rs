@@ -28,6 +28,12 @@ pub struct ClaudeGenerationConfig {
 }
 
 impl ClaudeGenerationConfig {
+    /// Perform the `with_max_tokens` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `max_tokens` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn with_max_tokens(max_tokens: u32) -> Self {
         Self {
             max_tokens,
@@ -40,6 +46,14 @@ impl ClaudeGenerationConfig {
 }
 
 impl ClaudeConfig {
+    /// Perform the `public_api` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `api_key` -
+    /// * `model` -
+    /// * `max_tokens` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn public_api(api_key: String, model: String, max_tokens: u32) -> Self {
         Self {
             anthropic_api_key: api_key,

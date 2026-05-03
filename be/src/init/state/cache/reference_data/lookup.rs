@@ -3,26 +3,61 @@ use crate::domain::iso::{IsoCountry, IsoCountrySubdivision, IsoCurrency, IsoLang
 use super::types::ReferenceDataCache;
 
 impl ReferenceDataCache {
+    /// Perform the `country_by_code` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `country_code` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn country_by_code(&self, country_code: i32) -> Option<IsoCountry> {
         self.countries
             .read_sync(&country_code, |_, country| country.clone())
     }
 
+    /// Perform the `country_code_by_alpha2` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `country_alpha2` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn country_code_by_alpha2(&self, country_alpha2: &str) -> Option<i32> {
         self.country_codes_by_alpha2
             .read_sync(&text_key(country_alpha2), |_, country_code| *country_code)
     }
 
+    /// Perform the `country_code_by_alpha3` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `country_alpha3` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn country_code_by_alpha3(&self, country_alpha3: &str) -> Option<i32> {
         self.country_codes_by_alpha3
             .read_sync(&text_key(country_alpha3), |_, country_code| *country_code)
     }
 
+    /// Perform the `country_code_by_english_name` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `country_eng_name` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn country_code_by_english_name(&self, country_eng_name: &str) -> Option<i32> {
         self.country_codes_by_english_name
             .read_sync(&text_key(country_eng_name), |_, country_code| *country_code)
     }
 
+    /// Perform the `country_by_alpha2` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `country_alpha2` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn country_by_alpha2(&self, country_alpha2: &str) -> Option<IsoCountry> {
         let country_code = match self.country_code_by_alpha2(country_alpha2) {
             Some(country_code) => country_code,
@@ -32,6 +67,13 @@ impl ReferenceDataCache {
         self.country_by_code(country_code)
     }
 
+    /// Perform the `country_by_alpha3` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `country_alpha3` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn country_by_alpha3(&self, country_alpha3: &str) -> Option<IsoCountry> {
         let country_code = match self.country_code_by_alpha3(country_alpha3) {
             Some(country_code) => country_code,
@@ -41,6 +83,13 @@ impl ReferenceDataCache {
         self.country_by_code(country_code)
     }
 
+    /// Perform the `country_by_english_name` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `country_eng_name` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn country_by_english_name(&self, country_eng_name: &str) -> Option<IsoCountry> {
         let country_code = match self.country_code_by_english_name(country_eng_name) {
             Some(country_code) => country_code,
@@ -50,11 +99,25 @@ impl ReferenceDataCache {
         self.country_by_code(country_code)
     }
 
+    /// Perform the `currency_by_code` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `currency_code` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn currency_by_code(&self, currency_code: i32) -> Option<IsoCurrency> {
         self.currencies
             .read_sync(&currency_code, |_, currency| currency.clone())
     }
 
+    /// Perform the `currency_code_by_alpha3` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `currency_alpha3` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn currency_code_by_alpha3(&self, currency_alpha3: &str) -> Option<i32> {
         self.currency_codes_by_alpha3
             .read_sync(&text_key(currency_alpha3), |_, currency_code| {
@@ -62,6 +125,13 @@ impl ReferenceDataCache {
             })
     }
 
+    /// Perform the `currency_code_by_english_name` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `currency_name` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn currency_code_by_english_name(&self, currency_name: &str) -> Option<i32> {
         let currency_codes = match self.currency_codes_by_english_name(currency_name) {
             Some(currency_codes) => currency_codes,
@@ -74,6 +144,13 @@ impl ReferenceDataCache {
         Some(currency_codes[0])
     }
 
+    /// Perform the `currency_codes_by_english_name` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `currency_name` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn currency_codes_by_english_name(&self, currency_name: &str) -> Option<Vec<i32>> {
         self.currency_codes_by_english_name
             .read_sync(&text_key(currency_name), |_, currency_codes| {
@@ -81,6 +158,13 @@ impl ReferenceDataCache {
             })
     }
 
+    /// Perform the `currency_by_alpha3` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `currency_alpha3` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn currency_by_alpha3(&self, currency_alpha3: &str) -> Option<IsoCurrency> {
         let currency_code = match self.currency_code_by_alpha3(currency_alpha3) {
             Some(currency_code) => currency_code,
@@ -90,6 +174,13 @@ impl ReferenceDataCache {
         self.currency_by_code(currency_code)
     }
 
+    /// Perform the `currency_by_english_name` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `currency_name` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn currency_by_english_name(&self, currency_name: &str) -> Option<IsoCurrency> {
         let currency_code = match self.currency_code_by_english_name(currency_name) {
             Some(currency_code) => currency_code,
@@ -99,11 +190,25 @@ impl ReferenceDataCache {
         self.currency_by_code(currency_code)
     }
 
+    /// Perform the `language_by_code` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `language_code` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn language_by_code(&self, language_code: i32) -> Option<IsoLanguage> {
         self.languages
             .read_sync(&language_code, |_, language| language.clone())
     }
 
+    /// Perform the `language_code_by_alpha2` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `language_alpha2` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn language_code_by_alpha2(&self, language_alpha2: &str) -> Option<i32> {
         self.language_codes_by_alpha2
             .read_sync(&text_key(language_alpha2), |_, language_code| {
@@ -111,6 +216,13 @@ impl ReferenceDataCache {
             })
     }
 
+    /// Perform the `language_code_by_alpha3` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `language_alpha3` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn language_code_by_alpha3(&self, language_alpha3: &str) -> Option<i32> {
         self.language_codes_by_alpha3
             .read_sync(&text_key(language_alpha3), |_, language_code| {
@@ -118,6 +230,13 @@ impl ReferenceDataCache {
             })
     }
 
+    /// Perform the `language_code_by_english_name` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `language_eng_name` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn language_code_by_english_name(&self, language_eng_name: &str) -> Option<i32> {
         self.language_codes_by_english_name
             .read_sync(&text_key(language_eng_name), |_, language_code| {
@@ -125,6 +244,13 @@ impl ReferenceDataCache {
             })
     }
 
+    /// Perform the `language_by_alpha2` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `language_alpha2` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn language_by_alpha2(&self, language_alpha2: &str) -> Option<IsoLanguage> {
         let language_code = match self.language_code_by_alpha2(language_alpha2) {
             Some(language_code) => language_code,
@@ -134,6 +260,13 @@ impl ReferenceDataCache {
         self.language_by_code(language_code)
     }
 
+    /// Perform the `language_by_alpha3` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `language_alpha3` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn language_by_alpha3(&self, language_alpha3: &str) -> Option<IsoLanguage> {
         let language_code = match self.language_code_by_alpha3(language_alpha3) {
             Some(language_code) => language_code,
@@ -143,6 +276,13 @@ impl ReferenceDataCache {
         self.language_by_code(language_code)
     }
 
+    /// Perform the `language_by_english_name` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `language_eng_name` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn language_by_english_name(&self, language_eng_name: &str) -> Option<IsoLanguage> {
         let language_code = match self.language_code_by_english_name(language_eng_name) {
             Some(language_code) => language_code,
@@ -152,11 +292,26 @@ impl ReferenceDataCache {
         self.language_by_code(language_code)
     }
 
+    /// Perform the `subdivision_by_id` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `subdivision_id` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn subdivision_by_id(&self, subdivision_id: i32) -> Option<IsoCountrySubdivision> {
         self.country_subdivisions
             .read_sync(&subdivision_id, |_, subdivision| subdivision.clone())
     }
 
+    /// Perform the `subdivision_id_by_code` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `country_code` -
+    /// * `subdivision_code` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn subdivision_id_by_code(&self, country_code: i32, subdivision_code: &str) -> Option<i32> {
         self.subdivision_ids_by_code.read_sync(
             &(country_code, text_key(subdivision_code)),
@@ -219,6 +374,13 @@ impl ReferenceDataCache {
         self.subdivision_by_id(subdivision_id)
     }
 
+    /// Perform the `country_currency` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `country_code` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn country_currency(&self, country_code: i32) -> Option<IsoCurrency> {
         let country = match self.country_by_code(country_code) {
             Some(country) => country,
@@ -228,6 +390,13 @@ impl ReferenceDataCache {
         self.currency_by_code(country.country_currency)
     }
 
+    /// Perform the `country_primary_language` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `country_code` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn country_primary_language(&self, country_code: i32) -> Option<IsoLanguage> {
         let country = match self.country_by_code(country_code) {
             Some(country) => country,
@@ -237,6 +406,13 @@ impl ReferenceDataCache {
         self.language_by_code(country.country_primary_language)
     }
 
+    /// Perform the `subdivision_country` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `subdivision_id` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn subdivision_country(&self, subdivision_id: i32) -> Option<IsoCountry> {
         let subdivision = match self.subdivision_by_id(subdivision_id) {
             Some(subdivision) => subdivision,
@@ -246,6 +422,13 @@ impl ReferenceDataCache {
         self.country_by_code(subdivision.country_code)
     }
 
+    /// Perform the `country_subdivisions` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `country_code` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn country_subdivisions(&self, country_code: i32) -> Vec<IsoCountrySubdivision> {
         let subdivision_ids = match self
             .subdivisions_by_country
@@ -268,6 +451,12 @@ impl ReferenceDataCache {
     }
 }
 
+/// Perform the `text_key` operation as implemented by this function.
+///
+/// # Arguments
+/// * `super) fn text_key(value` -
+/// # Returns
+/// Returns the value produced by this function.
 pub(super) fn text_key(value: &str) -> String {
     value.trim().to_ascii_lowercase()
 }

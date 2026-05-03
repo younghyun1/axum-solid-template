@@ -3,10 +3,24 @@ use crate::domain::auth::value::{UserEmail, UserName};
 const PASSWORD_MIN_CHARS: usize = 9;
 const PASSWORD_MAX_CHARS: usize = 256;
 
+/// Validate username format using the `UserName` domain validator.
+///
+/// # Arguments
+/// * `username` - Raw user name to validate.
+///
+/// # Returns
+/// `true` when the username passes domain validation, otherwise `false`.
 pub fn validate_username(username: &str) -> bool {
     UserName::try_new(username.to_string()).is_ok()
 }
 
+/// Validate password against minimum/maximum length and character-class requirements.
+///
+/// # Arguments
+/// * `password` - Candidate password text.
+///
+/// # Returns
+/// `true` when all strength constraints are met.
 pub fn validate_password_form(password: &str) -> bool {
     let character_count = password.chars().count();
 
@@ -43,6 +57,13 @@ pub fn validate_password_form(password: &str) -> bool {
     has_lowercase && has_uppercase && has_digit && has_symbol
 }
 
+/// Normalize email input with domain-level parsing fallback.
+///
+/// # Arguments
+/// * `email` - Raw email input.
+///
+/// # Returns
+/// Canonicalized email when parseable by `UserEmail`, otherwise trimmed lowercase fallback.
 pub fn normalized_email(email: &str) -> String {
     match UserEmail::try_new(email.to_string()) {
         Ok(user_email) => user_email.into_inner(),
@@ -54,6 +75,7 @@ pub fn normalized_email(email: &str) -> String {
 mod tests {
     use super::{validate_password_form, validate_username};
 
+    /// Validate username acceptance and rejection cases.
     #[test]
     fn validates_username_shape() {
         assert!(validate_username("valid_user-1"));
@@ -61,6 +83,7 @@ mod tests {
         assert!(!validate_username("x"));
     }
 
+    /// Validate password shape acceptance and rejection cases.
     #[test]
     fn validates_password_shape() {
         assert!(validate_password_form("Aa123456!"));

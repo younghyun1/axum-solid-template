@@ -4,6 +4,12 @@ use super::{
     server_config::ServerConfigError,
 };
 
+/// Perform the `mail_config_from_env` operation as implemented by this function.
+///
+/// # Arguments
+/// * `super) fn mail_config_from_env(` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub(super) fn mail_config_from_env() -> Result<MailConfig, ServerConfigError> {
     let provider = match optional_env("MAIL_PROVIDER") {
         Ok(Some(provider)) => provider,
@@ -24,6 +30,10 @@ pub(super) fn mail_config_from_env() -> Result<MailConfig, ServerConfigError> {
     }
 }
 
+/// Perform the `aws_ses_smtp_config_from_env` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn aws_ses_smtp_config_from_env() -> Result<MailConfig, ServerConfigError> {
     let from_email = match required_env("MAIL_FROM_EMAIL") {
         Ok(value) => value,

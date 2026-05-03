@@ -30,6 +30,24 @@ use crate::{
     },
 };
 
+/// Issue an email-verification challenge for a token, enforcing rate limits and freshness checks.
+///
+/// The function:
+/// 1) checks per-IP and per-token rate limiting,
+/// 2) ensures an active questionnaire is available,
+/// 3) selects a public question,
+/// 4) validates and locks the email verification token in a transaction,
+/// 5) persists the new challenge and seeds the in-memory cache,
+/// 6) returns the challenge payload for the response.
+///
+/// # Arguments
+/// * `state` - Shared application state with DB pool and challenge cache.
+/// * `token` - Email validation token container used for lookup and ownership check.
+/// * `client_addr` - Client socket address for rate-limit keying.
+/// * `user_agent` - Optional request `User-Agent` for metadata capture.
+///
+/// # Returns
+/// `ApiResult<EmailVerificationChallengeResponse>` containing challenge details or a typed API error.
 pub async fn issue_email_verification_challenge(
     state: Arc<ServerState>,
     token: EmailValidationToken,
@@ -188,6 +206,16 @@ pub async fn issue_email_verification_challenge(
     ))
 }
 
+/// Select one active question from the available public question list for challenge issuance.
+///
+/// Uses a UUID v7-derived index to uniformly pick a question candidate and
+/// falls back to the first question when lookup is unexpectedly invalid.
+///
+/// # Arguments
+/// * `questions` - Public questions available for challenge flow.
+///
+/// # Returns
+/// `Some(EmailVerificationQuestion)` when non-empty; otherwise `None`.
 fn select_question(questions: &[EmailVerificationQuestion]) -> Option<EmailVerificationQuestion> {
     if questions.is_empty() {
         return None;
@@ -199,6 +227,13 @@ fn select_question(questions: &[EmailVerificationQuestion]) -> Option<EmailVerif
     }
 }
 
+/// Convert an optional socket address into a stable string key for rate-limiting.
+///
+/// # Arguments
+/// * `client_addr` - Optional client address from the request.
+///
+/// # Returns
+/// String key for cache rate-limit counters (`ip` or `"unknown"` when absent).
 fn client_ip_key(client_addr: Option<SocketAddr>) -> String {
     match client_addr {
         Some(client_addr) => client_addr.ip().to_string(),

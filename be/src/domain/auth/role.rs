@@ -26,6 +26,12 @@ pub struct Role {
 }
 
 impl RoleType {
+    /// Perform the `from_uuid` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `role_id` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn from_uuid(role_id: Uuid) -> Option<Self> {
         match role_id.as_u128() {
             ROLE_ADMIN => Some(Self::Admin),
@@ -37,6 +43,12 @@ impl RoleType {
         }
     }
 
+    /// Perform the `id` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn id(self) -> Uuid {
         match self {
             Self::Admin => Uuid::from_u128(ROLE_ADMIN),
@@ -47,6 +59,12 @@ impl RoleType {
         }
     }
 
+    /// Perform the `as_str` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Admin => "admin",
@@ -57,6 +75,12 @@ impl RoleType {
         }
     }
 
+    /// Perform the `is_admin` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_admin(self) -> bool {
         match self {
             Self::Admin => true,
@@ -64,6 +88,12 @@ impl RoleType {
         }
     }
 
+    /// Perform the `access_level` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn access_level(self) -> u8 {
         match self {
             Self::Admin => 4,
@@ -74,6 +104,12 @@ impl RoleType {
         }
     }
 
+    /// Perform the `is_moderator` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_moderator(self) -> bool {
         match self {
             Self::Moderator => true,
@@ -81,6 +117,12 @@ impl RoleType {
         }
     }
 
+    /// Perform the `is_service_provider` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_service_provider(self) -> bool {
         match self {
             Self::ServiceProvider => true,
@@ -88,6 +130,12 @@ impl RoleType {
         }
     }
 
+    /// Perform the `is_user_client` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_user_client(self) -> bool {
         match self {
             Self::User => true,
@@ -95,6 +143,12 @@ impl RoleType {
         }
     }
 
+    /// Perform the `is_guest` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn is_guest(self) -> bool {
         match self {
             Self::Guest => true,
@@ -102,12 +156,25 @@ impl RoleType {
         }
     }
 
+    /// Perform the `has_min_access_level` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `minimum_role` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn has_min_access_level(self, minimum_role: Self) -> bool {
         self.access_level() >= minimum_role.access_level()
     }
 }
 
 impl Role {
+    /// Perform the `role_type` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn role_type(&self) -> Option<RoleType> {
         RoleType::from_uuid(self.role_id)
     }
@@ -123,6 +190,10 @@ const ROLE_GUEST: u128 = 2131042895169936790354381715792830592;
 mod tests {
     use super::RoleType;
 
+    /// Perform the `role_ids_round_trip_to_canonical_types` operation as implemented by this function.
+    ///
+    /// # Returns
+    /// No value is returned (`()`).
     #[test]
     fn role_ids_round_trip_to_canonical_types() {
         let roles = [
@@ -138,6 +209,10 @@ mod tests {
         }
     }
 
+    /// Perform the `role_names_are_service_board_canonical_names` operation as implemented by this function.
+    ///
+    /// # Returns
+    /// No value is returned (`()`).
     #[test]
     fn role_names_are_service_board_canonical_names() {
         assert_eq!(RoleType::Admin.as_str(), "admin");
@@ -147,6 +222,10 @@ mod tests {
         assert_eq!(RoleType::Guest.as_str(), "guest");
     }
 
+    /// Perform the `role_access_levels_order_service_provider_between_user_and_moderator` operation as implemented by this function.
+    ///
+    /// # Returns
+    /// No value is returned (`()`).
     #[test]
     fn role_access_levels_order_service_provider_between_user_and_moderator() {
         assert!(RoleType::ServiceProvider.access_level() > RoleType::User.access_level());
@@ -154,6 +233,10 @@ mod tests {
         assert!(RoleType::Admin.access_level() > RoleType::Moderator.access_level());
     }
 
+    /// Perform the `role_helpers_distinguish_exact_roles_and_minimum_access` operation as implemented by this function.
+    ///
+    /// # Returns
+    /// No value is returned (`()`).
     #[test]
     fn role_helpers_distinguish_exact_roles_and_minimum_access() {
         assert!(RoleType::Admin.is_admin());

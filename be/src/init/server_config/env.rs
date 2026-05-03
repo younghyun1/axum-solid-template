@@ -17,6 +17,10 @@ use super::{
 };
 
 impl ServerConfig {
+    /// Perform the `from_env` operation as implemented by this function.
+    ///
+    /// # Returns
+    /// A `Result`, either containing the function output or an error.
     pub fn from_env() -> Result<Self, ServerConfigError> {
         let deployment_environment = match deployment_environment_from_env() {
             Ok(deployment_environment) => deployment_environment,
@@ -86,6 +90,10 @@ impl ServerConfig {
     }
 }
 
+/// Perform the `deployment_environment_from_env` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn deployment_environment_from_env() -> Result<DeploymentEnvironment, ServerConfigError> {
     let value = match required_env(DEPLOYMENT_ENVIRONMENT_KEY) {
         Ok(value) => value,
@@ -95,6 +103,10 @@ fn deployment_environment_from_env() -> Result<DeploymentEnvironment, ServerConf
     parse_deployment_environment(value)
 }
 
+/// Perform the `database_config_from_env` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn database_config_from_env() -> Result<DatabaseConfig, ServerConfigError> {
     let database_type_value = match required_env("DATABASE_TYPE") {
         Ok(value) => value,
@@ -145,6 +157,10 @@ fn database_config_from_env() -> Result<DatabaseConfig, ServerConfigError> {
     ))
 }
 
+/// Perform the `file_store_config_from_env` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn file_store_config_from_env() -> Result<FileStoreConfig, ServerConfigError> {
     let file_store_type = match required_env("FILE_STORE_TYPE") {
         Ok(value) => value,
@@ -162,6 +178,10 @@ fn file_store_config_from_env() -> Result<FileStoreConfig, ServerConfigError> {
     }
 }
 
+/// Perform the `local_file_store_config_from_env` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn local_file_store_config_from_env() -> Result<FileStoreConfig, ServerConfigError> {
     let local_file_store_base_path = match required_env("LOCAL_FILE_STORE_BASE_PATH") {
         Ok(value) => value,
@@ -171,6 +191,10 @@ fn local_file_store_config_from_env() -> Result<FileStoreConfig, ServerConfigErr
     Ok(FileStoreConfig::local(local_file_store_base_path))
 }
 
+/// Perform the `aws_s3_file_store_config_from_env` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn aws_s3_file_store_config_from_env() -> Result<FileStoreConfig, ServerConfigError> {
     let aws_s3_bucket_name = match required_env("AWS_S3_BUCKET_NAME") {
         Ok(value) => value,

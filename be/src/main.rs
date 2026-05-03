@@ -24,6 +24,10 @@ pub mod schema;
 pub mod service;
 pub mod util;
 
+/// Perform the `main` operation as implemented by this function.
+///
+/// # Returns
+/// No value is returned (`()`).
 #[tokio::main(flavor = "multi_thread")]
 async fn main() {
     let startup_started_at = Instant::now();

@@ -26,6 +26,10 @@ struct FrontendAsset {
 }
 
 impl FrontendAssets {
+    /// Loads embedded frontend files from `rust-embed` into memory for fast static serving.
+    ///
+    /// # Returns
+    /// Returns the value produced by this function.
     fn load() -> Self {
         let mut assets = HashMap::new();
 
@@ -57,15 +61,33 @@ impl FrontendAssets {
         Self { assets }
     }
 
+    /// Looks up an asset by path in the in-memory embedded asset map.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `path` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn get(&self, path: &str) -> Option<&FrontendAsset> {
         self.assets.get(path)
     }
 }
 
+/// Lazily initializes and returns the singleton `FrontendAssets` cache.
+///
+/// # Returns
+/// Returns the value produced by this function.
 fn frontend_assets() -> &'static FrontendAssets {
     FRONTEND_ASSETS.get_or_init(FrontendAssets::load)
 }
 
+/// Resolves a compressed variant (`.zst`/`.gz`) of the asset when available.
+///
+/// # Arguments
+/// * `path` -
+/// * `coding` -
+/// # Returns
+/// Returns the value produced by this function.
 fn serve_compressed_asset(path: &str, coding: ContentCodingPreference) -> Option<Response> {
     let (extension, encoding_name) = match coding {
         ContentCodingPreference::Zstd => (".zst", HeaderValue::from_static("zstd")),
@@ -77,6 +99,12 @@ fn serve_compressed_asset(path: &str, coding: ContentCodingPreference) -> Option
     serve_asset(compressed_path.as_str(), path, Some(encoding_name))
 }
 
+/// Resolves the uncompressed asset and serves it when compression is unavailable.
+///
+/// # Arguments
+/// * `path` -
+/// # Returns
+/// Returns the value produced by this function.
 fn serve_uncompressed_asset(path: &str) -> Option<Response> {
     serve_asset(path, path, None)
 }
@@ -124,6 +152,12 @@ fn serve_asset(
     }
 }
 
+/// Returns cache-control headers based on asset location and mutability.
+///
+/// # Arguments
+/// * `source_path` -
+/// # Returns
+/// Returns the value produced by this function.
 fn cache_control_value(source_path: &str) -> HeaderValue {
     if source_path == "index.html" {
         return HeaderValue::from_static("no-cache");
@@ -136,6 +170,14 @@ fn cache_control_value(source_path: &str) -> HeaderValue {
     HeaderValue::from_static("public, max-age=3600")
 }
 
+/// Handles frontend requests by selecting encoding, serving static bytes, or
+/// falling back to `index.html` for SPA navigation.
+///
+/// # Arguments
+/// * `uri` -
+/// * `headers` -
+/// # Returns
+/// Returns the value produced by this function.
 #[allow(clippy::single_match)]
 pub async fn static_asset_handler(uri: Uri, headers: HeaderMap) -> Response {
     let requested_path = uri.path().trim_start_matches('/');

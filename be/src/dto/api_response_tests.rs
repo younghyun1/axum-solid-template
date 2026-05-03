@@ -10,6 +10,10 @@ struct TestData {
     value: u8,
 }
 
+/// Verifies API success responses include standard envelope fields and expected timer formatting.
+///
+/// # Returns
+/// No value is returned.
 #[test]
 fn success_response_serializes_with_standard_shape() {
     let response = ApiResponse::ok(TestData { value: 7 });
@@ -28,6 +32,10 @@ fn success_response_serializes_with_standard_shape() {
     assert_eq!(serialized["meta"]["processing_duration"], json!("PT0S"));
 }
 
+/// Verifies request-scoped timer duration is used when serializing response meta.
+///
+/// # Returns
+/// No value is returned.
 #[tokio::test]
 async fn success_response_uses_scoped_api_timer() {
     let serialized_result = ApiTimer::start()
@@ -51,6 +59,10 @@ async fn success_response_uses_scoped_api_timer() {
     assert!(processing_duration.starts_with("PT0."));
 }
 
+/// Verifies that API metadata details serialize as optional structured JSON.
+///
+/// # Returns
+/// No value is returned.
 #[test]
 fn meta_details_are_optional() {
     let meta = ApiMeta::with_processing_duration(Duration::from_micros(1042)).with_details(json!({

@@ -14,12 +14,24 @@ pub struct RedirectPorts {
     pub https: u16,
 }
 
+/// Builds a fallback router that redirects all unmatched requests to HTTPS.
+///
+/// # Arguments
+/// * `ports` -
+/// # Returns
+/// Returns the value produced by this function.
 pub fn build_redirect_router(ports: RedirectPorts) -> Router {
     Router::new()
         .fallback(get(redirect_to_https))
         .with_state(ports)
 }
 
+/// Builds an IPv4 socket listener bound to `0.0.0.0:<port>`.
+///
+/// # Arguments
+/// * `port` -
+/// # Returns
+/// Returns the value produced by this function.
 pub fn redirect_socket_addr(port: u16) -> SocketAddr {
     SocketAddr::from(([0, 0, 0, 0], port))
 }
@@ -52,6 +64,14 @@ async fn redirect_to_https(
     }
 }
 
+/// Reconstructs the request URI for HTTPS, preserving path/query and switching host port.
+///
+/// # Arguments
+/// * `host` -
+/// * `uri` -
+/// * `https_port` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn make_https_uri(host: &str, uri: Uri, https_port: u16) -> Result<Uri, RedirectError> {
     let authority = match host.parse::<Authority>() {
         Ok(authority) => authority,
@@ -102,6 +122,13 @@ enum RedirectError {
 }
 
 impl std::fmt::Display for RedirectError {
+    /// Formats structured redirect parse errors for logging and caller conversion.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             RedirectError::Authority { error } => {

@@ -17,6 +17,12 @@ const ISO_LANGUAGE_TABLE: &str = "iso_language";
 const ISO_COUNTRY_SUBDIVISION_TABLE: &str = "iso_country_subdivision";
 
 impl ReferenceDataCache {
+    /// Perform the `load` operation as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `db_pool` -
+    /// # Returns
+    /// A `Result`, either containing the function output or an error.
     pub async fn load(db_pool: &DbPool) -> Result<Self, ReferenceDataCacheError> {
         let started_at = Instant::now();
         let country_pool = db_pool.clone();
@@ -93,6 +99,12 @@ fn resolve_reference_data_task<T>(
     }
 }
 
+/// Perform the `load_countries` operation as implemented by this function.
+///
+/// # Arguments
+/// * `db_pool` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 async fn load_countries(db_pool: &DbPool) -> Result<Vec<IsoCountry>, ReferenceDataCacheError> {
     let started_at = Instant::now();
     let mut connection = match get_conn(db_pool).await {
@@ -135,6 +147,12 @@ async fn load_countries(db_pool: &DbPool) -> Result<Vec<IsoCountry>, ReferenceDa
     Ok(rows)
 }
 
+/// Perform the `load_currencies` operation as implemented by this function.
+///
+/// # Arguments
+/// * `db_pool` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 async fn load_currencies(db_pool: &DbPool) -> Result<Vec<IsoCurrency>, ReferenceDataCacheError> {
     let started_at = Instant::now();
     let mut connection = match get_conn(db_pool).await {
@@ -180,6 +198,12 @@ async fn load_currencies(db_pool: &DbPool) -> Result<Vec<IsoCurrency>, Reference
     Ok(rows)
 }
 
+/// Perform the `load_languages` operation as implemented by this function.
+///
+/// # Arguments
+/// * `db_pool` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 async fn load_languages(db_pool: &DbPool) -> Result<Vec<IsoLanguage>, ReferenceDataCacheError> {
     let started_at = Instant::now();
     let mut connection = match get_conn(db_pool).await {

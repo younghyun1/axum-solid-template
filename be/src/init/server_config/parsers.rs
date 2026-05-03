@@ -22,6 +22,12 @@ pub(super) fn parse_deployment_environment(
     }
 }
 
+/// Perform the `parse_database_type` operation as implemented by this function.
+///
+/// # Arguments
+/// * `super) fn parse_database_type(value` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub(super) fn parse_database_type(value: String) -> Result<DatabaseType, ServerConfigError> {
     match normalized_env_value(&value).as_str() {
         "postgres" | "postgresql" => Ok(DatabaseType::Postgres),
@@ -51,6 +57,12 @@ pub(super) fn parse_database_connection_type(
     }
 }
 
+/// Perform the `required_env` operation as implemented by this function.
+///
+/// # Arguments
+/// * `super) fn required_env(env_key` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub(super) fn required_env(env_key: &'static str) -> Result<String, ServerConfigError> {
     match env::var(env_key) {
         Ok(value) => Ok(value),
@@ -63,6 +75,12 @@ pub(super) fn required_env(env_key: &'static str) -> Result<String, ServerConfig
     }
 }
 
+/// Perform the `optional_env` operation as implemented by this function.
+///
+/// # Arguments
+/// * `super) fn optional_env(env_key` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub(super) fn optional_env(env_key: &'static str) -> Result<Option<String>, ServerConfigError> {
     match env::var(env_key) {
         Ok(value) => Ok(Some(value)),
@@ -73,6 +91,12 @@ pub(super) fn optional_env(env_key: &'static str) -> Result<Option<String>, Serv
     }
 }
 
+/// Perform the `required_bool_env` operation as implemented by this function.
+///
+/// # Arguments
+/// * `super) fn required_bool_env(env_key` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub(super) fn required_bool_env(env_key: &'static str) -> Result<bool, ServerConfigError> {
     let value = match required_env(env_key) {
         Ok(value) => value,
@@ -154,6 +178,12 @@ pub(super) fn optional_ip_addr_env(
     }
 }
 
+/// Perform the `normalized_env_value` operation as implemented by this function.
+///
+/// # Arguments
+/// * `super) fn normalized_env_value(value` -
+/// # Returns
+/// Returns the value produced by this function.
 pub(super) fn normalized_env_value(value: &str) -> String {
     value.trim().to_ascii_lowercase()
 }

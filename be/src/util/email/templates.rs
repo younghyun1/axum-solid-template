@@ -27,6 +27,13 @@ pub fn email_verification_html(
     )
 }
 
+/// Perform the `password_reset_html` operation as implemented by this function.
+///
+/// # Arguments
+/// * `password_reset_token` -
+/// * `verify_by` -
+/// # Returns
+/// Returns the value produced by this function.
 pub fn password_reset_html(password_reset_token: Uuid, verify_by: DateTime<Utc>) -> String {
     format!(
         r#"<!doctype html>

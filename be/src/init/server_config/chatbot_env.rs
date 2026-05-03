@@ -9,6 +9,12 @@ use crate::init::server_config::{
 
 use super::parsers::{normalized_env_value, optional_env, required_env, required_int_env};
 
+/// Perform the `chatbot_config_from_env` operation as implemented by this function.
+///
+/// # Arguments
+/// * `super) fn chatbot_config_from_env(` -
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 pub(super) fn chatbot_config_from_env() -> Result<ChatbotConfig, ServerConfigError> {
     let chatbot_provider = match chatbot_provider_from_env() {
         Ok(chatbot_provider) => chatbot_provider,
@@ -25,6 +31,10 @@ pub(super) fn chatbot_config_from_env() -> Result<ChatbotConfig, ServerConfigErr
     })
 }
 
+/// Perform the `chatbot_provider_from_env` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn chatbot_provider_from_env() -> Result<Option<ChatbotProvider>, ServerConfigError> {
     let provider = match optional_env("CHATBOT_PROVIDER") {
         Ok(provider) => provider,
@@ -52,6 +62,10 @@ fn chatbot_provider_from_value(
     }
 }
 
+/// Perform the `claude_chatbot_provider_from_env` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn claude_chatbot_provider_from_env() -> Result<Option<ChatbotProvider>, ServerConfigError> {
     let anthropic_api_key = match required_env("ANTHROPIC_API_KEY") {
         Ok(value) => value,
@@ -73,6 +87,10 @@ fn claude_chatbot_provider_from_env() -> Result<Option<ChatbotProvider>, ServerC
     ))))
 }
 
+/// Perform the `mistral_chatbot_provider_from_env` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn mistral_chatbot_provider_from_env() -> Result<Option<ChatbotProvider>, ServerConfigError> {
     let mistral_api_key = match required_env("MISTRAL_API_KEY") {
         Ok(value) => value,
@@ -89,6 +107,10 @@ fn mistral_chatbot_provider_from_env() -> Result<Option<ChatbotProvider>, Server
     ))))
 }
 
+/// Perform the `rag_storage_provider_from_env` operation as implemented by this function.
+///
+/// # Returns
+/// A `Result`, either containing the function output or an error.
 fn rag_storage_provider_from_env() -> Result<Option<RagStorageProvider>, ServerConfigError> {
     let provider = match optional_env("CHATBOT_RAG_STORAGE_PROVIDER") {
         Ok(provider) => provider,

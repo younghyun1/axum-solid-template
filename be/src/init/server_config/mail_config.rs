@@ -20,6 +20,10 @@ pub struct AwsSesSmtpConfig {
 }
 
 impl MailConfig {
+    /// Perform the `disabled` operation as implemented by this function.
+    ///
+    /// # Returns
+    /// Returns the value produced by this function.
     pub fn disabled() -> Self {
         Self {
             provider: MailProvider::Disabled,

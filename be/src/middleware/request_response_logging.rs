@@ -16,6 +16,13 @@ use crate::dto::api_response::iso_duration_from_duration;
 struct OptionalStr<'a>(Option<&'a str>);
 
 impl fmt::Display for OptionalStr<'_> {
+    /// Formats optional header and query values into empty string when absent.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `formatter` -
+    /// # Returns
+    /// Returns the value produced by this function.
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self.0 {
             Some(value) => formatter.write_str(value),
@@ -24,6 +31,13 @@ impl fmt::Display for OptionalStr<'_> {
     }
 }
 
+/// Logs request metadata, runs downstream handler, and logs response metadata with duration.
+///
+/// # Arguments
+/// * `request` -
+/// * `next` -
+/// # Returns
+/// Returns the value produced by this function.
 #[allow(clippy::manual_map)]
 pub async fn log_request_response(request: Request<Body>, next: Next) -> Response<Body> {
     let started_at = Instant::now();
@@ -150,6 +164,13 @@ fn log_outgoing_response(
     );
 }
 
+/// Extracts a header by name and returns a printable optional wrapper.
+///
+/// # Arguments
+/// * `headers` -
+/// * `header_name` -
+/// # Returns
+/// Returns the value produced by this function.
 fn header_value(headers: &HeaderMap, header_name: HeaderName) -> OptionalStr<'_> {
     match headers.get(header_name) {
         Some(value) => match value.to_str() {
@@ -160,6 +181,12 @@ fn header_value(headers: &HeaderMap, header_name: HeaderName) -> OptionalStr<'_>
     }
 }
 
+/// Converts an `Option<String>` into the internal optional string wrapper.
+///
+/// # Arguments
+/// * `value` -
+/// # Returns
+/// Returns the value produced by this function.
 fn optional_string_value(value: &Option<String>) -> OptionalStr<'_> {
     match value {
         Some(inner) => OptionalStr(Some(inner.as_str())),

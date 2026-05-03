@@ -1,5 +1,9 @@
 use std::{env, fs::File, io::Write, path::Path, process};
 
+/// Executes `main` as implemented by this function.
+///
+/// # Returns
+/// No value is returned (`()`).
 fn main() {
     // === build_info.rs codegen: ===
     // Get project name and version from environment variables set by Cargo
@@ -131,6 +135,10 @@ fn write_or_exit(result: std::io::Result<()>, context: &'static str) {
     }
 }
 
+/// Executes `rustc_version` as implemented by this function.
+///
+/// # Returns
+/// The value returned by the function.
 fn rustc_version() -> String {
     use std::process::Command;
     let output = Command::new("rustc").arg("--version").output();
@@ -150,9 +158,21 @@ struct LibVersion {
 
 #[allow(dead_code)]
 impl LibVersion {
+    /// Executes `get_name` as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// The value returned by the function.
     fn get_name(&self) -> &'static str {
         self.name
     }
+    /// Executes `get_version` as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// # Returns
+    /// The value returned by the function.
     fn get_version(&self) -> &'static str {
         self.version
     }
@@ -164,11 +184,22 @@ struct LibVersionMap {
 
 #[allow(dead_code)]
 impl LibVersionMap {
+    /// Executes `get` as implemented by this function.
+    ///
+    /// # Arguments
+    /// * `self` -
+    /// * `name` -
+    /// # Returns
+    /// The value returned by the function.
     fn get(&self, name: &str) -> Option<&LibVersion> {
         self.list.iter().find(|&v| v.get_name() == name)
     }
 }
 
+/// Executes `get_lib_version_map` as implemented by this function.
+///
+/// # Returns
+/// The value returned by the function.
 fn get_lib_version_map() -> Option<LibVersionMap> {
     use std::process::Command;
     // Remove --no-deps so we get all resolved dependency versions from Cargo.lock
