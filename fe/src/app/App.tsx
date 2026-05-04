@@ -144,7 +144,7 @@ export function App() {
                     type="button"
                     onClick={() => goToPage("admin-verification")}
                   >
-                    Verification challenges
+                    Admin Panel
                   </button>
                   <button class="secondary-button" type="button" onClick={goToSwagger}>
                     Swagger
