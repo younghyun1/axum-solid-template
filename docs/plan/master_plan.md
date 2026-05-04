@@ -1,10 +1,26 @@
 # Master Plan
 
+## Backend Rustdoc Coverage
+
+Scope: all Rust functions in `be/` (`*.rs` files), excluding `be/build.rs` per request.
+
 - [x] Read and apply repository instructions from AGENTS.md.
-- [x] Create/update a per-task planning document for rustdoc rollout.
-- [x] Add rustdoc comments to all Rust functions under `be/`.
+- [x] Inventory function declarations.
+- [x] Prioritize files by size and risk.
+- [x] Add rustdoc comments to all Rust functions under `be/src`.
+- [x] Keep comments concise but explicit for args, success path, failure path, and side effects.
+- [x] Report files changed and exceptions.
 - [ ] Run formatting and doc checks.
-- [x] Provide summary of updates and remaining risks.
+
+Progress:
+
+- [x] 2026-05-03: Planning documents created.
+- [x] 2026-05-03: One-by-one rustdoc insertion completed for every function in `be/src` using signature-derived docs.
+- [x] 2026-05-03: `be/build.rs` left untouched per request.
+- [ ] Validation pass pending for the original rustdoc rollout.
+
+## Recent Work
+
 - [x] Diagnose Docker TTRPC startup failure after frontend build and backend builder image build.
 - [x] Fix email verification form usability while browser proof-of-work is pending.
 - [x] Replace hard-coded email verification seed question IDs with real UUIDv7 values.
