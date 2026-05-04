@@ -49,7 +49,10 @@ use crate::{
     },
 };
 
-use super::static_assets::static_asset_handler;
+use super::{
+    marketplace::{build_protected_marketplace_router, build_public_marketplace_router},
+    static_assets::static_asset_handler,
+};
 
 const AUTH_RATE_LIMIT_REPLENISHED_EVERY_MILLISECONDS: u64 = 63;
 const AUTH_RATE_LIMIT_BURST_SIZE: u32 = 1024;
@@ -85,7 +88,9 @@ pub fn build_router(state: Arc<ServerState>) -> Router {
 /// Returns the value produced by this function.
 fn build_api_v1_router(state: Arc<ServerState>) -> Router {
     let public_auth_router = apply_auth_rate_limit(build_public_auth_router());
+    let public_marketplace_router = build_public_marketplace_router();
     let protected_auth_router = build_protected_auth_router(state.clone());
+    let protected_marketplace_router = build_protected_marketplace_router(state.clone());
     let admin_router = build_admin_router(state.clone());
 
     Router::new()
@@ -97,7 +102,9 @@ fn build_api_v1_router(state: Arc<ServerState>) -> Router {
             get(reference_country_subdivisions),
         )
         .merge(public_auth_router)
+        .merge(public_marketplace_router)
         .merge(protected_auth_router)
+        .merge(protected_marketplace_router)
         .merge(admin_router)
         .layer(from_fn_with_state(
             state.clone(),

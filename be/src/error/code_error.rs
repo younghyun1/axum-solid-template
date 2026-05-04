@@ -251,6 +251,27 @@ impl CodeError {
         message: "Request origin is not allowed!",
         log_level: Level::WARN,
     };
+    pub const SERVICE_PROVIDER_REQUIRED: CodeError = CodeError {
+        success: false,
+        error_code: 35,
+        http_status_code: StatusCode::FORBIDDEN,
+        message: "Service provider access required!",
+        log_level: Level::INFO,
+    };
+    pub const MODERATOR_REQUIRED: CodeError = CodeError {
+        success: false,
+        error_code: 36,
+        http_status_code: StatusCode::FORBIDDEN,
+        message: "Moderator access required!",
+        log_level: Level::INFO,
+    };
+    pub const MARKETPLACE_NOT_FOUND: CodeError = CodeError {
+        success: false,
+        error_code: 37,
+        http_status_code: StatusCode::NOT_FOUND,
+        message: "Marketplace resource not found!",
+        log_level: Level::INFO,
+    };
     pub const INTERNAL_ERROR: CodeError = CodeError {
         success: false,
         error_code: 255,

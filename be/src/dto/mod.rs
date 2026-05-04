@@ -3,4 +3,5 @@ pub mod api_response;
 mod api_response_tests;
 pub mod auth;
 pub mod healthcheck;
+pub mod marketplace;
 pub mod reference_data;
