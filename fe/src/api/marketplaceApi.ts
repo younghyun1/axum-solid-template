@@ -5,6 +5,7 @@ import type {
   BanListResponse,
   CreateBanRequest,
   CreateBannerRequest,
+  CreateCentralBlogPostRequest,
   CreatePaymentIntentRequest,
   CreateProviderBlogPostRequest,
   PaymentIntentListResponse,
@@ -92,6 +93,16 @@ export function createProviderBlogPost(
     body,
     method: "POST",
     path: "/api/v1/marketplace/provider/blog"
+  });
+}
+
+export function createCentralBlogPost(
+  body: CreateCentralBlogPostRequest
+): Promise<ApiCallResult<unknown>> {
+  return requestApi<unknown, CreateCentralBlogPostRequest>({
+    body,
+    method: "POST",
+    path: "/api/v1/marketplace/admin/blog"
   });
 }
 

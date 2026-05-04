@@ -10,6 +10,7 @@ use crate::{
         PaymentTransactionResponse, ProviderBlogPostResponse, ProviderProfileResponse,
         UserProfileResponse,
     },
+    service::marketplace::markdown,
 };
 
 impl From<Image> for ImageResponse {
@@ -73,6 +74,7 @@ impl From<ProviderBlogPost> for ProviderBlogPostResponse {
             slug: post.provider_blog_post_slug,
             title: post.provider_blog_post_title,
             excerpt: post.provider_blog_post_excerpt,
+            rendered_html: Some(markdown::render_markdown(&post.provider_blog_post_body).html),
             body: Some(post.provider_blog_post_body),
             status: post.provider_blog_post_status,
             moderation_status: post.provider_blog_post_moderation_status,
@@ -137,6 +139,7 @@ impl From<CentralBlogPost> for CentralBlogPostResponse {
             slug: post.central_blog_post_slug,
             title: post.central_blog_post_title,
             excerpt: post.central_blog_post_excerpt,
+            rendered_html: markdown::render_markdown(&post.central_blog_post_body).html,
             body: post.central_blog_post_body,
             status: post.central_blog_post_status,
             moderation_status: post.central_blog_post_moderation_status,

@@ -63,6 +63,10 @@ tracing-appender = "0.2.5"
 chrono = { version = "0.4.44", features = ["serde"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = { version = "1.0.149", features = ["preserve_order"] }
+comrak = "0.52.0"
+ammonia = "4.1.2"
+tantivy = "0.26.1"
+moka = { version = "0.12.15", features = ["future"] }
 
 [build-dependencies]
 chrono = { version = "0.4.44" }

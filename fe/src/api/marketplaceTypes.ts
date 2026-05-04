@@ -76,6 +76,7 @@ export interface ProviderBlogPostResponse {
   readonly title: string;
   readonly excerpt: string | null;
   readonly body: string | null;
+  readonly rendered_html: string | null;
   readonly status: BlogPostStatus;
   readonly moderation_status: ModerationStatus;
   readonly hero_image_id: string | null;
@@ -117,6 +118,14 @@ export interface UpsertProviderProfileRequest extends JsonObject {
 }
 
 export interface CreateProviderBlogPostRequest extends JsonObject {
+  readonly slug: string | null;
+  readonly title: string;
+  readonly excerpt: string | null;
+  readonly body: string;
+  readonly status: BlogPostStatus;
+}
+
+export interface CreateCentralBlogPostRequest extends JsonObject {
   readonly slug: string | null;
   readonly title: string;
   readonly excerpt: string | null;

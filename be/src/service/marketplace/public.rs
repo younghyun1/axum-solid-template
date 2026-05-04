@@ -96,6 +96,7 @@ pub async fn provider_detail(
             .map(|post| {
                 let mut response = ProviderBlogPostResponse::from(post);
                 response.body = None;
+                response.rendered_html = None;
                 response
             })
             .collect(),

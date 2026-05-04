@@ -7,6 +7,7 @@ import {
 } from "../../api/marketplaceApi";
 import type { MeResponse } from "../../api/types";
 import { resultData } from "../helpers";
+import { MarkdownEditor } from "../shared/MarkdownEditor";
 
 interface ProviderDashboardPageProps {
   readonly profile: MeResponse | null;
@@ -24,7 +25,9 @@ export function ProviderDashboardPage(props: ProviderDashboardPageProps) {
   const [slug, setSlug] = createSignal("");
   const [headline, setHeadline] = createSignal("");
   const [blogTitle, setBlogTitle] = createSignal("");
+  const [blogExcerpt, setBlogExcerpt] = createSignal("");
   const [blogBody, setBlogBody] = createSignal("");
+  const [editorResetToken, setEditorResetToken] = createSignal(0);
   const [notice, setNotice] = createSignal("");
 
   const saveProfile = async () => {
@@ -46,7 +49,7 @@ export function ProviderDashboardPage(props: ProviderDashboardPageProps) {
     const result = await createProviderBlogPost({
       slug: null,
       title: blogTitle().trim(),
-      excerpt: null,
+      excerpt: blogExcerpt().trim() || null,
       body: blogBody().trim(),
       status: "published"
     });
@@ -54,7 +57,9 @@ export function ProviderDashboardPage(props: ProviderDashboardPageProps) {
     if (result.ok) {
       setRefreshTick((value) => value + 1);
       setBlogTitle("");
+      setBlogExcerpt("");
       setBlogBody("");
+      setEditorResetToken((value) => value + 1);
     }
   };
 
@@ -81,7 +86,13 @@ export function ProviderDashboardPage(props: ProviderDashboardPageProps) {
             <h2>Blog</h2>
             <div class="flow-form">
               <input placeholder="Post title" value={blogTitle()} onInput={(event) => setBlogTitle(event.currentTarget.value)} />
-              <textarea placeholder="Post body" value={blogBody()} onInput={(event) => setBlogBody(event.currentTarget.value)} />
+              <input placeholder="Short excerpt" value={blogExcerpt()} onInput={(event) => setBlogExcerpt(event.currentTarget.value)} />
+              <MarkdownEditor
+                label="Post body"
+                value={blogBody()}
+                resetToken={editorResetToken()}
+                onChange={setBlogBody}
+              />
               <button class="secondary-button" type="button" onClick={publishPost}>Publish post</button>
             </div>
           </section>

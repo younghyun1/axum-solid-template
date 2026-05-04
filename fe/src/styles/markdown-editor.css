@@ -1,0 +1,37 @@
+.markdown-editor {
+  display: grid;
+  gap: 6px;
+}
+
+.markdown-editor__label {
+  color: var(--color-text-muted);
+  font-size: 0.76rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.markdown-editor__surface {
+  min-height: 340px;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-bg-elevated);
+}
+
+.markdown-editor__surface .milkdown {
+  min-height: 340px;
+  color: var(--color-text);
+}
+
+.markdown-editor__surface .ProseMirror {
+  min-height: 260px;
+  padding: 16px;
+}
+
+.markdown-editor__surface .ProseMirror:focus {
+  outline: none;
+}
+
+:root[data-theme="dark"] .markdown-editor__surface {
+  background: var(--color-surface);
+}

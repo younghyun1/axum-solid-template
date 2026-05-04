@@ -3,11 +3,13 @@ import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import {
   createBan,
   createBanner,
+  createCentralBlogPost,
   getActiveBans,
   getAdminMarketplaceOverview
 } from "../../api/marketplaceApi";
 import type { MeResponse } from "../../api/types";
 import { resultData } from "../helpers";
+import { MarkdownEditor } from "../shared/MarkdownEditor";
 
 interface AdminMarketplacePageProps {
   readonly profile: MeResponse | null;
@@ -27,6 +29,10 @@ export function AdminMarketplacePage(props: AdminMarketplacePageProps) {
   const [banReason, setBanReason] = createSignal("");
   const [bannerTitle, setBannerTitle] = createSignal("");
   const [bannerUrl, setBannerUrl] = createSignal("");
+  const [centralPostTitle, setCentralPostTitle] = createSignal("");
+  const [centralPostExcerpt, setCentralPostExcerpt] = createSignal("");
+  const [centralPostBody, setCentralPostBody] = createSignal("");
+  const [centralEditorResetToken, setCentralEditorResetToken] = createSignal(0);
   const [notice, setNotice] = createSignal("");
 
   const submitBan = async () => {
@@ -60,6 +66,24 @@ export function AdminMarketplacePage(props: AdminMarketplacePageProps) {
       setRefreshTick((value) => value + 1);
       setBannerTitle("");
       setBannerUrl("");
+    }
+  };
+
+  const submitCentralPost = async () => {
+    const result = await createCentralBlogPost({
+      slug: null,
+      title: centralPostTitle().trim(),
+      excerpt: centralPostExcerpt().trim() || null,
+      body: centralPostBody().trim(),
+      status: "published"
+    });
+    setNotice(result.ok ? "Central blog post created." : result.error.message);
+    if (result.ok) {
+      setRefreshTick((value) => value + 1);
+      setCentralPostTitle("");
+      setCentralPostExcerpt("");
+      setCentralPostBody("");
+      setCentralEditorResetToken((value) => value + 1);
     }
   };
 
@@ -109,6 +133,31 @@ export function AdminMarketplacePage(props: AdminMarketplacePageProps) {
             </div>
           </section>
         </div>
+
+        <section class="marketplace-panel">
+          <h2>Central blog</h2>
+          <div class="flow-form">
+            <input
+              placeholder="Post title"
+              value={centralPostTitle()}
+              onInput={(event) => setCentralPostTitle(event.currentTarget.value)}
+            />
+            <input
+              placeholder="Short excerpt"
+              value={centralPostExcerpt()}
+              onInput={(event) => setCentralPostExcerpt(event.currentTarget.value)}
+            />
+            <MarkdownEditor
+              label="Post body"
+              value={centralPostBody()}
+              resetToken={centralEditorResetToken()}
+              onChange={setCentralPostBody}
+            />
+            <button class="secondary-button" type="button" onClick={submitCentralPost}>
+              Publish central post
+            </button>
+          </div>
+        </section>
 
         <Show when={notice()}>
           {(text) => <p class="field-note">{text()}</p>}
