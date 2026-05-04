@@ -5,5 +5,8 @@
 @import "./database-reset.css";
 @import "./profile.css";
 @import "./marketplace.css";
+@import "./marketplace-public.css";
+@import "./marketplace-directory.css";
+@import "./marketplace-profile.css";
 @import "./feedback.css";
 @import "./responsive.css";

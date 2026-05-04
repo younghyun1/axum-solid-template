@@ -1,0 +1,20 @@
+.public-marketplace {
+  display: grid;
+  gap: 18px;
+  padding: 24px 0 42px;
+}
+
+.marketplace-state {
+  display: grid;
+  gap: 4px;
+  min-height: 180px;
+  place-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.marketplace-state p {
+  max-width: 380px;
+  margin: 0;
+  color: var(--color-text-muted);
+}

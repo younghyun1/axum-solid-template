@@ -64,3 +64,21 @@ Progress:
 - [x] 2026-05-04: Marketplace backend schema, APIs, OpenAPI, repositories, and services implemented.
 - [x] 2026-05-04: Marketplace frontend shell and typed API client implemented.
 - [x] 2026-05-04: Ran `cargo fmt`, `cargo check`, `cargo clippy`, `cargo test`, `npm run build`, and `npm test`.
+
+## Marketplace Frontend Production Layout
+
+Scope: replace the initial thin marketplace shell with a production-grade listing experience for public provider discovery and provider detail browsing.
+
+- [x] Persist production frontend layout plan under `docs/plan`.
+- [x] Audit current marketplace pages, CSS, navigation, and typed DTO usage.
+- [x] Rework public provider directory into a listing-site layout with search, filter rail, dense result cards, sorting controls, and trustworthy empty/loading/error states.
+- [x] Rework provider detail into a credible profile page with media, service summary, trust signals, blog preview, and clear transaction entry points.
+- [x] Keep styling centralized and reusable under `fe/src/styles`.
+- [x] Verify strict TypeScript build and frontend tests.
+- [x] Commit the production layout slice separately from unrelated generated files.
+
+Progress:
+
+- [x] 2026-05-04: Production frontend layout plan persisted in `docs/plan/2026-05-04-marketplace-frontend-production-layout.md`.
+- [x] 2026-05-04: Public provider directory and profile pages rebuilt with listing-site structure.
+- [x] 2026-05-04: Ran `npm run build` and `npm test`.

@@ -16,3 +16,17 @@ Styling stays centralized under `fe/src/styles`. Components should use semantic 
 Role-specific navigation is derived from the authenticated profile but backend authorization remains authoritative. Public pages must work without an authenticated session.
 
 Provider cards should show stable image placeholders while media is pending. Admin tables should support scanning and repeated actions without large marketing-style hero sections.
+
+## Public Listing Layout
+
+The public provider directory should follow mature listing-site conventions:
+
+- a compact page header with result context and primary search
+- a persistent filter/sort area on desktop and a stacked control area on mobile
+- dense result cards with image, service area, headline, provider status, and clear detail navigation
+- empty, loading, and error states that preserve page geometry
+- stable card and media dimensions so async data does not shift the page
+
+The directory should not use a marketing hero, decorative gradient background, or large explanatory copy. Public browsing is the core task.
+
+Provider detail pages should read as operational profiles. They should put the provider name, headline, service area, media, trust facts, blog preview, and payment/contact action in the first meaningful viewport. Long-form copy belongs in structured sections rather than a single sparse panel.

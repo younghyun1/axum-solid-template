@@ -161,6 +161,7 @@ export function App() {
           <ProviderDetailPage
             slug={providerSlugFromPath(location.pathname)}
             onBack={() => goToPage("providers")}
+            onOpenPayments={() => goToPage("user-marketplace")}
           />
         </Show>
 
