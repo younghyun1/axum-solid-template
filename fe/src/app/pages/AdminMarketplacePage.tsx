@@ -12,6 +12,7 @@ import {
 import type { MeResponse } from "../../api/types";
 import { resultData } from "../helpers";
 import { MarkdownEditor } from "../shared/MarkdownEditor";
+import { AdminModerationPanels } from "./AdminModerationPanels";
 
 interface AdminMarketplacePageProps {
   readonly profile: MeResponse | null;
@@ -179,6 +180,11 @@ export function AdminMarketplacePage(props: AdminMarketplacePageProps) {
             </div>
           </section>
         </div>
+
+        <AdminModerationPanels
+          onNotice={setNotice}
+          onRefresh={() => setRefreshTick((value) => value + 1)}
+        />
 
         <section class="marketplace-panel">
           <h2>Central blog</h2>

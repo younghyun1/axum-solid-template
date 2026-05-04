@@ -10,17 +10,21 @@ use crate::{
     dto::{
         api_response::{ApiEnvelope, ApiResponseResult, api_created, api_ok},
         marketplace::{
-            request::{CreateBanRequest, CreateBannerRequest, CreateCentralBlogPostRequest},
+            request::{
+                CreateBanRequest, CreateBannerRequest, CreateCentralBlogPostRequest,
+                ModerationDecisionRequest,
+            },
             response::{
                 AdminOverviewResponse, BanListResponse, BanResponse, BannerResponse,
                 CentralBlogPostResponse, MarketplaceCacheClearResponse,
-                MarketplaceSearchReindexResponse,
+                MarketplaceSearchReindexResponse, ProviderBlogPostResponse,
+                ProviderProfileResponse,
             },
         },
     },
     init::state::server_state::ServerState,
     middleware::auth::AuthContext,
-    service::marketplace::{admin, search},
+    service::marketplace::{admin, moderation, search},
 };
 
 #[utoipa::path(
@@ -66,6 +70,60 @@ pub async fn admin_clear_marketplace_public_cache(
     Extension(auth_context): Extension<AuthContext>,
 ) -> ApiResponseResult<MarketplaceCacheClearResponse> {
     match admin::clear_marketplace_public_cache(state, auth_context.claims).await {
+        Ok(response) => Ok(api_ok(response)),
+        Err(error) => Err(error),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/marketplace/admin/providers/{provider_profile_id}/moderation",
+    tag = "marketplace-admin",
+    params(("provider_profile_id" = Uuid, Path, description = "Provider profile id")),
+    request_body = ModerationDecisionRequest,
+    responses((status = 200, description = "Moderated provider profile", body = ApiEnvelope<ProviderProfileResponse>))
+)]
+pub async fn admin_moderate_provider_profile(
+    State(state): State<Arc<ServerState>>,
+    Extension(auth_context): Extension<AuthContext>,
+    Path(provider_profile_id): Path<Uuid>,
+    Json(request): Json<ModerationDecisionRequest>,
+) -> ApiResponseResult<ProviderProfileResponse> {
+    match moderation::moderate_provider_profile(
+        state,
+        auth_context.claims,
+        provider_profile_id,
+        request,
+    )
+    .await
+    {
+        Ok(response) => Ok(api_ok(response)),
+        Err(error) => Err(error),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/marketplace/admin/provider-blog/{provider_blog_post_id}/moderation",
+    tag = "marketplace-admin",
+    params(("provider_blog_post_id" = Uuid, Path, description = "Provider blog post id")),
+    request_body = ModerationDecisionRequest,
+    responses((status = 200, description = "Moderated provider blog post", body = ApiEnvelope<ProviderBlogPostResponse>))
+)]
+pub async fn admin_moderate_provider_blog_post(
+    State(state): State<Arc<ServerState>>,
+    Extension(auth_context): Extension<AuthContext>,
+    Path(provider_blog_post_id): Path<Uuid>,
+    Json(request): Json<ModerationDecisionRequest>,
+) -> ApiResponseResult<ProviderBlogPostResponse> {
+    match moderation::moderate_provider_blog_post(
+        state,
+        auth_context.claims,
+        provider_blog_post_id,
+        request,
+    )
+    .await
+    {
         Ok(response) => Ok(api_ok(response)),
         Err(error) => Err(error),
     }

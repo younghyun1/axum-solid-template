@@ -12,12 +12,15 @@ import type {
   MarketplaceSearchReindexResponse,
   MarketplaceSearchResponse,
   MarketplaceSearchResultKind,
+  ModerationDecisionRequest,
   PaymentIntentListResponse,
   PaymentIntentResponse,
+  ProviderBlogPostResponse,
   ProviderDetailResponse,
   ProviderDirectoryResponse,
   ProviderProfileResponse,
   UpsertProviderProfileRequest,
+  UpdateProviderBlogPostRequest,
   UpsertUserProfileRequest,
   UserProfileResponse
 } from "./marketplaceTypes";
@@ -110,11 +113,44 @@ export function upsertProviderMarketplaceProfile(
 
 export function createProviderBlogPost(
   body: CreateProviderBlogPostRequest
-): Promise<ApiCallResult<unknown>> {
-  return requestApi<unknown, CreateProviderBlogPostRequest>({
+): Promise<ApiCallResult<ProviderBlogPostResponse>> {
+  return requestApi<ProviderBlogPostResponse, CreateProviderBlogPostRequest>({
     body,
     method: "POST",
     path: "/api/v1/marketplace/provider/blog"
+  });
+}
+
+export function updateProviderBlogPost(
+  postId: string,
+  body: UpdateProviderBlogPostRequest
+): Promise<ApiCallResult<ProviderBlogPostResponse>> {
+  return requestApi<ProviderBlogPostResponse, UpdateProviderBlogPostRequest>({
+    body,
+    method: "PUT",
+    path: `/api/v1/marketplace/provider/blog/${encodeURIComponent(postId)}`
+  });
+}
+
+export function moderateProviderProfile(
+  providerProfileId: string,
+  body: ModerationDecisionRequest
+): Promise<ApiCallResult<ProviderProfileResponse>> {
+  return requestApi<ProviderProfileResponse, ModerationDecisionRequest>({
+    body,
+    method: "POST",
+    path: `/api/v1/marketplace/admin/providers/${encodeURIComponent(providerProfileId)}/moderation`
+  });
+}
+
+export function moderateProviderBlogPost(
+  providerBlogPostId: string,
+  body: ModerationDecisionRequest
+): Promise<ApiCallResult<ProviderBlogPostResponse>> {
+  return requestApi<ProviderBlogPostResponse, ModerationDecisionRequest>({
+    body,
+    method: "POST",
+    path: `/api/v1/marketplace/admin/provider-blog/${encodeURIComponent(providerBlogPostId)}/moderation`
   });
 }
 

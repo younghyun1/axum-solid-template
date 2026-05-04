@@ -102,3 +102,15 @@ pub struct NewProviderBlogPost {
     pub provider_blog_post_moderation_status: ModerationStatus,
     pub provider_blog_post_published_at: Option<DateTime<Utc>>,
 }
+
+#[derive(Debug, Clone)]
+pub struct ProviderBlogPostUpdate {
+    pub provider_blog_post_slug: String,
+    pub provider_blog_post_title: String,
+    pub provider_blog_post_excerpt: Option<String>,
+    pub provider_blog_post_body: String,
+    pub provider_blog_post_status: BlogPostStatus,
+    pub provider_blog_post_moderation_status: ModerationStatus,
+    pub provider_blog_post_published_at: Option<DateTime<Utc>>,
+    pub provider_blog_post_updated_at: DateTime<Utc>,
+}

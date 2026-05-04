@@ -3,8 +3,10 @@ import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 import {
   createProviderBlogPost,
   getProviderDashboard,
+  updateProviderBlogPost,
   upsertProviderMarketplaceProfile
 } from "../../api/marketplaceApi";
+import type { BlogPostStatus, ProviderBlogPostResponse } from "../../api/marketplaceTypes";
 import type { MeResponse } from "../../api/types";
 import { resultData } from "../helpers";
 import { MarkdownEditor } from "../shared/MarkdownEditor";
@@ -27,7 +29,14 @@ export function ProviderDashboardPage(props: ProviderDashboardPageProps) {
   const [blogTitle, setBlogTitle] = createSignal("");
   const [blogExcerpt, setBlogExcerpt] = createSignal("");
   const [blogBody, setBlogBody] = createSignal("");
+  const [blogStatus, setBlogStatus] = createSignal<BlogPostStatus>("published");
   const [editorResetToken, setEditorResetToken] = createSignal(0);
+  const [editingPostId, setEditingPostId] = createSignal<string | null>(null);
+  const [editTitle, setEditTitle] = createSignal("");
+  const [editExcerpt, setEditExcerpt] = createSignal("");
+  const [editBody, setEditBody] = createSignal("");
+  const [editStatus, setEditStatus] = createSignal<BlogPostStatus>("draft");
+  const [editResetToken, setEditResetToken] = createSignal(0);
   const [notice, setNotice] = createSignal("");
 
   const saveProfile = async () => {
@@ -51,7 +60,7 @@ export function ProviderDashboardPage(props: ProviderDashboardPageProps) {
       title: blogTitle().trim(),
       excerpt: blogExcerpt().trim() || null,
       body: blogBody().trim(),
-      status: "published"
+      status: blogStatus()
     });
     setNotice(result.ok ? "Blog post saved." : result.error.message);
     if (result.ok) {
@@ -59,7 +68,45 @@ export function ProviderDashboardPage(props: ProviderDashboardPageProps) {
       setBlogTitle("");
       setBlogExcerpt("");
       setBlogBody("");
+      setBlogStatus("published");
       setEditorResetToken((value) => value + 1);
+    }
+  };
+
+  const startEdit = (post: ProviderBlogPostResponse) => {
+    setEditingPostId(post.provider_blog_post_id);
+    setEditTitle(post.title);
+    setEditExcerpt(post.excerpt ?? "");
+    setEditBody(post.body ?? "");
+    setEditStatus(post.status);
+    setEditResetToken((value) => value + 1);
+  };
+
+  const cancelEdit = () => {
+    setEditingPostId(null);
+    setEditTitle("");
+    setEditExcerpt("");
+    setEditBody("");
+    setEditStatus("draft");
+    setEditResetToken((value) => value + 1);
+  };
+
+  const saveEditedPost = async () => {
+    const postId = editingPostId();
+    if (postId === null) {
+      return;
+    }
+    const result = await updateProviderBlogPost(postId, {
+      slug: null,
+      title: editTitle().trim(),
+      excerpt: editExcerpt().trim() || null,
+      body: editBody().trim(),
+      status: editStatus()
+    });
+    setNotice(result.ok ? "Blog post updated and sent to moderation." : result.error.message);
+    if (result.ok) {
+      setRefreshTick((value) => value + 1);
+      cancelEdit();
     }
   };
 
@@ -87,6 +134,13 @@ export function ProviderDashboardPage(props: ProviderDashboardPageProps) {
             <div class="flow-form">
               <input placeholder="Post title" value={blogTitle()} onInput={(event) => setBlogTitle(event.currentTarget.value)} />
               <input placeholder="Short excerpt" value={blogExcerpt()} onInput={(event) => setBlogExcerpt(event.currentTarget.value)} />
+              <select
+                value={blogStatus()}
+                onInput={(event) => setBlogStatus(event.currentTarget.value as BlogPostStatus)}
+              >
+                <option value="published">Publish</option>
+                <option value="draft">Save draft</option>
+              </select>
               <MarkdownEditor
                 label="Post body"
                 value={blogBody()}
@@ -108,13 +162,53 @@ export function ProviderDashboardPage(props: ProviderDashboardPageProps) {
             <For each={dashboard()?.blog_posts ?? []}>
               {(post) => (
                 <div class="marketplace-row">
-                  <strong>{post.title}</strong>
-                  <span class="marketplace-chip">{post.moderation_status}</span>
+                  <div>
+                    <strong>{post.title}</strong>
+                    <p>{post.status}</p>
+                  </div>
+                  <div class="marketplace-row__actions">
+                    <span class="marketplace-chip">{post.moderation_status}</span>
+                    <button class="secondary-button" type="button" onClick={() => startEdit(post)}>
+                      Edit
+                    </button>
+                  </div>
                 </div>
               )}
             </For>
           </div>
         </section>
+
+        <Show when={editingPostId() !== null}>
+          <section class="marketplace-panel">
+            <h2>Edit post</h2>
+            <div class="flow-form">
+              <input value={editTitle()} onInput={(event) => setEditTitle(event.currentTarget.value)} />
+              <input value={editExcerpt()} onInput={(event) => setEditExcerpt(event.currentTarget.value)} />
+              <select
+                value={editStatus()}
+                onInput={(event) => setEditStatus(event.currentTarget.value as BlogPostStatus)}
+              >
+                <option value="published">Publish</option>
+                <option value="draft">Draft</option>
+                <option value="archived">Archive</option>
+              </select>
+              <MarkdownEditor
+                label="Post body"
+                value={editBody()}
+                resetToken={editResetToken()}
+                onChange={setEditBody}
+              />
+              <div class="marketplace-action-row">
+                <button class="primary-button" type="button" onClick={saveEditedPost}>
+                  Save changes
+                </button>
+                <button class="secondary-button" type="button" onClick={cancelEdit}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </section>
+        </Show>
       </Show>
     </section>
   );

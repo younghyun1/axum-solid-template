@@ -149,6 +149,18 @@ export interface CreateProviderBlogPostRequest extends JsonObject {
   readonly status: BlogPostStatus;
 }
 
+export interface UpdateProviderBlogPostRequest extends JsonObject {
+  readonly slug: string | null;
+  readonly title: string;
+  readonly excerpt: string | null;
+  readonly body: string;
+  readonly status: BlogPostStatus;
+}
+
+export interface ModerationDecisionRequest extends JsonObject {
+  readonly moderation_status: ModerationStatus;
+}
+
 export interface CreateCentralBlogPostRequest extends JsonObject {
   readonly slug: string | null;
   readonly title: string;

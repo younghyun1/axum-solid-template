@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::domain::marketplace::enums::{
     BanScope, BannerPlacement, BannerStatus, BlogPostStatus, ImageType, ImageVisibility,
-    PaymentProvider, ProviderProfileStatus,
+    ModerationStatus, PaymentProvider, ProviderProfileStatus,
 };
 use crate::domain::marketplace::search::MarketplaceSearchResultKind;
 
@@ -48,6 +48,20 @@ pub struct CreateProviderBlogPostRequest {
     pub excerpt: Option<String>,
     pub body: String,
     pub status: BlogPostStatus,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct UpdateProviderBlogPostRequest {
+    pub slug: Option<String>,
+    pub title: String,
+    pub excerpt: Option<String>,
+    pub body: String,
+    pub status: BlogPostStatus,
+}
+
+#[derive(Debug, Deserialize, ToSchema)]
+pub struct ModerationDecisionRequest {
+    pub moderation_status: ModerationStatus,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

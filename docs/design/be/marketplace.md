@@ -14,3 +14,12 @@ Public directory queries must be built to avoid N+1 behavior. Directory cards sh
 Provider slugs are unique, stable public identifiers. Slug generation must handle collisions explicitly and should be fuzz-tested.
 
 Moderation and publication are separate states. A provider can draft content, but public reads only return content that is published and allowed by moderation.
+
+Provider blog edits use `PUT /api/v1/marketplace/provider/blog/{provider_blog_post_id}`. Editing content resets provider-post moderation to pending, clears public caches, and rebuilds the derived search index.
+
+Moderator decisions use explicit DTOs:
+
+- `POST /api/v1/marketplace/admin/providers/{provider_profile_id}/moderation`
+- `POST /api/v1/marketplace/admin/provider-blog/{provider_blog_post_id}/moderation`
+
+Moderation writes are backend-authoritative and must update cache/search derived state after database success.

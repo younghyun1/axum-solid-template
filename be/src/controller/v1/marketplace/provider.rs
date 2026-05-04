@@ -12,7 +12,7 @@ use crate::{
         marketplace::{
             request::{
                 CompleteImageUploadRequest, CreateImageRequest, CreateProviderBlogPostRequest,
-                UpsertProviderProfileRequest,
+                UpdateProviderBlogPostRequest, UpsertProviderProfileRequest,
             },
             response::{
                 ImageResponse, ProviderBlogPostResponse, ProviderDetailResponse,
@@ -73,6 +73,33 @@ pub async fn provider_create_blog_post(
 ) -> ApiResponseResult<ProviderBlogPostResponse> {
     match provider::create_provider_blog_post(state, auth_context.claims, request).await {
         Ok(response) => Ok(api_created(response)),
+        Err(error) => Err(error),
+    }
+}
+
+#[utoipa::path(
+    put,
+    path = "/api/v1/marketplace/provider/blog/{provider_blog_post_id}",
+    tag = "marketplace-provider",
+    params(("provider_blog_post_id" = Uuid, Path, description = "Provider blog post id")),
+    request_body = UpdateProviderBlogPostRequest,
+    responses((status = 200, description = "Updated provider blog post", body = ApiEnvelope<ProviderBlogPostResponse>))
+)]
+pub async fn provider_update_blog_post(
+    State(state): State<Arc<ServerState>>,
+    Extension(auth_context): Extension<AuthContext>,
+    Path(provider_blog_post_id): Path<Uuid>,
+    Json(request): Json<UpdateProviderBlogPostRequest>,
+) -> ApiResponseResult<ProviderBlogPostResponse> {
+    match provider::update_provider_blog_post(
+        state,
+        auth_context.claims,
+        provider_blog_post_id,
+        request,
+    )
+    .await
+    {
+        Ok(response) => Ok(api_ok(response)),
         Err(error) => Err(error),
     }
 }

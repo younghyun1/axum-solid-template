@@ -3,6 +3,7 @@ mod authz;
 mod cache;
 mod indexing;
 pub mod markdown;
+pub mod moderation;
 pub mod provider;
 pub mod provider_media;
 pub mod public;

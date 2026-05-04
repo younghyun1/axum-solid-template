@@ -30,3 +30,9 @@ The public provider directory should follow mature listing-site conventions:
 The directory should not use a marketing hero, decorative gradient background, or large explanatory copy. Public browsing is the core task.
 
 Provider detail pages should read as operational profiles. They should put the provider name, headline, service area, media, trust facts, blog preview, and payment/contact action in the first meaningful viewport. Long-form copy belongs in structured sections rather than a single sparse panel.
+
+## Provider And Admin Workflows
+
+Provider blog management must support create, edit, draft, publish, archive, and moderation visibility states. Existing posts should remain scannable, with status chips and direct edit actions. Editing a post sends it back through moderation.
+
+Admin marketplace workflows should be compact and operational. Cache/search controls, provider moderation, provider-post moderation, bans, banners, and central blog publishing should appear as focused panels with typed controls, not as loosely related forms.

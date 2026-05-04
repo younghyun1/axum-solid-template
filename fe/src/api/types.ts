@@ -1,4 +1,4 @@
-export type ApiMethod = "DELETE" | "GET" | "POST";
+export type ApiMethod = "DELETE" | "GET" | "POST" | "PUT";
 
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonValue = JsonPrimitive | JsonObject | JsonValue[];
