@@ -8,6 +8,7 @@ use crate::domain::marketplace::enums::{
     ImageVisibility, ModerationStatus, PaymentIntentStatus, PaymentProvider,
     PaymentTransactionKind, PaymentTransactionStatus, ProviderProfileStatus,
 };
+use crate::domain::marketplace::search::MarketplaceSearchResultKind;
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ImageResponse {
@@ -66,6 +67,28 @@ pub struct ProviderDirectoryCardResponse {
 #[derive(Debug, Serialize, ToSchema)]
 pub struct ProviderDirectoryResponse {
     pub providers: Vec<ProviderDirectoryCardResponse>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct MarketplaceSearchResultResponse {
+    pub kind: MarketplaceSearchResultKind,
+    pub title: String,
+    pub subtitle: String,
+    pub slug: String,
+    pub url_path: String,
+    pub snippet: String,
+    pub score: f32,
+    pub updated_at: Option<DateTime<Utc>>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct MarketplaceSearchResponse {
+    pub results: Vec<MarketplaceSearchResultResponse>,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct MarketplaceSearchReindexResponse {
+    pub indexed_documents: usize,
 }
 
 #[derive(Debug, Serialize, ToSchema)]

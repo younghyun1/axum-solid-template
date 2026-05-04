@@ -4,3 +4,4 @@ pub mod media;
 pub mod moderation;
 pub mod payments;
 pub mod provider;
+pub mod search;

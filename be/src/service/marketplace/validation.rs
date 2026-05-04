@@ -98,6 +98,13 @@ pub fn directory_limit(limit: Option<i64>) -> i64 {
     }
 }
 
+pub fn search_limit(limit: Option<usize>) -> usize {
+    match limit {
+        Some(value) if (1..=50).contains(&value) => value,
+        Some(_) | None => 20,
+    }
+}
+
 pub fn validate_image_metadata(
     bucket: &str,
     object_key: &str,

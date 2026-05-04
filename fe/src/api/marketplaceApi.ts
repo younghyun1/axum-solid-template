@@ -8,6 +8,9 @@ import type {
   CreateCentralBlogPostRequest,
   CreatePaymentIntentRequest,
   CreateProviderBlogPostRequest,
+  MarketplaceSearchReindexResponse,
+  MarketplaceSearchResponse,
+  MarketplaceSearchResultKind,
   PaymentIntentListResponse,
   PaymentIntentResponse,
   ProviderDetailResponse,
@@ -25,6 +28,24 @@ export function getProviderDirectory(
     method: "GET",
     path: "/api/v1/marketplace/providers",
     query
+  });
+}
+
+export function searchMarketplace(
+  query: Readonly<{ q: string; kind?: MarketplaceSearchResultKind; limit?: number }>
+): Promise<ApiCallResult<MarketplaceSearchResponse>> {
+  const params: Record<string, string> = { q: query.q };
+  if (query.kind !== undefined) {
+    params["kind"] = query.kind;
+  }
+  if (query.limit !== undefined) {
+    params["limit"] = query.limit.toString();
+  }
+
+  return requestApi({
+    method: "GET",
+    path: "/api/v1/marketplace/search",
+    query: params
   });
 }
 
@@ -110,6 +131,15 @@ export function getAdminMarketplaceOverview(): Promise<ApiCallResult<AdminOvervi
   return requestApi({
     method: "GET",
     path: "/api/v1/marketplace/admin/overview"
+  });
+}
+
+export function reindexMarketplaceSearch(): Promise<
+  ApiCallResult<MarketplaceSearchReindexResponse>
+> {
+  return requestApi({
+    method: "POST",
+    path: "/api/v1/marketplace/admin/search/reindex"
   });
 }
 

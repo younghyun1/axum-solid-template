@@ -1,4 +1,7 @@
-use crate::init::server_config::{db_config::DatabaseConfig, file_store_config::FileStoreConfig};
+use crate::init::server_config::{
+    db_config::DatabaseConfig, file_store_config::FileStoreConfig,
+    marketplace_config::MarketplaceConfig,
+};
 use std::net::{IpAddr, Ipv4Addr};
 
 use super::{
@@ -82,6 +85,10 @@ impl ServerConfig {
             Ok(mail_config) => mail_config,
             Err(error) => return Err(error),
         };
+        let marketplace_config = match marketplace_config_from_env() {
+            Ok(marketplace_config) => marketplace_config,
+            Err(error) => return Err(error),
+        };
 
         Ok(Self {
             deployment_environment,
@@ -97,6 +104,7 @@ impl ServerConfig {
             cors_config,
             jwt_config,
             mail_config,
+            marketplace_config,
             cert_config,
         })
     }
@@ -230,5 +238,33 @@ fn aws_s3_file_store_config_from_env() -> Result<FileStoreConfig, ServerConfigEr
         aws_s3_access_key,
         aws_s3_secret_key,
         aws_s3_region,
+    ))
+}
+
+fn marketplace_config_from_env() -> Result<MarketplaceConfig, ServerConfigError> {
+    let search_index_path = match optional_env("MARKETPLACE_SEARCH_INDEX_PATH") {
+        Ok(Some(value)) => value,
+        Ok(None) => String::from("./var/marketplace/search-index"),
+        Err(error) => return Err(error),
+    };
+    let cache_dir = match optional_env("MARKETPLACE_CACHE_DIR") {
+        Ok(Some(value)) => value,
+        Ok(None) => String::from("./var/marketplace/cache"),
+        Err(error) => return Err(error),
+    };
+    let cache_capacity = match optional_int_env("MARKETPLACE_CACHE_CAPACITY", 512_u64) {
+        Ok(value) => value,
+        Err(error) => return Err(error),
+    };
+    let cache_ttl_seconds = match optional_int_env("MARKETPLACE_CACHE_TTL_SECONDS", 120_u64) {
+        Ok(value) => value,
+        Err(error) => return Err(error),
+    };
+
+    Ok(MarketplaceConfig::new(
+        search_index_path,
+        cache_dir,
+        cache_capacity,
+        cache_ttl_seconds,
     ))
 }

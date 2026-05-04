@@ -2,6 +2,7 @@ use crate::init::logging::logging::LoggerGuard;
 use crate::init::server_config::server_config::ServerConfig;
 use crate::init::state::cache::email_verification::EmailVerificationChallengeCache;
 use crate::init::state::cache::reference_data::types::ReferenceDataCache;
+use crate::init::state::search::marketplace::index::MarketplaceSearchIndex;
 use crate::init::{db_pool::DbPool, db_pool::DbPoolInitError};
 use crate::util::email::sender::MailSender;
 
@@ -13,6 +14,7 @@ pub struct ServerState {
     pub mail_sender: MailSender,
     pub reference_data_cache: ReferenceDataCache,
     pub email_verification_challenge_cache: EmailVerificationChallengeCache,
+    pub marketplace_search_index: MarketplaceSearchIndex,
 }
 
 impl ServerState {
@@ -23,6 +25,7 @@ impl ServerState {
         mail_sender: MailSender,
         reference_data_cache: ReferenceDataCache,
         email_verification_challenge_cache: EmailVerificationChallengeCache,
+        marketplace_search_index: MarketplaceSearchIndex,
     ) -> Self {
         Self {
             server_config,
@@ -31,6 +34,7 @@ impl ServerState {
             mail_sender,
             reference_data_cache,
             email_verification_challenge_cache,
+            marketplace_search_index,
         }
     }
 

@@ -8,21 +8,21 @@ Use Tantivy for fast local full-text search across public providers and publishe
 
 ## Backend
 
-- Add a marketplace search service that owns Tantivy schema, index directory, readers, writers, and query parsing.
-- Index provider display name, headline, bio, service area, slug, and moderation/publication state.
-- Index provider blog and central blog title, excerpt, markdown/plain text body, slug, owner, and publish timestamps.
-- Rebuild index at startup when configured, and expose admin-only reindex endpoint.
-- Update index after provider/profile/blog mutation workflows.
-- Return typed search result DTOs with kind, title, subtitle, slug, snippet, score, and updated timestamp.
+- [x] Add marketplace search state that owns Tantivy schema, index directory, readers, writers, and query parsing.
+- [x] Index provider display name, headline, bio, slug, and public visibility state.
+- [x] Index provider blog and central blog title, excerpt, body, slug, owner/path, and update timestamp.
+- [x] Rebuild index at startup and expose admin-only reindex endpoint.
+- [ ] Update index after provider/profile/blog mutation workflows without admin reindex.
+- [x] Return typed search result DTOs with kind, title, subtitle, slug, snippet, score, and updated timestamp.
 
 ## API
 
-- `GET /api/v1/marketplace/search?q=&kind=&limit=`
-- `POST /api/v1/marketplace/admin/search/reindex`
+- [x] `GET /api/v1/marketplace/search?q=&kind=&limit=`
+- [x] `POST /api/v1/marketplace/admin/search/reindex`
 
 ## Acceptance Criteria
 
-- Search works without PostgreSQL full-text extensions.
-- Search index persists under configured local storage.
-- Public search only returns published and approved content.
-- Tests cover indexing, search visibility, and deletion/update refresh.
+- [x] Search works without PostgreSQL full-text extensions.
+- [x] Search index persists under configured local storage.
+- [x] Public search only returns published and approved content.
+- [ ] Tests cover indexing, search visibility, and deletion/update refresh.

@@ -1,8 +1,9 @@
 import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 
-import { getProviderDirectory } from "../../api/marketplaceApi";
+import { getProviderDirectory, searchMarketplace } from "../../api/marketplaceApi";
 import type { ProviderDirectoryCardResponse } from "../../api/marketplaceTypes";
 import { resultData } from "../helpers";
+import { ProviderSearchResults } from "./ProviderSearchResults";
 
 interface ProviderDirectoryPageProps {
   readonly onOpenProvider: (slug: string) => void;
@@ -16,7 +17,19 @@ export function ProviderDirectoryPage(props: ProviderDirectoryPageProps) {
   const [sortMode, setSortMode] = createSignal<ProviderSortMode>("recommended");
   const [filters, setFilters] = createSignal({ q: "", service_area: "" });
   const [directoryResult] = createResource(filters, getProviderDirectory);
+  const searchSource = createMemo(() => {
+    const value = filters().q.trim();
+    if (value.length < 2) {
+      return undefined;
+    }
+
+    return value;
+  });
+  const [searchResult] = createResource(searchSource, (q) =>
+    searchMarketplace({ q, limit: 8 })
+  );
   const providers = createMemo(() => resultData(directoryResult())?.providers ?? []);
+  const searchResults = createMemo(() => resultData(searchResult())?.results ?? []);
   const sortedProviders = createMemo(() => sortProviders(providers(), sortMode()));
   const appliedQuery = createMemo(() => filters().q);
   const appliedArea = createMemo(() => filters().service_area);
@@ -122,6 +135,14 @@ export function ProviderDirectoryPage(props: ProviderDirectoryPageProps) {
         </aside>
 
         <div class="directory-results">
+          <ProviderSearchResults
+            errorMessage={searchErrorMessage(searchResult())}
+            loading={searchResult.loading}
+            query={appliedQuery()}
+            results={searchResults()}
+            onOpenProvider={props.onOpenProvider}
+          />
+
           <div class="directory-results__bar">
             <div>
               <h2>Available providers</h2>
@@ -220,6 +241,14 @@ function resultSummary(providers: readonly ProviderDirectoryCardResponse[]): str
   }
 
   return `${providers.length} providers match the current view`;
+}
+
+function searchErrorMessage(result: Awaited<ReturnType<typeof searchMarketplace>> | undefined): string | null {
+  if (result === undefined || result.ok) {
+    return null;
+  }
+
+  return result.error.message;
 }
 
 function StatePanel(props: { readonly title: string; readonly body: string }) {

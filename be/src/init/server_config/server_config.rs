@@ -7,6 +7,7 @@ use crate::init::server_config::{
     http_security_config::{CookieConfig, CorsConfig},
     jwt_config::jwt_config::{JwtConfig, JwtConfigError},
     mail_config::MailConfig,
+    marketplace_config::MarketplaceConfig,
 };
 
 pub const DEPLOYMENT_ENVIRONMENT_KEY: &str = "DEPLOYMENT_ENVIRONMENT";
@@ -26,6 +27,7 @@ pub struct ServerConfig {
     pub cors_config: CorsConfig,
     pub jwt_config: JwtConfig,
     pub mail_config: MailConfig,
+    pub marketplace_config: MarketplaceConfig,
     pub cert_config: Option<CertConfig>,
 }
 

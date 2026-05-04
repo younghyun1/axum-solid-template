@@ -4,11 +4,12 @@ use crate::{
         moderation::{AdvertisementBanner, CentralBlogPost, ModerationBan},
         payments::{PaymentIntent, PaymentTransaction},
         provider::{ProviderBlogPost, ProviderProfile, UserProfileExtension},
+        search::MarketplaceSearchHit,
     },
     dto::marketplace::response::{
-        BanResponse, BannerResponse, CentralBlogPostResponse, ImageResponse, PaymentIntentResponse,
-        PaymentTransactionResponse, ProviderBlogPostResponse, ProviderProfileResponse,
-        UserProfileResponse,
+        BanResponse, BannerResponse, CentralBlogPostResponse, ImageResponse,
+        MarketplaceSearchResultResponse, PaymentIntentResponse, PaymentTransactionResponse,
+        ProviderBlogPostResponse, ProviderProfileResponse, UserProfileResponse,
     },
     service::marketplace::markdown,
 };
@@ -29,6 +30,21 @@ impl From<Image> for ImageResponse {
             height: image.image_height,
             created_at: image.image_created_at,
             uploaded_at: image.image_uploaded_at,
+        }
+    }
+}
+
+impl From<MarketplaceSearchHit> for MarketplaceSearchResultResponse {
+    fn from(hit: MarketplaceSearchHit) -> Self {
+        Self {
+            kind: hit.kind,
+            title: hit.title,
+            subtitle: hit.subtitle,
+            slug: hit.slug,
+            url_path: hit.url_path,
+            snippet: hit.snippet,
+            score: hit.score,
+            updated_at: hit.updated_at,
         }
     }
 }

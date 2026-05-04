@@ -5,7 +5,8 @@ import {
   createBanner,
   createCentralBlogPost,
   getActiveBans,
-  getAdminMarketplaceOverview
+  getAdminMarketplaceOverview,
+  reindexMarketplaceSearch
 } from "../../api/marketplaceApi";
 import type { MeResponse } from "../../api/types";
 import { resultData } from "../helpers";
@@ -33,6 +34,7 @@ export function AdminMarketplacePage(props: AdminMarketplacePageProps) {
   const [centralPostExcerpt, setCentralPostExcerpt] = createSignal("");
   const [centralPostBody, setCentralPostBody] = createSignal("");
   const [centralEditorResetToken, setCentralEditorResetToken] = createSignal(0);
+  const [reindexing, setReindexing] = createSignal(false);
   const [notice, setNotice] = createSignal("");
 
   const submitBan = async () => {
@@ -87,6 +89,18 @@ export function AdminMarketplacePage(props: AdminMarketplacePageProps) {
     }
   };
 
+  const rebuildSearchIndex = async () => {
+    setReindexing(true);
+    const result = await reindexMarketplaceSearch();
+    setReindexing(false);
+    if (result.ok && result.data !== null) {
+      setNotice(`Search index rebuilt with ${result.data.indexed_documents} documents.`);
+      return;
+    }
+
+    setNotice(result.ok ? "Search index rebuilt." : result.error.message);
+  };
+
   return (
     <section class="marketplace-layout">
       <Show when={canModerate()} fallback={<p class="marketplace-empty">Moderator role required.</p>}>
@@ -113,6 +127,21 @@ export function AdminMarketplacePage(props: AdminMarketplacePageProps) {
             <p>Active banners</p>
           </div>
         </div>
+
+        <section class="marketplace-panel marketplace-panel--toolbar">
+          <div>
+            <h2>Search operations</h2>
+            <p>Rebuild the on-disk full-text index after moderation or bulk content updates.</p>
+          </div>
+          <button
+            class="secondary-button"
+            type="button"
+            disabled={reindexing()}
+            onClick={rebuildSearchIndex}
+          >
+            {reindexing() ? "Rebuilding index" : "Rebuild search index"}
+          </button>
+        </section>
 
         <div class="marketplace-columns">
           <section class="marketplace-panel">

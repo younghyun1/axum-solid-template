@@ -24,6 +24,7 @@ export type PaymentIntentStatus =
   | "refunded";
 export type BannerPlacement = "homepage_top" | "directory_sidebar" | "provider_profile";
 export type BannerStatus = "draft" | "active" | "paused" | "archived";
+export type MarketplaceSearchResultKind = "provider" | "provider_blog" | "central_blog";
 
 export interface ImageResponse {
   readonly image_id: string;
@@ -67,6 +68,25 @@ export interface ProviderDirectoryCardResponse {
 
 export interface ProviderDirectoryResponse {
   readonly providers: readonly ProviderDirectoryCardResponse[];
+}
+
+export interface MarketplaceSearchResultResponse {
+  readonly kind: MarketplaceSearchResultKind;
+  readonly title: string;
+  readonly subtitle: string;
+  readonly slug: string;
+  readonly url_path: string;
+  readonly snippet: string;
+  readonly score: number;
+  readonly updated_at: string | null;
+}
+
+export interface MarketplaceSearchResponse {
+  readonly results: readonly MarketplaceSearchResultResponse[];
+}
+
+export interface MarketplaceSearchReindexResponse {
+  readonly indexed_documents: number;
 }
 
 export interface ProviderBlogPostResponse {

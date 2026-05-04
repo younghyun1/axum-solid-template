@@ -27,6 +27,7 @@
   .marketplace-toolbar,
   .provider-detail,
   .marketplace-columns,
+  .marketplace-panel--toolbar,
   .metric-grid {
     grid-template-columns: 1fr;
   }

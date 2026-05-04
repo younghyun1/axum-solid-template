@@ -7,15 +7,15 @@ use crate::{
     dto::{
         api_response::{ApiEnvelope, ApiResponseResult, api_ok},
         marketplace::{
-            request::ProviderDirectoryQuery,
+            request::{MarketplaceSearchQuery, ProviderDirectoryQuery},
             response::{
-                BannerListResponse, ProviderBlogPostResponse, ProviderDetailResponse,
-                ProviderDirectoryResponse,
+                BannerListResponse, MarketplaceSearchResponse, ProviderBlogPostResponse,
+                ProviderDetailResponse, ProviderDirectoryResponse,
             },
         },
     },
     init::state::server_state::ServerState,
-    service::marketplace::public,
+    service::marketplace::{public, search},
 };
 
 #[utoipa::path(
@@ -30,6 +30,23 @@ pub async fn public_provider_directory(
     Query(query): Query<ProviderDirectoryQuery>,
 ) -> ApiResponseResult<ProviderDirectoryResponse> {
     match public::provider_directory(state, query).await {
+        Ok(response) => Ok(api_ok(response)),
+        Err(error) => Err(error),
+    }
+}
+
+#[utoipa::path(
+    get,
+    path = "/api/v1/marketplace/search",
+    tag = "marketplace",
+    params(MarketplaceSearchQuery),
+    responses((status = 200, description = "Full-text marketplace search results", body = ApiEnvelope<MarketplaceSearchResponse>))
+)]
+pub async fn marketplace_search(
+    State(state): State<Arc<ServerState>>,
+    Query(query): Query<MarketplaceSearchQuery>,
+) -> ApiResponseResult<MarketplaceSearchResponse> {
+    match search::search_marketplace(state, query).await {
         Ok(response) => Ok(api_ok(response)),
         Err(error) => Err(error),
     }

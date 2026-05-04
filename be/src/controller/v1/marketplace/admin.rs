@@ -13,13 +13,13 @@ use crate::{
             request::{CreateBanRequest, CreateBannerRequest, CreateCentralBlogPostRequest},
             response::{
                 AdminOverviewResponse, BanListResponse, BanResponse, BannerResponse,
-                CentralBlogPostResponse,
+                CentralBlogPostResponse, MarketplaceSearchReindexResponse,
             },
         },
     },
     init::state::server_state::ServerState,
     middleware::auth::AuthContext,
-    service::marketplace::admin,
+    service::marketplace::{admin, search},
 };
 
 #[utoipa::path(
@@ -33,6 +33,22 @@ pub async fn admin_marketplace_overview(
     Extension(auth_context): Extension<AuthContext>,
 ) -> ApiResponseResult<AdminOverviewResponse> {
     match admin::overview(state, auth_context.claims).await {
+        Ok(response) => Ok(api_ok(response)),
+        Err(error) => Err(error),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/marketplace/admin/search/reindex",
+    tag = "marketplace-admin",
+    responses((status = 200, description = "Rebuilt marketplace search index", body = ApiEnvelope<MarketplaceSearchReindexResponse>))
+)]
+pub async fn admin_reindex_marketplace_search(
+    State(state): State<Arc<ServerState>>,
+    Extension(auth_context): Extension<AuthContext>,
+) -> ApiResponseResult<MarketplaceSearchReindexResponse> {
+    match search::reindex_marketplace_search(state, auth_context.claims).await {
         Ok(response) => Ok(api_ok(response)),
         Err(error) => Err(error),
     }

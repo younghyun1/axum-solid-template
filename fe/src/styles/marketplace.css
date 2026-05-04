@@ -93,6 +93,20 @@
   padding: 16px;
 }
 
+.marketplace-panel--toolbar {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.marketplace-panel--toolbar h2 {
+  margin: 0;
+}
+
+.marketplace-panel--toolbar p {
+  margin: 3px 0 0;
+  color: var(--color-text-muted);
+}
+
 .marketplace-list {
   display: grid;
   gap: 8px;

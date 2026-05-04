@@ -9,6 +9,7 @@ use crate::init::{
         email_verification::EmailVerificationChallengeCache,
         reference_data::types::ReferenceDataCache,
     },
+    state::search::marketplace::index::MarketplaceSearchIndex,
     state::server_state::ServerState,
 };
 use crate::util::email::sender::MailSender;
@@ -74,6 +75,18 @@ pub async fn init_server_state() -> Result<ServerState, ServerInitError> {
         }
     };
 
+    let marketplace_search_index = match MarketplaceSearchIndex::load(
+        &db_pool,
+        &server_config.marketplace_config.search_index_path,
+    )
+    .await
+    {
+        Ok(index) => index,
+        Err(error) => {
+            return Err(ServerInitError::MarketplaceSearch(error));
+        }
+    };
+
     Ok(ServerState::new(
         server_config,
         logger_guard,
@@ -81,6 +94,7 @@ pub async fn init_server_state() -> Result<ServerState, ServerInitError> {
         mail_sender,
         reference_data_cache,
         email_verification_challenge_cache,
+        marketplace_search_index,
     ))
 }
 

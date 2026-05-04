@@ -261,6 +261,30 @@ pub async fn list_public_provider_blog_posts(
     }
 }
 
+pub async fn list_public_provider_blog_posts_for_search(
+    conn: &mut AsyncPgConnection,
+) -> Result<Vec<(ProviderBlogPost, ProviderProfile)>, diesel::result::Error> {
+    match provider_blog_posts::table
+        .inner_join(provider_profiles::table)
+        .filter(provider_profiles::provider_profile_status.eq(ProviderProfileStatus::Published))
+        .filter(
+            provider_profiles::provider_profile_moderation_status.eq(ModerationStatus::Approved),
+        )
+        .filter(provider_blog_posts::provider_blog_post_status.eq(BlogPostStatus::Published))
+        .filter(
+            provider_blog_posts::provider_blog_post_moderation_status
+                .eq(ModerationStatus::Approved),
+        )
+        .order(provider_blog_posts::provider_blog_post_published_at.desc())
+        .select((ProviderBlogPost::as_select(), ProviderProfile::as_select()))
+        .load::<(ProviderBlogPost, ProviderProfile)>(conn)
+        .await
+    {
+        Ok(posts) => Ok(posts),
+        Err(error) => Err(error),
+    }
+}
+
 pub async fn find_public_provider_blog_post(
     conn: &mut AsyncPgConnection,
     provider_profile_id: Uuid,

@@ -5,7 +5,7 @@ use uuid::Uuid;
 
 use crate::{
     domain::marketplace::{
-        enums::{BannerPlacement, BannerStatus},
+        enums::{BannerPlacement, BannerStatus, BlogPostStatus, ModerationStatus},
         moderation::{
             AdvertisementBanner, CentralBlogPost, ModerationBan, NewAdvertisementBanner,
             NewCentralBlogPost, NewModerationBan,
@@ -84,6 +84,24 @@ pub async fn insert_central_blog_post(
         .await
     {
         Ok(post) => Ok(post),
+        Err(error) => Err(error),
+    }
+}
+
+pub async fn list_public_central_blog_posts_for_search(
+    conn: &mut AsyncPgConnection,
+) -> Result<Vec<CentralBlogPost>, diesel::result::Error> {
+    match central_blog_posts::table
+        .filter(central_blog_posts::central_blog_post_status.eq(BlogPostStatus::Published))
+        .filter(
+            central_blog_posts::central_blog_post_moderation_status.eq(ModerationStatus::Approved),
+        )
+        .order(central_blog_posts::central_blog_post_published_at.desc())
+        .select(CentralBlogPost::as_select())
+        .load::<CentralBlogPost>(conn)
+        .await
+    {
+        Ok(posts) => Ok(posts),
         Err(error) => Err(error),
     }
 }

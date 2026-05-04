@@ -7,12 +7,20 @@ use crate::domain::marketplace::enums::{
     BanScope, BannerPlacement, BannerStatus, BlogPostStatus, ImageType, ImageVisibility,
     PaymentProvider, ProviderProfileStatus,
 };
+use crate::domain::marketplace::search::MarketplaceSearchResultKind;
 
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct ProviderDirectoryQuery {
     pub q: Option<String>,
     pub service_area: Option<String>,
     pub limit: Option<i64>,
+}
+
+#[derive(Debug, Deserialize, IntoParams)]
+pub struct MarketplaceSearchQuery {
+    pub q: String,
+    pub kind: Option<MarketplaceSearchResultKind>,
+    pub limit: Option<usize>,
 }
 
 #[derive(Debug, Deserialize, ToSchema)]

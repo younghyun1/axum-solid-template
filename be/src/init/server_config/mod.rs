@@ -10,5 +10,6 @@ pub mod jwt_config;
 mod jwt_env;
 pub mod mail_config;
 mod mail_env;
+pub mod marketplace_config;
 mod parsers;
 pub mod server_config;
