@@ -31,3 +31,4 @@ Progress:
 - [x] Sync frontend page navigation with browser URLs.
 - [x] Repair Solid Router integration, review backend SPA fallback routing, and add Not Found page.
 - [x] Add post-signup email verification guidance before sign-in.
+- [x] Add five-second flashy hold-to-reset database admin control.

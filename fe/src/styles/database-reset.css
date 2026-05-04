@@ -1,0 +1,119 @@
+.database-reset-panel {
+  width: min(640px, 100%);
+}
+
+.database-reset-stage {
+  display: grid;
+  justify-items: start;
+  padding-top: 6px;
+}
+
+.database-reset-hold-button {
+  position: relative;
+  isolation: isolate;
+  width: min(520px, 100%);
+  min-height: 92px;
+  overflow: hidden;
+  border: 1px solid #ffb4aa;
+  border-radius: var(--radius-md);
+  background: #7f1d1d;
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 16%) inset,
+    0 0 22px rgb(220 38 38 / 42%),
+    0 0 54px rgb(220 38 38 / 24%);
+  color: #ffffff;
+  padding: 0 22px;
+  font-size: 1rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-shadow: 0 1px 12px rgb(0 0 0 / 50%);
+  transition:
+    box-shadow 140ms ease,
+    filter 140ms ease,
+    transform 110ms ease,
+    opacity 110ms ease;
+  animation: database-reset-glow 950ms ease-in-out infinite alternate;
+}
+
+.database-reset-hold-button::before {
+  position: absolute;
+  z-index: -2;
+  inset: 0 auto 0 0;
+  width: var(--reset-progress);
+  background:
+    linear-gradient(90deg, rgb(185 28 28 / 76%), rgb(248 113 113 / 92%)),
+    repeating-linear-gradient(
+      135deg,
+      rgb(255 255 255 / 14%) 0 10px,
+      transparent 10px 20px
+    );
+  content: "";
+}
+
+.database-reset-hold-button::after {
+  position: absolute;
+  z-index: -1;
+  inset: -70% -35%;
+  background: linear-gradient(
+    110deg,
+    transparent 35%,
+    rgb(255 255 255 / 24%) 48%,
+    transparent 62%
+  );
+  content: "";
+  transform: translateX(-70%);
+  animation: database-reset-sheen 1.45s linear infinite;
+}
+
+.database-reset-hold-button:hover,
+.database-reset-hold-button:focus-visible {
+  filter: saturate(1.18);
+  box-shadow:
+    0 0 0 1px rgb(255 255 255 / 20%) inset,
+    0 0 28px rgb(239 68 68 / 56%),
+    0 0 76px rgb(239 68 68 / 34%);
+}
+
+.database-reset-hold-button:active {
+  transform: translateY(1px) scale(0.995);
+}
+
+.database-reset-hold-button:disabled {
+  cursor: wait;
+  opacity: 0.82;
+}
+
+.database-reset-hold-button span {
+  position: relative;
+  z-index: 1;
+}
+
+@keyframes database-reset-glow {
+  from {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 14%) inset,
+      0 0 18px rgb(220 38 38 / 36%),
+      0 0 44px rgb(220 38 38 / 20%);
+  }
+
+  to {
+    box-shadow:
+      0 0 0 1px rgb(255 255 255 / 24%) inset,
+      0 0 34px rgb(248 113 113 / 66%),
+      0 0 86px rgb(248 113 113 / 40%);
+  }
+}
+
+@keyframes database-reset-sheen {
+  to {
+    transform: translateX(70%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .database-reset-hold-button,
+  .database-reset-hold-button::after {
+    animation: none;
+  }
+}

@@ -117,10 +117,7 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
   };
 
   const resetDatabaseFromMigrations = async () => {
-    const confirmed = window.confirm(
-      "Reset the database by running all Diesel down migrations and then all up migrations?"
-    );
-    if (!confirmed) {
+    if (running()) {
       return;
     }
 
@@ -287,7 +284,6 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
               <Show when={activeSection() === "database"}>
                 <AdminDatabasePanel
                   running={running()}
-                  onHome={props.onHome}
                   onResetDatabase={() => void resetDatabaseFromMigrations()}
                 />
               </Show>
