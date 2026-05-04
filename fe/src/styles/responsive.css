@@ -23,6 +23,13 @@
     gap: 24px;
     padding: 32px 0 24px;
   }
+
+  .marketplace-toolbar,
+  .provider-detail,
+  .marketplace-columns,
+  .metric-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -38,6 +45,11 @@
     width: 100%;
     flex-wrap: wrap;
     justify-content: flex-end;
+  }
+
+  .primary-nav {
+    order: 3;
+    width: 100%;
   }
 
   .auth-card {

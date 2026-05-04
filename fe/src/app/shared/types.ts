@@ -1,8 +1,13 @@
 export type PageId =
   | "home"
+  | "providers"
+  | "provider-detail"
   | "join"
   | "signin"
   | "account"
+  | "user-marketplace"
+  | "provider-dashboard"
+  | "admin-marketplace"
   | "recovery"
   | "verify-email"
   | "admin-verification"

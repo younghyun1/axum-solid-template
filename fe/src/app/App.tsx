@@ -9,15 +9,21 @@ import {
   refreshSession
 } from "../api/appApi";
 import type { LoginResponse, MeResponse } from "../api/types";
+import { AppHeader } from "./AppHeader";
 import { initialTheme, profileFromSession, readLinkTokensFromSearch, resultData } from "./helpers";
-import { pageFromPath, pathForPage } from "./navigation";
+import { pageFromPath, pathForPage, pathForProvider, providerSlugFromPath } from "./navigation";
 import { AccountPage } from "./pages/AccountPage";
+import { AdminMarketplacePage } from "./pages/AdminMarketplacePage";
 import { AdminVerificationQuestionsPage } from "./pages/AdminVerificationQuestionsPage";
 import { HomePage } from "./pages/HomePage";
 import { JoinPage } from "./pages/JoinPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
+import { ProviderDashboardPage } from "./pages/ProviderDashboardPage";
+import { ProviderDetailPage } from "./pages/ProviderDetailPage";
+import { ProviderDirectoryPage } from "./pages/ProviderDirectoryPage";
 import { RecoveryPage } from "./pages/RecoveryPage";
 import { SignInPage } from "./pages/SignInPage";
+import { UserMarketplacePage } from "./pages/UserMarketplacePage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import type { PageId, ThemeMode } from "./shared/types";
 
@@ -48,6 +54,22 @@ export function App() {
     }
 
     return user.claims.role_type === "admin";
+  });
+  const isProvider = createMemo(() => {
+    const user = currentUser();
+    if (user === null) {
+      return false;
+    }
+
+    return user.claims.role_type === "service_provider" || user.claims.role_type === "admin";
+  });
+  const canModerate = createMemo(() => {
+    const user = currentUser();
+    if (user === null) {
+      return false;
+    }
+
+    return user.claims.role_type === "admin" || user.claims.role_type === "moderator";
   });
 
   const restoreSession = async () => {
@@ -103,97 +125,23 @@ export function App() {
 
   return (
     <div class="app-shell">
-      <header class="top-bar">
-        <button class="brand-button" type="button" onClick={() => goToPage("home")}>
-          Rust-Solid-Template
-        </button>
-
-        <div class="top-actions">
-          <button
-            aria-label={theme() === "light" ? "Switch to dark theme" : "Switch to light theme"}
-            aria-pressed={theme() === "dark" ? "true" : "false"}
-            class="utility-button utility-button--icon"
-            type="button"
-            onClick={toggleTheme}
-          >
-            {theme() === "light" ? "🌙" : "☀️"}
-          </button>
-          <label class="select-control">
-            <span class="sr-only">Language</span>
-            <select
-              value={displayLanguage()}
-              onChange={(event) => setDisplayLanguage(event.currentTarget.value)}
-            >
-              <option value="en">English</option>
-              <option value="ko">Korean</option>
-              <option value="fr">French</option>
-              <option value="de">German</option>
-            </select>
-          </label>
-
-          <Show
-            when={isSignedIn() && currentUser() !== null}
-            fallback={
-              <div class="guest-actions">
-                <button class="secondary-button" type="button" onClick={() => goToPage("signin")}>
-                  Sign in
-                </button>
-                <button class="primary-button" type="button" onClick={() => goToPage("join")}>
-                  Create account
-                </button>
-              </div>
-            }
-          >
-            <div class="user-menu">
-              <Show when={isAdmin()}>
-                <>
-                  <button
-                    class="secondary-button"
-                    type="button"
-                    onClick={() => goToPage("admin-verification")}
-                  >
-                    Admin Panel
-                  </button>
-                  <button class="secondary-button" type="button" onClick={goToSwagger}>
-                    Swagger
-                  </button>
-                </>
-              </Show>
-              <span class="session-dot session-dot--in" aria-hidden="true" />
-              <div class="user-summary">
-                <span>{currentUser()?.user_info.user_name}</span>
-                <small>{currentUser()?.user_info.user_email}</small>
-              </div>
-              <button
-                class="avatar-button"
-                type="button"
-                aria-haspopup="menu"
-                aria-expanded={menuOpen() ? "true" : "false"}
-                onClick={() => setMenuOpen((open) => !open)}
-              >
-                {currentUser()?.user_info.user_name.slice(0, 1).toUpperCase()}
-              </button>
-              <Show when={menuOpen()}>
-                <div class="profile-menu" role="menu">
-                  <button
-                    type="button"
-                    role="menuitem"
-                    onClick={() => {
-                      goToPage("account");
-                      setMenuOpen(false);
-                    }}
-                  >
-                    Account
-                  </button>
-                  <button type="button" role="menuitem" onClick={clearSession}>
-                    Sign out
-                  </button>
-                </div>
-              </Show>
-            </div>
-          </Show>
-        </div>
-      </header>
+      <AppHeader
+        theme={theme()}
+        displayLanguage={displayLanguage()}
+        currentUser={currentUser()}
+        isSignedIn={isSignedIn()}
+        isAdmin={isAdmin()}
+        isProvider={isProvider()}
+        canModerate={canModerate()}
+        menuOpen={menuOpen()}
+        onThemeToggle={toggleTheme}
+        onLanguageChange={setDisplayLanguage}
+        onPage={goToPage}
+        onSwagger={goToSwagger}
+        onToggleMenu={() => setMenuOpen((open) => !open)}
+        onCloseMenu={() => setMenuOpen(false)}
+        onSignOut={clearSession}
+      />
 
       <main>
         <Show when={activePage() === "home"}>
@@ -203,6 +151,29 @@ export function App() {
             onCreateAccount={() => goToPage("join")}
             onSignIn={() => goToPage("signin")}
           />
+        </Show>
+
+        <Show when={activePage() === "providers"}>
+          <ProviderDirectoryPage onOpenProvider={(slug) => navigate(pathForProvider(slug))} />
+        </Show>
+
+        <Show when={activePage() === "provider-detail"}>
+          <ProviderDetailPage
+            slug={providerSlugFromPath(location.pathname)}
+            onBack={() => goToPage("providers")}
+          />
+        </Show>
+
+        <Show when={activePage() === "user-marketplace"}>
+          <UserMarketplacePage profile={currentUser()} onSignIn={() => goToPage("signin")} />
+        </Show>
+
+        <Show when={activePage() === "provider-dashboard"}>
+          <ProviderDashboardPage profile={currentUser()} />
+        </Show>
+
+        <Show when={activePage() === "admin-marketplace"}>
+          <AdminMarketplacePage profile={currentUser()} />
         </Show>
 
         <Show when={activePage() === "join"}>
