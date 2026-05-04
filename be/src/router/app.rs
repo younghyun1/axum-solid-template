@@ -3,7 +3,7 @@ use std::sync::Arc;
 use axum::{
     Router,
     body::Body,
-    http::Response,
+    http::{Response, header},
     middleware::{from_fn, from_fn_with_state},
     response::IntoResponse,
     routing::{delete, get, post},
@@ -12,7 +12,10 @@ use tower_governor::{
     GovernorError, GovernorLayer, governor::GovernorConfigBuilder,
     key_extractor::SmartIpKeyExtractor,
 };
-use tower_http::{compression::CompressionLayer, cors::CorsLayer};
+use tower_http::{
+    compression::CompressionLayer,
+    cors::{AllowOrigin, CorsLayer},
+};
 use tracing::{error, warn};
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
@@ -24,8 +27,8 @@ use crate::{
             admin_delete_email_verification_question,
             admin_delete_email_verification_question_answer, admin_email_verification_questions,
             admin_reset_database, check_if_user_exists, email_verification_challenge,
-            get_user_info, login, logout, me, reset_password, reset_password_request, signup,
-            verify_user_email,
+            get_user_info, login, logout, me, refresh, reset_password, reset_password_request,
+            signup, verify_user_email,
         },
         healthcheck::healthcheck,
         reference_data::{
@@ -36,11 +39,12 @@ use crate::{
     },
     docs::api_doc::ApiDoc,
     error::{api_error::ApiError, code_error::CodeError},
-    init::server_config::server_config::DeploymentEnvironment,
+    init::server_config::http_security_config::{CorsConfig, normalize_origin},
     init::state::server_state::ServerState,
     middleware::{
         api_timing::time_api_request,
         auth::{attach_optional_auth_context, require_admin, require_auth},
+        origin::validate_request_origin,
         request_response_logging::log_request_response,
     },
 };
@@ -58,7 +62,7 @@ const API_V1_PREFIX: &str = "/api/v1";
 /// # Returns
 /// Returns the value produced by this function.
 pub fn build_router(state: Arc<ServerState>) -> Router {
-    let cors_layer = cors_layer_for_environment(state.server_config.deployment_environment);
+    let cors_layer = cors_layer_for_config(state.server_config.cors_config.clone());
     let api_v1_router = build_api_v1_router(state);
 
     let swagger_router = SwaggerUi::new("/api/v1/swagger-ui")
@@ -99,6 +103,7 @@ fn build_api_v1_router(state: Arc<ServerState>) -> Router {
             state.clone(),
             attach_optional_auth_context,
         ))
+        .layer(from_fn_with_state(state.clone(), validate_request_origin))
         .layer(from_fn(time_api_request))
         .fallback(api_not_found)
         .with_state(state)
@@ -112,6 +117,8 @@ fn build_public_auth_router() -> Router<Arc<ServerState>> {
     Router::new()
         .route("/auth/signup", post(signup))
         .route("/auth/login", post(login))
+        .route("/auth/refresh", post(refresh))
+        .route("/auth/logout", post(logout))
         .route("/auth/check-if-user-exists", post(check_if_user_exists))
         .route("/auth/reset-password-request", post(reset_password_request))
         .route("/auth/reset-password", post(reset_password))
@@ -132,7 +139,6 @@ fn build_public_auth_router() -> Router<Arc<ServerState>> {
 fn build_protected_auth_router(state: Arc<ServerState>) -> Router<Arc<ServerState>> {
     Router::new()
         .route("/auth/me", get(me))
-        .route("/auth/logout", post(logout))
         .layer(from_fn_with_state(state, require_auth))
 }
 
@@ -168,21 +174,36 @@ async fn api_not_found() -> Response<Body> {
     ApiError::new(CodeError::ROUTE_NOT_FOUND).into_response()
 }
 
-/// Applies permissive CORS locally/development, and constrained CORS in production.
+/// Applies credentialed CORS for the configured deployment origins.
 ///
 /// # Arguments
-/// * `deployment_environment` -
+/// * `cors_config` -
 /// # Returns
 /// Returns the value produced by this function.
-fn cors_layer_for_environment(deployment_environment: DeploymentEnvironment) -> CorsLayer {
-    match deployment_environment {
-        DeploymentEnvironment::Local | DeploymentEnvironment::Development => {
-            CorsLayer::very_permissive()
-        }
-        DeploymentEnvironment::Production | DeploymentEnvironment::ProductionDockerized => {
-            CorsLayer::new()
-        }
-    }
+fn cors_layer_for_config(cors_config: CorsConfig) -> CorsLayer {
+    let allowed_origins = cors_config.allowed_origins;
+    CorsLayer::new()
+        .allow_origin(AllowOrigin::predicate(move |origin, _| {
+            let origin = match origin.to_str() {
+                Ok(origin) => origin,
+                Err(_) => return false,
+            };
+            let origin = match normalize_origin(origin) {
+                Some(origin) => origin,
+                None => return false,
+            };
+            allowed_origins
+                .iter()
+                .any(|allowed_origin| allowed_origin == &origin)
+        }))
+        .allow_credentials(cors_config.allow_credentials)
+        .allow_headers([header::ACCEPT, header::CONTENT_TYPE])
+        .allow_methods([
+            axum::http::Method::GET,
+            axum::http::Method::POST,
+            axum::http::Method::DELETE,
+            axum::http::Method::OPTIONS,
+        ])
 }
 
 /// Applies rate limiting middleware to public auth endpoints and falls back gracefully on config failure.

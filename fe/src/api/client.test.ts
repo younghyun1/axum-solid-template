@@ -32,11 +32,12 @@ describe("isApiEnvelope", () => {
 });
 
 describe("requestApi", () => {
-  it("sends bearer tokens and parses successful envelopes", async () => {
+  it("sends credentialed requests and parses successful envelopes", async () => {
     const fetcher: typeof fetch = async (_input, init) => {
       const headers = new Headers(init?.headers);
 
-      expect(headers.get("Authorization")).toBe("Bearer test-token");
+      expect(headers.get("Authorization")).toBeNull();
+      expect(init?.credentials).toBe("include");
 
       return new Response(
         JSON.stringify({
@@ -59,8 +60,7 @@ describe("requestApi", () => {
       baseUrl: "http://localhost:3000",
       fetcher,
       method: "GET",
-      path: "/api/v1/healthcheck",
-      token: "test-token"
+      path: "/api/v1/healthcheck"
     });
 
     expect(result.ok).toBe(true);

@@ -32,3 +32,5 @@ Progress:
 - [x] Repair Solid Router integration, review backend SPA fallback routing, and add Not Found page.
 - [x] Add post-signup email verification guidance before sign-in.
 - [x] Add five-second flashy hold-to-reset database admin control.
+- [x] Fix stale auth state after database reset.
+- [x] Implement HttpOnly cookie JWT auth, refresh sessions, and environment-aware CORS/cookie policy.

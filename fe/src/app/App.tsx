@@ -6,7 +6,7 @@ import {
   getHealthcheck,
   getLanguages,
   logout,
-  me
+  refreshSession
 } from "../api/appApi";
 import type { LoginResponse, MeResponse } from "../api/types";
 import { initialTheme, profileFromSession, readLinkTokensFromSearch, resultData } from "./helpers";
@@ -28,7 +28,6 @@ export function App() {
   const activePage = createMemo(() => pageFromPath(location.pathname, linkTokens()));
   const [theme, setTheme] = createSignal<ThemeMode>(initialTheme());
   const [displayLanguage, setDisplayLanguage] = createSignal("en");
-  const [token, setToken] = createSignal("");
   const [session, setSession] = createSignal<LoginResponse | null>(null);
   const [profile, setProfile] = createSignal<MeResponse | null>(null);
   const [menuOpen, setMenuOpen] = createSignal(false);
@@ -41,7 +40,7 @@ export function App() {
   const languages = createMemo(() => resultData(languagesResult()) ?? []);
   const healthOnline = createMemo(() => resultData(healthResult())?.accepting_traffic === true);
   const currentUser = createMemo(() => profile() ?? profileFromSession(session()));
-  const isSignedIn = createMemo(() => token().trim().length > 0 && currentUser() !== null);
+  const isSignedIn = createMemo(() => currentUser() !== null);
   const isAdmin = createMemo(() => {
     const user = currentUser();
     if (user === null) {
@@ -51,10 +50,24 @@ export function App() {
     return user.claims.role_type === "admin";
   });
 
+  const restoreSession = async () => {
+    const result = await refreshSession();
+    if (!result.ok || result.data === null) {
+      return;
+    }
+
+    setSession(result.data);
+    setProfile({ claims: result.data.claims, user_info: result.data.user_info });
+  };
+
   createEffect(() => {
     const selectedTheme = theme();
     document.documentElement.dataset["theme"] = selectedTheme;
     window.localStorage.setItem("preferred-theme", selectedTheme);
+  });
+
+  createEffect(() => {
+    void restoreSession();
   });
 
   const toggleTheme = () => {
@@ -62,28 +75,22 @@ export function App() {
   };
 
   const handleLogin = async (response: LoginResponse) => {
-    setToken(response.access_token);
     setSession(response);
-    setProfile(null);
-
-    const profileResult = await me(response.access_token);
-    if (profileResult.ok && profileResult.data !== null) {
-      setProfile(profileResult.data);
-    }
+    setProfile({ claims: response.claims, user_info: response.user_info });
 
     goToPage("account");
   };
 
-  const clearSession = async () => {
-    if (token().trim().length > 0) {
-      await logout(token());
-    }
-
+  const dropSession = (nextPage: PageId) => {
     setSession(null);
     setProfile(null);
-    setToken("");
     setMenuOpen(false);
-    goToPage("home");
+    goToPage(nextPage);
+  };
+
+  const clearSession = async () => {
+    await logout();
+    dropSession("home");
   };
 
   const goToSwagger = () => {
@@ -228,7 +235,6 @@ export function App() {
           <VerifyEmailPage
             isSignedIn={isSignedIn()}
             linkTokens={linkTokens()}
-            token={token()}
             onHome={() => goToPage("home")}
             onProfileLoaded={(nextProfile) => setProfile(nextProfile)}
             onSignIn={() => goToPage("signin")}
@@ -242,7 +248,7 @@ export function App() {
         <Show when={activePage() === "admin-verification"}>
           <AdminVerificationQuestionsPage
             isAdmin={isAdmin()}
-            token={token()}
+            onDatabaseReset={() => dropSession("signin")}
             onHome={() => goToPage("home")}
             onSignIn={() => goToPage("signin")}
           />

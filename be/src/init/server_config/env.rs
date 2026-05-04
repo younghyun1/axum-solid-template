@@ -4,6 +4,7 @@ use std::net::{IpAddr, Ipv4Addr};
 use super::{
     cert_env::cert_config_from_env,
     chatbot_env::chatbot_config_from_env,
+    http_security_env::{cookie_config_from_env, cors_config_from_env},
     jwt_env::jwt_config_from_env,
     mail_env::mail_config_from_env,
     parsers::{
@@ -64,6 +65,15 @@ impl ServerConfig {
             Ok(chatbot_config) => chatbot_config,
             Err(error) => return Err(error),
         };
+        let cookie_config = match cookie_config_from_env(deployment_environment, https_enabled) {
+            Ok(cookie_config) => cookie_config,
+            Err(error) => return Err(error),
+        };
+        let cors_config =
+            match cors_config_from_env(deployment_environment, &public_app_base_url, server_port) {
+                Ok(cors_config) => cors_config,
+                Err(error) => return Err(error),
+            };
         let jwt_config = match jwt_config_from_env() {
             Ok(jwt_config) => jwt_config,
             Err(error) => return Err(error),
@@ -83,6 +93,8 @@ impl ServerConfig {
             db_config,
             file_store_config,
             chatbot_config,
+            cookie_config,
+            cors_config,
             jwt_config,
             mail_config,
             cert_config,

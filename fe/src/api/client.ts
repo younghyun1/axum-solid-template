@@ -16,7 +16,7 @@ export interface ApiRequestOptions<TBody extends JsonObject | undefined> {
   readonly baseUrl?: string;
   readonly body?: TBody;
   readonly query?: Readonly<Record<string, string>>;
-  readonly token?: string;
+  readonly credentials?: RequestCredentials;
   readonly fetcher?: typeof fetch;
   readonly signal?: AbortSignal;
 }
@@ -33,13 +33,9 @@ export async function requestApi<TData, TBody extends JsonObject | undefined = u
   const headers = new Headers({
     Accept: "application/json"
   });
-  const trimmedToken = options.token?.trim() ?? "";
-
-  if (trimmedToken.length > 0) {
-    headers.set("Authorization", `Bearer ${trimmedToken}`);
-  }
 
   const requestInit: RequestInit = {
+    credentials: options.credentials ?? "include",
     headers,
     method: options.method
   };

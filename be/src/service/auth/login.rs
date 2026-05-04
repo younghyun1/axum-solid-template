@@ -13,18 +13,17 @@ use crate::{
     error::{api_error::ApiError, code_error::CodeError},
     init::state::server_state::ServerState,
     repository::auth::postgres::{user_repository, user_role_repository},
-    service::auth::datasource::postgres_conn,
-    util::{
-        auth::jwt::{JWT_BEARER_TOKEN_TYPE, JwtUserContext, issue_access_token},
-        crypto::password::verify_password,
-        string::validation::validate_password_form,
+    service::auth::{
+        datasource::postgres_conn,
+        session::{IssuedAuthSession, issue_auth_session, issue_refresh_session},
     },
+    util::{crypto::password::verify_password, string::validation::validate_password_form},
 };
 
 pub async fn login_user(
     state: Arc<ServerState>,
     mut request: LoginRequest,
-) -> ApiResult<LoginResponse> {
+) -> ApiResult<IssuedAuthSession<LoginResponse>> {
     let user_email = match UserEmail::try_new(request.user_email.clone()) {
         Ok(user_email) => user_email,
         Err(_) => return Err(ApiError::new(CodeError::EMAIL_INVALID)),
@@ -83,25 +82,41 @@ pub async fn login_user(
         Err(error) => return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
     };
 
-    match user_repository::update_last_login(&mut conn, user.user_id, Utc::now()).await {
+    let now = Utc::now();
+    match user_repository::update_last_login(&mut conn, user.user_id, now).await {
         Ok(_) => {}
         Err(error) => {
             error!(error = %error, user_id = %user.user_id, "Failed to update user last login");
         }
     }
+    let mut user = user;
+    user.user_last_login_at = Some(now);
+    user.user_updated_at = now;
 
-    let issued = match issue_access_token(
-        &state.server_config.jwt_config,
-        JwtUserContext { user, role_type },
-    ) {
-        Ok(issued) => issued,
-        Err(error) => return Err(ApiError::from_source(CodeError::JWT_INVALID, error)),
+    let refresh_session = match issue_refresh_session(&mut conn, &state, &user, now).await {
+        Ok(refresh_session) => refresh_session,
+        Err(error) => return Err(error),
     };
 
-    Ok(LoginResponse {
-        access_token: issued.token,
-        token_type: JWT_BEARER_TOKEN_TYPE,
-        expires_at: issued.expires_at,
-        claims: issued.claims,
-    })
+    issue_auth_session(
+        &state,
+        user,
+        role_type,
+        refresh_session.refresh_token,
+        LoginResponse::from_parts,
+    )
+}
+
+impl LoginResponse {
+    fn from_parts(
+        expires_at: chrono::DateTime<Utc>,
+        claims: crate::domain::auth::jwt::AccessTokenClaims,
+        user_info: crate::domain::auth::user::UserInfo,
+    ) -> Self {
+        Self {
+            expires_at,
+            claims,
+            user_info,
+        }
+    }
 }

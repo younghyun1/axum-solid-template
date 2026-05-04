@@ -5,6 +5,20 @@ pub mod sql_types {
 }
 
 diesel::table! {
+    auth_refresh_sessions (auth_refresh_session_id) {
+        auth_refresh_session_id -> Uuid,
+        user_id -> Uuid,
+        auth_refresh_session_token_hash -> Varchar,
+        auth_refresh_session_created_at -> Timestamptz,
+        auth_refresh_session_expires_at -> Timestamptz,
+        auth_refresh_session_last_used_at -> Nullable<Timestamptz>,
+        auth_refresh_session_rotated_at -> Nullable<Timestamptz>,
+        auth_refresh_session_revoked_at -> Nullable<Timestamptz>,
+        auth_refresh_session_user_auth_token_version -> Int4,
+    }
+}
+
+diesel::table! {
     email_verification_tokens (email_verification_token_id) {
         email_verification_token_id -> Uuid,
         user_id -> Uuid,
@@ -138,6 +152,7 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(auth_refresh_sessions -> users (user_id));
 diesel::joinable!(email_verification_tokens -> users (user_id));
 diesel::joinable!(iso_country -> iso_currency (country_currency));
 diesel::joinable!(iso_country -> iso_language (country_primary_language));
@@ -152,6 +167,7 @@ diesel::joinable!(users -> iso_country_subdivision (user_subdivision));
 diesel::joinable!(users -> iso_language (user_language));
 
 diesel::allow_tables_to_appear_in_same_query!(
+    auth_refresh_sessions,
     email_verification_tokens,
     iso_country,
     iso_country_subdivision,

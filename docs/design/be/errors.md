@@ -26,3 +26,6 @@ Current auth/security codes:
 - `16..=18`: email verification token errors.
 - `19..=21`: password reset token errors.
 - `23`: request was rate-limited.
+- `32`: invalid refresh session.
+- `33`: expired refresh session.
+- `34`: request origin is not allowed.

@@ -13,6 +13,7 @@ import type {
   LoginResponse,
   LogoutResponse,
   MeResponse,
+  RefreshSessionResponse,
   ReferenceCountryResponse,
   ReferenceLanguageResponse,
   ReferenceSubdivisionResponse,
@@ -82,19 +83,24 @@ export function login(body: LoginRequest): Promise<ApiCallResult<LoginResponse>>
   });
 }
 
-export function me(token: string): Promise<ApiCallResult<MeResponse>> {
-  return requestApi({
-    method: "GET",
-    path: "/api/v1/auth/me",
-    token
+export function refreshSession(): Promise<ApiCallResult<RefreshSessionResponse>> {
+  return requestApi<RefreshSessionResponse>({
+    method: "POST",
+    path: "/api/v1/auth/refresh"
   });
 }
 
-export function logout(token: string): Promise<ApiCallResult<LogoutResponse>> {
+export function me(): Promise<ApiCallResult<MeResponse>> {
+  return requestApi({
+    method: "GET",
+    path: "/api/v1/auth/me"
+  });
+}
+
+export function logout(): Promise<ApiCallResult<LogoutResponse>> {
   return requestApi<LogoutResponse>({
     method: "POST",
-    path: "/api/v1/auth/logout",
-    token
+    path: "/api/v1/auth/logout"
   });
 }
 
@@ -140,41 +146,35 @@ export function verifyEmail(
   });
 }
 
-export function getEmailVerificationQuestions(
-  token: string
-): Promise<ApiCallResult<EmailVerificationQuestionnaireResponse>> {
+export function getEmailVerificationQuestions(): Promise<
+  ApiCallResult<EmailVerificationQuestionnaireResponse>
+> {
   return requestApi({
     method: "GET",
-    path: "/api/v1/admin/email-verification/questions",
-    token
+    path: "/api/v1/admin/email-verification/questions"
   });
 }
 
 export function createEmailVerificationQuestion(
-  token: string,
   body: CreateEmailVerificationQuestionRequest
 ): Promise<ApiCallResult<EmailVerificationQuestionnaireResponse>> {
   return requestApi<EmailVerificationQuestionnaireResponse, CreateEmailVerificationQuestionRequest>({
     body,
     method: "POST",
-    path: "/api/v1/admin/email-verification/questions",
-    token
+    path: "/api/v1/admin/email-verification/questions"
   });
 }
 
 export function deleteEmailVerificationQuestion(
-  token: string,
   questionId: string
 ): Promise<ApiCallResult<EmailVerificationQuestionnaireResponse>> {
   return requestApi({
     method: "DELETE",
-    path: `/api/v1/admin/email-verification/questions/${questionId}`,
-    token
+    path: `/api/v1/admin/email-verification/questions/${questionId}`
   });
 }
 
 export function createEmailVerificationQuestionAnswer(
-  token: string,
   questionId: string,
   body: CreateEmailVerificationQuestionAnswerRequest
 ): Promise<ApiCallResult<EmailVerificationQuestionnaireResponse>> {
@@ -184,27 +184,23 @@ export function createEmailVerificationQuestionAnswer(
   >({
     body,
     method: "POST",
-    path: `/api/v1/admin/email-verification/questions/${questionId}/answers`,
-    token
+    path: `/api/v1/admin/email-verification/questions/${questionId}/answers`
   });
 }
 
 export function deleteEmailVerificationQuestionAnswer(
-  token: string,
   questionId: string,
   answerId: string
 ): Promise<ApiCallResult<EmailVerificationQuestionnaireResponse>> {
   return requestApi({
     method: "DELETE",
-    path: `/api/v1/admin/email-verification/questions/${questionId}/answers/${answerId}`,
-    token
+    path: `/api/v1/admin/email-verification/questions/${questionId}/answers/${answerId}`
   });
 }
 
-export function resetDatabase(token: string): Promise<ApiCallResult<DatabaseResetResponse>> {
+export function resetDatabase(): Promise<ApiCallResult<DatabaseResetResponse>> {
   return requestApi<DatabaseResetResponse>({
     method: "POST",
-    path: "/api/v1/admin/database/reset",
-    token
+    path: "/api/v1/admin/database/reset"
   });
 }

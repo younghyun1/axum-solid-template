@@ -4,6 +4,8 @@ mod chatbot_env;
 pub mod db_config;
 pub mod env;
 pub mod file_store_config;
+pub mod http_security_config;
+mod http_security_env;
 pub mod jwt_config;
 mod jwt_env;
 pub mod mail_config;

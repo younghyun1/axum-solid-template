@@ -9,7 +9,6 @@ import { emptyNotice, type LinkTokens, type Notice } from "../shared/types";
 interface VerifyEmailPageProps {
   readonly isSignedIn: boolean;
   readonly linkTokens: LinkTokens;
-  readonly token: string;
   readonly onHome: () => void;
   readonly onProfileLoaded: (profile: MeResponse) => void;
   readonly onSignIn: () => void;
@@ -107,8 +106,8 @@ export function VerifyEmailPage(props: VerifyEmailPageProps) {
 
     setVerified(true);
     setNotice({ kind: "success", text: "Email verified." });
-    if (props.token.trim().length > 0) {
-      const profileResult = await me(props.token);
+    if (props.isSignedIn) {
+      const profileResult = await me();
       if (profileResult.ok && profileResult.data !== null) {
         props.onProfileLoaded(profileResult.data);
         setAuthenticated(true);

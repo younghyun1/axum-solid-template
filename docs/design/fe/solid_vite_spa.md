@@ -6,7 +6,11 @@ The frontend lives in `/fe` as a strict TypeScript Solid application built by Vi
 - Shared API envelope types, normalized backend error handling, and typed customer-facing API calls stay under `/fe/src/api`.
 - Styling is centralized under `/fe/src/styles`; components should use named classes rather than ad hoc inline styling.
 - The primary app surface is customer-facing: account creation, sign-in, profile, recovery, verification, and service status. Raw endpoint/demo UI should stay out of the default customer flow.
-- Customer pages must not expose bearer tokens, JWT strings, reset-token strings, or verification-token strings as editable fields. Auth tokens may exist in typed API/state code only; recovery and verification should be driven by emailed links or normal forms.
+- Customer pages must not expose bearer tokens, JWT strings, reset-token strings, or verification-token strings as editable fields. Recovery and verification should be driven by emailed links or normal forms.
+- Browser auth is cookie-based. Login and refresh responses set HttpOnly `access_token` and
+  `refresh_session` cookies; frontend TypeScript never reads JWT strings, never writes auth tokens
+  to web storage, and sends API calls with `credentials: "include"`.
+- App startup calls `/api/v1/auth/refresh` to restore a production session after page refresh.
 - Email verification uses `/verify-email?email_validation_token_id=<uuid>`, a backend-issued
   challenge, browser proof-of-work in a Web Worker, and a local answer form. The token must not be
   displayed or manually editable.

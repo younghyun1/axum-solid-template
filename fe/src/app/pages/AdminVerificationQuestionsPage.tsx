@@ -19,7 +19,7 @@ import { emptyNotice, type Notice } from "../shared/types";
 
 interface AdminVerificationQuestionsPageProps {
   readonly isAdmin: boolean;
-  readonly token: string;
+  readonly onDatabaseReset: () => void;
   readonly onHome: () => void;
   readonly onSignIn: () => void;
 }
@@ -36,7 +36,7 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
   let loaded = false;
 
   createEffect(() => {
-    if (loaded || !props.isAdmin || props.token.trim().length === 0) {
+    if (loaded || !props.isAdmin) {
       return;
     }
     loaded = true;
@@ -45,7 +45,7 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
 
   const loadQuestionnaire = async () => {
     setRunning(true);
-    const result = await getEmailVerificationQuestions(props.token);
+    const result = await getEmailVerificationQuestions();
     setRunning(false);
     if (!result.ok || result.data === null) {
       setNotice({
@@ -77,7 +77,7 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
       .map((answerText) => answerText.trim())
       .filter((answerText) => answerText.length > 0);
     setRunning(true);
-    const result = await createEmailVerificationQuestion(props.token, {
+    const result = await createEmailVerificationQuestion({
       email_verification_question_answers: answers,
       email_verification_question_prompt: questionPrompt().trim()
     });
@@ -95,7 +95,7 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
       return;
     }
     setRunning(true);
-    const result = await createEmailVerificationQuestionAnswer(props.token, questionId, {
+    const result = await createEmailVerificationQuestionAnswer(questionId, {
       email_verification_question_answer_text: answerText
     });
     if (result.ok) {
@@ -106,14 +106,12 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
 
   const removeQuestion = async (questionId: string) => {
     setRunning(true);
-    replaceQuestionnaire(await deleteEmailVerificationQuestion(props.token, questionId));
+    replaceQuestionnaire(await deleteEmailVerificationQuestion(questionId));
   };
 
   const removeAnswer = async (questionId: string, answerId: string) => {
     setRunning(true);
-    replaceQuestionnaire(
-      await deleteEmailVerificationQuestionAnswer(props.token, questionId, answerId)
-    );
+    replaceQuestionnaire(await deleteEmailVerificationQuestionAnswer(questionId, answerId));
   };
 
   const resetDatabaseFromMigrations = async () => {
@@ -122,7 +120,7 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
     }
 
     setRunning(true);
-    const result = await resetDatabase(props.token);
+    const result = await resetDatabase();
     setRunning(false);
     if (!result.ok || result.data === null) {
       setNotice({
@@ -136,13 +134,13 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
       kind: "success",
       text: `Database reset. Reverted ${result.data.reverted_migration_count.toString()} migrations and applied ${result.data.applied_migration_count.toString()} migrations.`
     });
-    await loadQuestionnaire();
+    props.onDatabaseReset();
   };
 
   return (
     <section class="page-view admin-layout">
       <Show
-        when={props.isAdmin && props.token.trim().length > 0}
+        when={props.isAdmin}
         fallback={
           <div class="auth-card auth-card--narrow">
             <p class="eyebrow">Admin</p>

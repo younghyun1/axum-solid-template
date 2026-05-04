@@ -230,6 +230,27 @@ impl CodeError {
         message: "Route not found!",
         log_level: Level::INFO,
     };
+    pub const REFRESH_SESSION_INVALID: CodeError = CodeError {
+        success: false,
+        error_code: 32,
+        http_status_code: StatusCode::UNAUTHORIZED,
+        message: "Invalid refresh session!",
+        log_level: Level::INFO,
+    };
+    pub const REFRESH_SESSION_EXPIRED: CodeError = CodeError {
+        success: false,
+        error_code: 33,
+        http_status_code: StatusCode::UNAUTHORIZED,
+        message: "Refresh session expired!",
+        log_level: Level::INFO,
+    };
+    pub const ORIGIN_NOT_ALLOWED: CodeError = CodeError {
+        success: false,
+        error_code: 34,
+        http_status_code: StatusCode::FORBIDDEN,
+        message: "Request origin is not allowed!",
+        log_level: Level::WARN,
+    };
     pub const INTERNAL_ERROR: CodeError = CodeError {
         success: false,
         error_code: 255,

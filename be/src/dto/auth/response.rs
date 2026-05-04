@@ -17,10 +17,16 @@ pub struct SignupResponse {
 
 #[derive(Debug, Serialize, ToSchema)]
 pub struct LoginResponse {
-    pub access_token: String,
-    pub token_type: &'static str,
     pub expires_at: DateTime<Utc>,
     pub claims: AccessTokenClaims,
+    pub user_info: UserInfo,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct RefreshSessionResponse {
+    pub expires_at: DateTime<Utc>,
+    pub claims: AccessTokenClaims,
+    pub user_info: UserInfo,
 }
 
 #[derive(Debug, Serialize, ToSchema)]

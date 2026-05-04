@@ -129,18 +129,7 @@ export function profileFromSession(session: LoginResponse | null): MeResponse | 
 
   return {
     claims: session.claims,
-    user_info: {
-      user_country: session.claims.user_country,
-      user_created_at: session.claims.issued_at_iso,
-      user_email: session.claims.user_email,
-      user_id: session.claims.user_id,
-      user_is_email_verified: session.claims.user_is_email_verified,
-      user_language: session.claims.user_language,
-      user_last_login_at: null,
-      user_name: session.claims.user_name,
-      user_subdivision: session.claims.user_subdivision,
-      user_updated_at: session.claims.issued_at_iso
-    }
+    user_info: session.user_info
   };
 }
 

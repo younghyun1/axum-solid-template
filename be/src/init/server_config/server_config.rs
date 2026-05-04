@@ -4,6 +4,7 @@ use crate::init::server_config::{
     chatbot::chatbot_config::ChatbotConfig,
     db_config::DatabaseConfig,
     file_store_config::FileStoreConfig,
+    http_security_config::{CookieConfig, CorsConfig},
     jwt_config::jwt_config::{JwtConfig, JwtConfigError},
     mail_config::MailConfig,
 };
@@ -21,6 +22,8 @@ pub struct ServerConfig {
     pub db_config: DatabaseConfig,
     pub file_store_config: FileStoreConfig,
     pub chatbot_config: ChatbotConfig,
+    pub cookie_config: CookieConfig,
+    pub cors_config: CorsConfig,
     pub jwt_config: JwtConfig,
     pub mail_config: MailConfig,
     pub cert_config: Option<CertConfig>,

@@ -6,12 +6,11 @@ use tracing::info;
 use crate::{
     domain::auth::{jwt::AccessTokenClaims, role::RoleType},
     error::{api_error::ApiError, code_error::CodeError},
-    init::server_config::jwt_config::jwt_config::{
-        JWT_AUTHORIZATION_HEADER_NAME, JWT_BEARER_SCHEME,
-    },
     init::state::server_state::ServerState,
-    util::auth::jwt::decode_access_token,
+    util::auth::{cookie::access_token_from_headers, jwt::decode_access_token},
 };
+
+use super::auth_state::validate_claims_against_current_user;
 
 #[derive(Debug, Clone)]
 pub struct AuthContext {
@@ -101,14 +100,14 @@ pub async fn attach_optional_auth_context(
         return Ok(next.run(request).await);
     }
 
-    let token = match bearer_token(&request) {
+    let token = match access_token(&request) {
         Some(token) => token,
         None => return Ok(next.run(request).await),
     };
 
-    let auth_context = match auth_context_from_token(&state, token) {
+    let auth_context = match auth_context_from_token(&state, &token).await {
         Ok(auth_context) => auth_context,
-        Err(error) => return Err(error),
+        Err(_) => return Ok(next.run(request).await),
     };
 
     request.extensions_mut().insert(auth_context);
@@ -124,12 +123,12 @@ pub async fn require_auth(
         return Ok(next.run(request).await);
     }
 
-    let token = match bearer_token(&request) {
+    let token = match access_token(&request) {
         Some(token) => token,
         None => return Err(ApiError::new(CodeError::UNAUTHORIZED)),
     };
 
-    let auth_context = match auth_context_from_token(&state, token) {
+    let auth_context = match auth_context_from_token(&state, &token).await {
         Ok(auth_context) => auth_context,
         Err(error) => return Err(error),
     };
@@ -144,12 +143,12 @@ pub async fn require_admin(
     next: Next,
 ) -> Result<Response<Body>, ApiError> {
     if !auth_context_attached(&request) {
-        let token = match bearer_token(&request) {
+        let token = match access_token(&request) {
             Some(token) => token,
             None => return Err(ApiError::new(CodeError::UNAUTHORIZED)),
         };
 
-        let auth_context = match auth_context_from_token(&state, token) {
+        let auth_context = match auth_context_from_token(&state, &token).await {
             Ok(auth_context) => auth_context,
             Err(error) => return Err(error),
         };
@@ -169,14 +168,17 @@ pub async fn require_admin(
     Ok(next.run(request).await)
 }
 
-/// Validates the bearer token and decodes claims into an `AuthContext`.
+/// Validates an access JWT and decodes claims into an `AuthContext`.
 ///
 /// # Arguments
 /// * `state` -
 /// * `token` -
 /// # Returns
 /// A `Result`, either containing the function output or an error.
-fn auth_context_from_token(state: &ServerState, token: &str) -> Result<AuthContext, ApiError> {
+async fn auth_context_from_token(
+    state: &ServerState,
+    token: &str,
+) -> Result<AuthContext, ApiError> {
     let claims = match decode_access_token(&state.server_config.jwt_config, token) {
         Ok(claims) => claims,
         Err(error) => {
@@ -184,6 +186,11 @@ fn auth_context_from_token(state: &ServerState, token: &str) -> Result<AuthConte
             return Err(ApiError::new(CodeError::JWT_INVALID));
         }
     };
+
+    match validate_claims_against_current_user(state, &claims).await {
+        Ok(()) => {}
+        Err(error) => return Err(error),
+    }
 
     Ok(AuthContext { claims })
 }
@@ -198,37 +205,12 @@ fn auth_context_attached(request: &Request<Body>) -> bool {
     request.extensions().get::<AuthContext>().is_some()
 }
 
-/// Parses and validates the `Authorization` header as `Bearer <token>`.
+/// Reads the access-token cookie from request headers.
 ///
 /// # Arguments
 /// * `request` -
 /// # Returns
 /// Returns the value produced by this function.
-fn bearer_token(request: &Request<Body>) -> Option<&str> {
-    let value = match request.headers().get(JWT_AUTHORIZATION_HEADER_NAME) {
-        Some(value) => value,
-        None => return None,
-    };
-    let parsed = match value.to_str() {
-        Ok(parsed) => parsed,
-        Err(_) => return None,
-    };
-    let trimmed = parsed.trim();
-    let scheme_len = JWT_BEARER_SCHEME.len();
-
-    if trimmed.len() <= scheme_len {
-        return None;
-    }
-
-    let (scheme, rest) = trimmed.split_at(scheme_len);
-    if !scheme.eq_ignore_ascii_case(JWT_BEARER_SCHEME) {
-        return None;
-    }
-
-    let token = rest.trim();
-    if token.is_empty() {
-        return None;
-    }
-
-    Some(token)
+fn access_token(request: &Request<Body>) -> Option<String> {
+    access_token_from_headers(request.headers())
 }

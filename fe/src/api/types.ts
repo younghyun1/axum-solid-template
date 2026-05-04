@@ -114,10 +114,15 @@ export interface SignupResponse {
 }
 
 export interface LoginResponse {
-  readonly access_token: string;
-  readonly token_type: string;
   readonly expires_at: string;
   readonly claims: AccessTokenClaims;
+  readonly user_info: UserInfo;
+}
+
+export interface RefreshSessionResponse {
+  readonly expires_at: string;
+  readonly claims: AccessTokenClaims;
+  readonly user_info: UserInfo;
 }
 
 export interface MeResponse {
