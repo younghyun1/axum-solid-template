@@ -6,6 +6,7 @@ import type {
   ReferenceLanguageResponse,
   ReferenceSubdivisionResponse,
   SignupRequest,
+  SignupResponse,
   SignupRoleType
 } from "../../api/types";
 import {
@@ -17,11 +18,11 @@ import {
 } from "../helpers";
 import { NoticeView } from "../shared/Feedback";
 import { emptyNotice, type Notice } from "../shared/types";
+import { SignupVerificationPending } from "./SignupVerificationPending";
 
 interface JoinPageProps {
   readonly countries: readonly ReferenceCountryResponse[];
   readonly languages: readonly ReferenceLanguageResponse[];
-  readonly onSignedUp: () => void;
   readonly onSignIn: () => void;
 }
 
@@ -35,6 +36,7 @@ export function JoinPage(props: JoinPageProps) {
   const [languageCode, setLanguageCode] = createSignal("");
   const [subdivisionId, setSubdivisionId] = createSignal("");
   const [subdivisions, setSubdivisions] = createSignal<readonly ReferenceSubdivisionResponse[]>([]);
+  const [createdAccount, setCreatedAccount] = createSignal<SignupResponse | null>(null);
   const [notice, setNotice] = createSignal<Notice>(emptyNotice);
   const [running, setRunning] = createSignal(false);
   let subdivisionRequestSequence = 0;
@@ -127,125 +129,141 @@ export function JoinPage(props: JoinPageProps) {
       setNotice({ kind: "error", text: result.error.message });
       return;
     }
+    if (result.data === null) {
+      setNotice({ kind: "error", text: "Signup response was empty." });
+      return;
+    }
 
-    setNotice({
-      kind: "success",
-      text: "Account created. Check your email to verify your address."
-    });
-    props.onSignedUp();
+    setCreatedAccount(result.data);
+    setNotice(emptyNotice);
   };
 
   return (
     <section class="page-view auth-page">
       <div class="auth-card">
-        <p class="eyebrow">New account</p>
-        <h1>Create your account</h1>
-        <form class="flow-form" onSubmit={submit}>
-          <input
-            aria-label="Username"
-            autocomplete="username"
-            placeholder="Username"
-            required
-            value={userName()}
-            onInput={(event) => setUserName(event.currentTarget.value)}
-          />
-          <input
-            aria-label="Email"
-            autocomplete="email"
-            placeholder="Email"
-            required
-            type="email"
-            value={email()}
-            onInput={(event) => setEmail(event.currentTarget.value)}
-          />
-          <input
-            aria-label="Password"
-            autocomplete="new-password"
-            placeholder="Password"
-            required
-            type="password"
-            value={password()}
-            onInput={(event) => setPassword(event.currentTarget.value)}
-          />
-          <input
-            aria-invalid={passwordsMismatch() ? "true" : "false"}
-            aria-label="Re-enter password"
-            autocomplete="new-password"
-            placeholder="Re-enter password"
-            required
-            type="password"
-            value={confirmPassword()}
-            onInput={(event) => setConfirmPassword(event.currentTarget.value)}
-          />
-          <Show when={passwordsMismatch()}>
-            <p class="field-note field-note--error">Passwords do not match.</p>
-          </Show>
-          <fieldset class="segmented-control">
-            <legend>Account type</legend>
-            <div class="segmented-control__options">
-              <SignupRoleOption
-                active={signupRole() === "user"}
-                label="User"
-                value="user"
-                onSelect={() => setSignupRole("user")}
-              />
-              <SignupRoleOption
-                active={signupRole() === "service_provider"}
-                label="Service provider"
-                value="service_provider"
-                onSelect={() => setSignupRole("service_provider")}
-              />
-            </div>
-          </fieldset>
-          <select
-            aria-label="Country"
-            required
-            value={countryCode()}
-            onChange={(event) => setCountryCode(event.currentTarget.value)}
-          >
-            <option value="">Select country</option>
-            <For each={props.countries}>
-              {(country) => (
-                <option value={country.country_code}>
-                  {country.country_flag} {country.country_name}
-                </option>
-              )}
-            </For>
-          </select>
-          <select
-            aria-label="Language"
-            required
-            value={languageCode()}
-            onChange={(event) => setLanguageCode(event.currentTarget.value)}
-          >
-            <option value="">Select language</option>
-            <For each={orderedLanguages()}>
-              {(language) => <option value={language.language_code}>{language.language_name}</option>}
-            </For>
-          </select>
-          <select
-            aria-label="Subdivision"
-            value={subdivisionId()}
-            disabled={subdivisions().length === 0}
-            onChange={(event) => setSubdivisionId(event.currentTarget.value)}
-          >
-            <option value="">No subdivision</option>
-            <For each={subdivisions()}>
-              {(subdivision) => (
-                <option value={subdivision.subdivision_id}>
-                  {subdivision.country_flag} {subdivision.subdivision_name}
-                </option>
-              )}
-            </For>
-          </select>
-          <NoticeView notice={notice()} />
-          <button class="primary-button" disabled={running() || passwordsMismatch()} type="submit">
-            {running() ? "Creating account" : "Create account"}
-          </button>
-          <button class="secondary-button" type="button" onClick={props.onSignIn}>
-            Back to sign in
-          </button>
-        </form>
+        <Show
+          when={createdAccount()}
+          fallback={
+            <>
+              <p class="eyebrow">New account</p>
+              <h1>Create your account</h1>
+              <form class="flow-form" onSubmit={submit}>
+                <input
+                  aria-label="Username"
+                  autocomplete="username"
+                  placeholder="Username"
+                  required
+                  value={userName()}
+                  onInput={(event) => setUserName(event.currentTarget.value)}
+                />
+                <input
+                  aria-label="Email"
+                  autocomplete="email"
+                  placeholder="Email"
+                  required
+                  type="email"
+                  value={email()}
+                  onInput={(event) => setEmail(event.currentTarget.value)}
+                />
+                <input
+                  aria-label="Password"
+                  autocomplete="new-password"
+                  placeholder="Password"
+                  required
+                  type="password"
+                  value={password()}
+                  onInput={(event) => setPassword(event.currentTarget.value)}
+                />
+                <input
+                  aria-invalid={passwordsMismatch() ? "true" : "false"}
+                  aria-label="Re-enter password"
+                  autocomplete="new-password"
+                  placeholder="Re-enter password"
+                  required
+                  type="password"
+                  value={confirmPassword()}
+                  onInput={(event) => setConfirmPassword(event.currentTarget.value)}
+                />
+                <Show when={passwordsMismatch()}>
+                  <p class="field-note field-note--error">Passwords do not match.</p>
+                </Show>
+                <fieldset class="segmented-control">
+                  <legend>Account type</legend>
+                  <div class="segmented-control__options">
+                    <SignupRoleOption
+                      active={signupRole() === "user"}
+                      label="User"
+                      value="user"
+                      onSelect={() => setSignupRole("user")}
+                    />
+                    <SignupRoleOption
+                      active={signupRole() === "service_provider"}
+                      label="Service provider"
+                      value="service_provider"
+                      onSelect={() => setSignupRole("service_provider")}
+                    />
+                  </div>
+                </fieldset>
+                <select
+                  aria-label="Country"
+                  required
+                  value={countryCode()}
+                  onChange={(event) => setCountryCode(event.currentTarget.value)}
+                >
+                  <option value="">Select country</option>
+                  <For each={props.countries}>
+                    {(country) => (
+                      <option value={country.country_code}>
+                        {country.country_flag} {country.country_name}
+                      </option>
+                    )}
+                  </For>
+                </select>
+                <select
+                  aria-label="Language"
+                  required
+                  value={languageCode()}
+                  onChange={(event) => setLanguageCode(event.currentTarget.value)}
+                >
+                  <option value="">Select language</option>
+                  <For each={orderedLanguages()}>
+                    {(language) => (
+                      <option value={language.language_code}>{language.language_name}</option>
+                    )}
+                  </For>
+                </select>
+                <select
+                  aria-label="Subdivision"
+                  value={subdivisionId()}
+                  disabled={subdivisions().length === 0}
+                  onChange={(event) => setSubdivisionId(event.currentTarget.value)}
+                >
+                  <option value="">No subdivision</option>
+                  <For each={subdivisions()}>
+                    {(subdivision) => (
+                      <option value={subdivision.subdivision_id}>
+                        {subdivision.country_flag} {subdivision.subdivision_name}
+                      </option>
+                    )}
+                  </For>
+                </select>
+                <NoticeView notice={notice()} />
+                <button
+                  class="primary-button"
+                  disabled={running() || passwordsMismatch()}
+                  type="submit"
+                >
+                  {running() ? "Creating account" : "Create account"}
+                </button>
+                <button class="secondary-button" type="button" onClick={props.onSignIn}>
+                  Back to sign in
+                </button>
+              </form>
+            </>
+          }
+        >
+          {(account) => <SignupVerificationPending account={account()} onSignIn={props.onSignIn} />}
+        </Show>
       </div>
     </section>
   );

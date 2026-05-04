@@ -10,6 +10,9 @@ The frontend lives in `/fe` as a strict TypeScript Solid application built by Vi
 - Email verification uses `/verify-email?email_validation_token_id=<uuid>`, a backend-issued
   challenge, browser proof-of-work in a Web Worker, and a local answer form. The token must not be
   displayed or manually editable.
+- Signup success stays on a pending-verification view. Users should see that sign-in is blocked
+  until email verification completes, and local development can use the generated verification link
+  when email delivery is disabled.
 - Admin-only customer-visible navigation can expose backend administration pages only after the
   signed-in profile proves the user has the `admin` role; backend authorization remains
   authoritative.

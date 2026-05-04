@@ -30,3 +30,4 @@ Progress:
 - [x] Fix admin database reset FK failure and reshape admin UI into a dashboard.
 - [x] Sync frontend page navigation with browser URLs.
 - [x] Repair Solid Router integration, review backend SPA fallback routing, and add Not Found page.
+- [x] Add post-signup email verification guidance before sign-in.
