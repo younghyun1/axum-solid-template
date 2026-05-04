@@ -223,6 +223,13 @@ impl CodeError {
         message: "Validation failed!",
         log_level: Level::INFO,
     };
+    pub const ROUTE_NOT_FOUND: CodeError = CodeError {
+        success: false,
+        error_code: 31,
+        http_status_code: StatusCode::NOT_FOUND,
+        message: "Route not found!",
+        log_level: Level::INFO,
+    };
     pub const INTERNAL_ERROR: CodeError = CodeError {
         success: false,
         error_code: 255,

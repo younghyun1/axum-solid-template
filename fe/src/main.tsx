@@ -1,5 +1,5 @@
 import { render } from "solid-js/web";
-import { Router } from "@solidjs/router";
+import { Route, Router } from "@solidjs/router";
 
 import { App } from "./app/App";
 import "./styles/base.css";
@@ -10,7 +10,7 @@ if (root instanceof HTMLElement) {
   render(
     () => (
       <Router>
-        <App />
+        <Route path="*404" component={App} />
       </Router>
     ),
     root

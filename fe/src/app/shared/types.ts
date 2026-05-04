@@ -5,7 +5,8 @@ export type PageId =
   | "account"
   | "recovery"
   | "verify-email"
-  | "admin-verification";
+  | "admin-verification"
+  | "not-found";
 
 export type ThemeMode = "light" | "dark";
 export type NoticeKind = "idle" | "success" | "error";

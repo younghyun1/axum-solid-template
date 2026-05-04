@@ -100,6 +100,7 @@ fn build_api_v1_router(state: Arc<ServerState>) -> Router {
             attach_optional_auth_context,
         ))
         .layer(from_fn(time_api_request))
+        .fallback(api_not_found)
         .with_state(state)
 }
 
@@ -161,6 +162,10 @@ fn build_admin_router(state: Arc<ServerState>) -> Router<Arc<ServerState>> {
         )
         .route("/admin/database/reset", post(admin_reset_database))
         .layer(from_fn_with_state(state, require_admin))
+}
+
+async fn api_not_found() -> Response<Body> {
+    ApiError::new(CodeError::ROUTE_NOT_FOUND).into_response()
 }
 
 /// Applies permissive CORS locally/development, and constrained CORS in production.

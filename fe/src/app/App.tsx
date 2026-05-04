@@ -14,6 +14,7 @@ import { AccountPage } from "./pages/AccountPage";
 import { AdminVerificationQuestionsPage } from "./pages/AdminVerificationQuestionsPage";
 import { HomePage } from "./pages/HomePage";
 import { JoinPage } from "./pages/JoinPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 import { RecoveryPage } from "./pages/RecoveryPage";
 import { SignInPage } from "./pages/SignInPage";
 import { VerifyEmailPage } from "./pages/VerifyEmailPage";
@@ -246,6 +247,10 @@ export function App() {
             onSignIn={() => goToPage("signin")}
           />
         </Show>
+
+        <Show when={activePage() === "not-found"}>
+          <NotFoundPage onHome={() => goToPage("home")} />
+        </Show>
       </main>
     </div>
   );
@@ -278,7 +283,7 @@ function pageFromPath(
     case "/admin":
       return "admin-verification";
     default:
-      return "home";
+      return "not-found";
   }
 }
 
@@ -298,5 +303,7 @@ function pathForPage(page: PageId): string {
       return "/verify-email";
     case "admin-verification":
       return "/admin";
+    case "not-found":
+      return "/not-found";
   }
 }

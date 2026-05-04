@@ -29,3 +29,4 @@ Progress:
 - [x] Replace email verification PoW WebCrypto dependency with worker-local SHA-256.
 - [x] Fix admin database reset FK failure and reshape admin UI into a dashboard.
 - [x] Sync frontend page navigation with browser URLs.
+- [x] Repair Solid Router integration, review backend SPA fallback routing, and add Not Found page.
