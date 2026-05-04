@@ -18,31 +18,36 @@ use crate::{
                 VerifyEmailChallengeRequest,
             },
             response::{
-                CheckIfUserExistsResponse, EmailVerificationChallengeResponse,
-                EmailVerificationQuestionnaireResponse, LoginResponse, LogoutResponse, MeResponse,
-                PublicUserInfoResponse, ResetPasswordRequestResponse, ResetPasswordResponse,
-                SignupResponse, VerifyEmailResponse,
+                CheckIfUserExistsResponse, DatabaseResetResponse,
+                EmailVerificationChallengeResponse, EmailVerificationQuestionnaireResponse,
+                LoginResponse, LogoutResponse, MeResponse, PublicUserInfoResponse,
+                ResetPasswordRequestResponse, ResetPasswordResponse, SignupResponse,
+                VerifyEmailResponse,
             },
         },
     },
     error::prelude::*,
     init::state::server_state::ServerState,
     middleware::auth::AuthContext,
-    service::auth::{
-        login::login_user,
-        password_reset::{request_password_reset, reset_password as reset_password_service},
-        signup::signup_user,
-        user::{
-            check_if_user_exists as check_if_user_exists_service, current_user, public_user_info,
-        },
-        verification::{
-            admin::{
-                add_email_verification_question_answer, create_email_verification_question,
-                delete_email_verification_question, delete_email_verification_question_answer,
-                list_email_verification_questions,
+    service::{
+        admin::reset_database as reset_database_service,
+        auth::{
+            login::login_user,
+            password_reset::{request_password_reset, reset_password as reset_password_service},
+            signup::signup_user,
+            user::{
+                check_if_user_exists as check_if_user_exists_service, current_user,
+                public_user_info,
             },
-            issue::issue_email_verification_challenge,
-            submit::verify_user_email as verify_user_email_service,
+            verification::{
+                admin::{
+                    add_email_verification_question_answer, create_email_verification_question,
+                    delete_email_verification_question, delete_email_verification_question_answer,
+                    list_email_verification_questions,
+                },
+                issue::issue_email_verification_challenge,
+                submit::verify_user_email as verify_user_email_service,
+            },
         },
     },
 };
@@ -370,6 +375,25 @@ pub async fn admin_delete_email_verification_question_answer(
         delete_email_verification_question_answer(state, auth_context, question_id, answer_id)
             .await,
     )
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/admin/database/reset",
+    tag = "admin",
+    responses((status = 200, description = "Database reset", body = ApiEnvelope<DatabaseResetResponse>))
+)]
+/// Reset the database by reverting all embedded Diesel migrations and reapplying them.
+///
+/// # Arguments
+/// * `state` - Shared server state containing database configuration and runtime caches.
+///
+/// # Returns
+/// `ApiResponseResult<DatabaseResetResponse>` with reverted/applied migration counts.
+pub async fn admin_reset_database(
+    State(state): State<Arc<ServerState>>,
+) -> ApiResponseResult<DatabaseResetResponse> {
+    response_from_result(reset_database_service(state).await)
 }
 
 #[utoipa::path(

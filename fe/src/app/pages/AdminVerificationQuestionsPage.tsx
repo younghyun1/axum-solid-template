@@ -5,7 +5,8 @@ import {
   createEmailVerificationQuestionAnswer,
   deleteEmailVerificationQuestion,
   deleteEmailVerificationQuestionAnswer,
-  getEmailVerificationQuestions
+  getEmailVerificationQuestions,
+  resetDatabase
 } from "../../api/appApi";
 import type { ApiCallResult, EmailVerificationQuestionnaireResponse } from "../../api/types";
 import { NoticeView, SpinnerStatus } from "../shared/Feedback";
@@ -109,6 +110,32 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
     );
   };
 
+  const resetDatabaseFromMigrations = async () => {
+    const confirmed = window.confirm(
+      "Reset the database by running all Diesel down migrations and then all up migrations?"
+    );
+    if (!confirmed) {
+      return;
+    }
+
+    setRunning(true);
+    const result = await resetDatabase(props.token);
+    setRunning(false);
+    if (!result.ok || result.data === null) {
+      setNotice({
+        kind: "error",
+        text: result.ok ? "Database reset response was empty." : result.error.message
+      });
+      return;
+    }
+
+    setNotice({
+      kind: "success",
+      text: `Database reset. Reverted ${result.data.reverted_migration_count.toString()} migrations and applied ${result.data.applied_migration_count.toString()} migrations.`
+    });
+    await loadQuestionnaire();
+  };
+
   return (
     <section class="page-view admin-layout">
       <Show
@@ -160,6 +187,14 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
               onClick={loadQuestionnaire}
             >
               Refresh
+            </button>
+            <button
+              class="danger-button"
+              disabled={running()}
+              type="button"
+              onClick={() => void resetDatabaseFromMigrations()}
+            >
+              Reset database
             </button>
             <span>
               Revision {questionnaire()?.email_verification_questionnaire_revision.toString() ?? "-"}

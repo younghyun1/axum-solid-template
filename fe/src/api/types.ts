@@ -209,6 +209,11 @@ export interface EmailVerificationQuestionnaireResponse {
   readonly email_verification_questions: readonly EmailVerificationQuestion[];
 }
 
+export interface DatabaseResetResponse {
+  readonly reverted_migration_count: number;
+  readonly applied_migration_count: number;
+}
+
 export interface EmailVerificationQuestion {
   readonly email_verification_question_id: string;
   readonly email_verification_question_prompt: string;

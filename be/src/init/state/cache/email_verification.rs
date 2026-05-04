@@ -167,6 +167,11 @@ impl EmailVerificationChallengeCache {
         self.active_challenges.write().await.remove(&challenge_id);
     }
 
+    pub async fn clear_runtime_state(&self) {
+        self.active_challenges.write().await.clear();
+        self.rate_limits.write().await.clear();
+    }
+
     /// Perform the `check_rate_limit` operation as implemented by this function.
     ///
     /// # Arguments

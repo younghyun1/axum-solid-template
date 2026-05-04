@@ -101,60 +101,83 @@ CREATE INDEX idx_email_verification_challenges_status
 CREATE INDEX idx_email_verification_challenges_expires_at
     ON public.email_verification_challenges (email_verification_challenge_expires_at);
 
-INSERT INTO public.email_verification_questions (
-    email_verification_question_id,
-    email_verification_question_prompt
-) VALUES
-    ('019d95b2-8000-7000-8000-000000000001', 'What color is a clear daytime sky?'),
-    ('019d95b2-8000-7000-8000-000000000002', 'Type the last word in: rust builds reliable software'),
-    ('019d95b2-8000-7000-8000-000000000003', 'What is three plus four?'),
-    ('019d95b2-8000-7000-8000-000000000004', 'Which is larger: 9 or 4?'),
-    ('019d95b2-8000-7000-8000-000000000005', 'Type the animal word in: table, river, horse, window'),
-    ('019d95b2-8000-7000-8000-000000000006', 'What month comes after March?'),
-    ('019d95b2-8000-7000-8000-000000000007', 'What is the opposite of cold?'),
-    ('019d95b2-8000-7000-8000-000000000008', 'Type the middle number: 2, 5, 8'),
-    ('019d95b2-8000-7000-8000-000000000009', 'How many days are in a normal week?'),
-    ('019d95b2-8000-7000-8000-00000000000a', 'What letter starts the word template?'),
-    ('019d95b2-8000-7000-8000-00000000000b', 'Type the word that means not false.'),
-    ('019d95b2-8000-7000-8000-00000000000c', 'What is ten minus six?'),
-    ('019d95b2-8000-7000-8000-00000000000d', 'Which word is a color: stone, green, chair?'),
-    ('019d95b2-8000-7000-8000-00000000000e', 'Type the second word: secure local account'),
-    ('019d95b2-8000-7000-8000-00000000000f', 'What number comes after 11?'),
-    ('019d95b2-8000-7000-8000-000000000010', 'What is the opposite of up?'),
-    ('019d95b2-8000-7000-8000-000000000011', 'Type the shorter word: authentication or login'),
-    ('019d95b2-8000-7000-8000-000000000012', 'How many wheels are on a bicycle?'),
-    ('019d95b2-8000-7000-8000-000000000013', 'Which word is not a number: one, two, apple?'),
-    ('019d95b2-8000-7000-8000-000000000014', 'Type the final letter of verify.');
-
+WITH seeded_questions (email_verification_question_prompt) AS (
+    VALUES
+        ('What color is a clear daytime sky?'),
+        ('Type the last word in: rust builds reliable software'),
+        ('What is three plus four?'),
+        ('Which is larger: 9 or 4?'),
+        ('Type the animal word in: table, river, horse, window'),
+        ('What month comes after March?'),
+        ('What is the opposite of cold?'),
+        ('Type the middle number: 2, 5, 8'),
+        ('How many days are in a normal week?'),
+        ('What letter starts the word template?'),
+        ('Type the word that means not false.'),
+        ('What is ten minus six?'),
+        ('Which word is a color: stone, green, chair?'),
+        ('Type the second word: secure local account'),
+        ('What number comes after 11?'),
+        ('What is the opposite of up?'),
+        ('Type the shorter word: authentication or login'),
+        ('How many wheels are on a bicycle?'),
+        ('Which word is not a number: one, two, apple?'),
+        ('Type the final letter of verify.')
+),
+inserted_questions AS (
+    INSERT INTO public.email_verification_questions (
+        email_verification_question_prompt
+    )
+    SELECT email_verification_question_prompt
+    FROM seeded_questions
+    RETURNING
+        email_verification_question_id,
+        email_verification_question_prompt
+),
+seeded_answers (
+    email_verification_question_prompt,
+    email_verification_question_answer_text,
+    email_verification_question_answer_normalized
+) AS (
+    VALUES
+        ('What color is a clear daytime sky?', 'blue', 'blue'),
+        ('Type the last word in: rust builds reliable software', 'software', 'software'),
+        ('What is three plus four?', '7', '7'),
+        ('What is three plus four?', 'seven', 'seven'),
+        ('Which is larger: 9 or 4?', '9', '9'),
+        ('Which is larger: 9 or 4?', 'nine', 'nine'),
+        ('Type the animal word in: table, river, horse, window', 'horse', 'horse'),
+        ('What month comes after March?', 'april', 'april'),
+        ('What is the opposite of cold?', 'hot', 'hot'),
+        ('Type the middle number: 2, 5, 8', '5', '5'),
+        ('Type the middle number: 2, 5, 8', 'five', 'five'),
+        ('How many days are in a normal week?', '7', '7'),
+        ('How many days are in a normal week?', 'seven', 'seven'),
+        ('What letter starts the word template?', 't', 't'),
+        ('Type the word that means not false.', 'true', 'true'),
+        ('What is ten minus six?', '4', '4'),
+        ('What is ten minus six?', 'four', 'four'),
+        ('Which word is a color: stone, green, chair?', 'green', 'green'),
+        ('Type the second word: secure local account', 'local', 'local'),
+        ('What number comes after 11?', '12', '12'),
+        ('What number comes after 11?', 'twelve', 'twelve'),
+        ('What is the opposite of up?', 'down', 'down'),
+        ('Type the shorter word: authentication or login', 'login', 'login'),
+        ('How many wheels are on a bicycle?', '2', '2'),
+        ('How many wheels are on a bicycle?', 'two', 'two'),
+        ('Which word is not a number: one, two, apple?', 'apple', 'apple'),
+        ('Type the final letter of verify.', 'y', 'y')
+)
 INSERT INTO public.email_verification_question_answers (
     email_verification_question_id,
     email_verification_question_answer_text,
     email_verification_question_answer_normalized
-) VALUES
-    ('019d95b2-8000-7000-8000-000000000001', 'blue', 'blue'),
-    ('019d95b2-8000-7000-8000-000000000002', 'software', 'software'),
-    ('019d95b2-8000-7000-8000-000000000003', '7', '7'),
-    ('019d95b2-8000-7000-8000-000000000003', 'seven', 'seven'),
-    ('019d95b2-8000-7000-8000-000000000004', '9', '9'),
-    ('019d95b2-8000-7000-8000-000000000004', 'nine', 'nine'),
-    ('019d95b2-8000-7000-8000-000000000005', 'horse', 'horse'),
-    ('019d95b2-8000-7000-8000-000000000006', 'april', 'april'),
-    ('019d95b2-8000-7000-8000-000000000007', 'hot', 'hot'),
-    ('019d95b2-8000-7000-8000-000000000008', '5', '5'),
-    ('019d95b2-8000-7000-8000-000000000008', 'five', 'five'),
-    ('019d95b2-8000-7000-8000-000000000009', '7', '7'),
-    ('019d95b2-8000-7000-8000-000000000009', 'seven', 'seven'),
-    ('019d95b2-8000-7000-8000-00000000000a', 't', 't'),
-    ('019d95b2-8000-7000-8000-00000000000b', 'true', 'true'),
-    ('019d95b2-8000-7000-8000-00000000000c', '4', '4'),
-    ('019d95b2-8000-7000-8000-00000000000c', 'four', 'four'),
-    ('019d95b2-8000-7000-8000-00000000000d', 'green', 'green'),
-    ('019d95b2-8000-7000-8000-00000000000e', 'local', 'local'),
-    ('019d95b2-8000-7000-8000-00000000000f', '12', '12'),
-    ('019d95b2-8000-7000-8000-00000000000f', 'twelve', 'twelve'),
-    ('019d95b2-8000-7000-8000-000000000010', 'down', 'down'),
-    ('019d95b2-8000-7000-8000-000000000011', 'login', 'login'),
-    ('019d95b2-8000-7000-8000-000000000012', '2', '2'),
-    ('019d95b2-8000-7000-8000-000000000012', 'two', 'two'),
-    ('019d95b2-8000-7000-8000-000000000013', 'apple', 'apple'),
-    ('019d95b2-8000-7000-8000-000000000014', 'y', 'y');
+)
+SELECT
+    inserted_questions.email_verification_question_id,
+    seeded_answers.email_verification_question_answer_text,
+    seeded_answers.email_verification_question_answer_normalized
+FROM seeded_answers
+JOIN inserted_questions
+    ON inserted_questions.email_verification_question_prompt =
+        seeded_answers.email_verification_question_prompt;

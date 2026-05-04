@@ -14,6 +14,12 @@ pub type DbConnection<'a> = PooledConnection<'a, AsyncPgConnection>;
 
 pub const MIGRATIONS: EmbeddedMigrations = embed_migrations!("./migrations");
 
+#[derive(Debug, Clone, Copy)]
+pub struct DbMigrationResetSummary {
+    pub reverted_migration_count: usize,
+    pub applied_migration_count: usize,
+}
+
 #[derive(Debug)]
 pub enum DbPoolInitError {
     UnsupportedDatabase { database_type: DatabaseType },
@@ -139,6 +145,64 @@ pub async fn run_db_migrations(db_config: &DatabaseConfig) -> Result<(), DbPoolI
             error: error.to_string(),
         }),
     }
+}
+
+pub async fn reset_db_migrations(
+    db_config: &DatabaseConfig,
+) -> Result<DbMigrationResetSummary, DbPoolInitError> {
+    match db_config.database_type {
+        DatabaseType::Postgres => {}
+        DatabaseType::MySql | DatabaseType::Sqlite => {
+            return Err(DbPoolInitError::UnsupportedDatabase {
+                database_type: db_config.database_type,
+            });
+        }
+    }
+
+    info!(
+        database_type = %db_config.database_type,
+        "Resetting database through embedded migrations"
+    );
+
+    let connection =
+        match AsyncPgConnection::establish(&db_config.postgres_connection_string()).await {
+            Ok(connection) => connection,
+            Err(error) => {
+                return Err(DbPoolInitError::GetConnection {
+                    error: error.to_string(),
+                });
+            }
+        };
+
+    let mut harness = AsyncMigrationHarness::new(connection);
+    let reverted_migration_count = match harness.revert_all_migrations(MIGRATIONS) {
+        Ok(reverted_migrations) => reverted_migrations.len(),
+        Err(error) => {
+            return Err(DbPoolInitError::Migrate {
+                error: error.to_string(),
+            });
+        }
+    };
+    let applied_migration_count = match harness.run_pending_migrations(MIGRATIONS) {
+        Ok(applied_migrations) => applied_migrations.len(),
+        Err(error) => {
+            return Err(DbPoolInitError::Migrate {
+                error: error.to_string(),
+            });
+        }
+    };
+
+    info!(
+        database_type = %db_config.database_type,
+        reverted_migration_count,
+        applied_migration_count,
+        "Database reset complete"
+    );
+
+    Ok(DbMigrationResetSummary {
+        reverted_migration_count,
+        applied_migration_count,
+    })
 }
 
 /// Checks out a connection from the pooled datasource.

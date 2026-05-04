@@ -81,6 +81,12 @@ pub struct EmailVerificationQuestionnaireResponse {
 }
 
 #[derive(Debug, Serialize, ToSchema)]
+pub struct DatabaseResetResponse {
+    pub reverted_migration_count: usize,
+    pub applied_migration_count: usize,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
 pub struct PublicUserInfoResponse {
     pub user_id: Uuid,
     pub user_name: String,

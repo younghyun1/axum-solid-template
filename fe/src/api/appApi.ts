@@ -5,6 +5,7 @@ import type {
   CheckIfUserExistsResponse,
   CreateEmailVerificationQuestionAnswerRequest,
   CreateEmailVerificationQuestionRequest,
+  DatabaseResetResponse,
   EmailVerificationChallengeResponse,
   EmailVerificationQuestionnaireResponse,
   HealthcheckResponse,
@@ -196,6 +197,14 @@ export function deleteEmailVerificationQuestionAnswer(
   return requestApi({
     method: "DELETE",
     path: `/api/v1/admin/email-verification/questions/${questionId}/answers/${answerId}`,
+    token
+  });
+}
+
+export function resetDatabase(token: string): Promise<ApiCallResult<DatabaseResetResponse>> {
+  return requestApi<DatabaseResetResponse>({
+    method: "POST",
+    path: "/api/v1/admin/database/reset",
     token
   });
 }

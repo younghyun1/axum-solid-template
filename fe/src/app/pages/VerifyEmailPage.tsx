@@ -157,7 +157,7 @@ export function VerifyEmailPage(props: VerifyEmailPageProps) {
               <input
                 aria-label="Verification answer"
                 autocomplete="off"
-                disabled={powRunning() || powNonce().length === 0 || !timingReady()}
+                disabled={submitting()}
                 placeholder="Answer"
                 required
                 value={answer()}

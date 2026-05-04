@@ -1,3 +1,5 @@
+import { sha256 } from "./powSha256";
+
 export interface PowWorkerRequest {
   readonly challengeId: string;
   readonly salt: string;
@@ -21,7 +23,6 @@ export type PowWorkerResponse =
     };
 
 const workerSelf = self as unknown as {
-  readonly crypto: Crypto;
   readonly performance: Performance;
   addEventListener: (
     type: "message",
@@ -31,7 +32,12 @@ const workerSelf = self as unknown as {
 };
 
 workerSelf.addEventListener("message", (event) => {
-  void solve(event.data);
+  void solve(event.data).catch((error: unknown) => {
+    workerSelf.postMessage({
+      kind: "error",
+      message: error instanceof Error ? error.message : "Proof-of-work failed."
+    });
+  });
 });
 
 async function solve(request: PowWorkerRequest): Promise<void> {
@@ -43,11 +49,11 @@ async function solve(request: PowWorkerRequest): Promise<void> {
   const encoder = new TextEncoder();
   const startedAt = workerSelf.performance.now();
   let nonce = 0;
+  workerSelf.postMessage({ attempts: nonce, kind: "progress" });
 
   while (true) {
     const input = `${request.challengeId}:${request.salt}:${nonce.toString()}`;
-    const digest = await workerSelf.crypto.subtle.digest("SHA-256", encoder.encode(input));
-    const bytes = new Uint8Array(digest);
+    const bytes = sha256(encoder.encode(input));
     if (hasLeadingZeroBits(bytes, request.difficultyBits)) {
       workerSelf.postMessage({
         attempts: nonce + 1,
@@ -59,7 +65,7 @@ async function solve(request: PowWorkerRequest): Promise<void> {
     }
 
     nonce += 1;
-    if (nonce % 250 === 0) {
+    if (nonce % 25 === 0) {
       workerSelf.postMessage({ attempts: nonce, kind: "progress" });
     }
   }

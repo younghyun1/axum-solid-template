@@ -23,8 +23,9 @@ use crate::{
             admin_add_email_verification_question_answer, admin_create_email_verification_question,
             admin_delete_email_verification_question,
             admin_delete_email_verification_question_answer, admin_email_verification_questions,
-            check_if_user_exists, email_verification_challenge, get_user_info, login, logout, me,
-            reset_password, reset_password_request, signup, verify_user_email,
+            admin_reset_database, check_if_user_exists, email_verification_challenge,
+            get_user_info, login, logout, me, reset_password, reset_password_request, signup,
+            verify_user_email,
         },
         healthcheck::healthcheck,
         reference_data::{
@@ -158,6 +159,7 @@ fn build_admin_router(state: Arc<ServerState>) -> Router<Arc<ServerState>> {
             "/admin/email-verification/questions/{question_id}/answers/{answer_id}",
             delete(admin_delete_email_verification_question_answer),
         )
+        .route("/admin/database/reset", post(admin_reset_database))
         .layer(from_fn_with_state(state, require_admin))
 }
 

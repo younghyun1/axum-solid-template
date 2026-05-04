@@ -23,7 +23,7 @@ dotenvy = { version = "0.15.7" }
 mimalloc = "0.1.50"
 
 # web server
-axum = { version = "0.8.9", features = ["json", "tokio", "http1", "http2"] }
+axum = { version = "0.8.9", features = ["json", "tokio", "http2"] }
 axum-server = { version = "0.8.0", features = ["tls-rustls"] }
 axum-extra = { version = "0.12.6", features = ["typed-header"] }
 bytes = "1.11.1"

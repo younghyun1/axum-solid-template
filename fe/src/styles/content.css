@@ -216,14 +216,36 @@
 
 .primary-button:active,
 .secondary-button:active,
+.danger-button:active,
 .utility-button:active {
   transform: translateY(1px);
 }
 
 .primary-button:disabled,
-.secondary-button:disabled {
+.secondary-button:disabled,
+.danger-button:disabled {
   opacity: 0.6;
   cursor: not-allowed;
+}
+
+.danger-button {
+  min-height: 40px;
+  border: 1px solid var(--color-danger);
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  padding: 0 14px;
+  font-weight: 800;
+  transition:
+    background-color 110ms ease,
+    color 110ms ease,
+    transform 110ms ease,
+    opacity 110ms ease;
+}
+
+.danger-button:hover {
+  background: var(--color-danger);
+  color: #ffffff;
 }
 
 .link-button {
