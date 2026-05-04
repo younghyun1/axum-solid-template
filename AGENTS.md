@@ -4,7 +4,7 @@ Document all API using utopia and utoipa swagger UI.
 Before you do anything, persist plan to /docs/plan/ in a master planning document (make one if there isn't one; check off done items) as well as individual smaller planning documents.
 
 General Code Convention:
-Files over 300 LOC should be modularized.
+Files over 360 LOC should be modularized.
 When working on long implementations, occasionally git add and commit with appropriate messages congruent with the style formerly used in the repo.
 
 Backend:
