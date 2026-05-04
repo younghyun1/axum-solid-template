@@ -5,6 +5,7 @@ Before you do anything, persist plan to /docs/plan/ in a master planning documen
 
 General Code Convention:
 Files over 300 LOC should be modularized.
+When working on long implementations, occasionally git add and commit with appropriate messages congruent with the style formerly used in the repo.
 
 Backend:
 For the Rust codebase, Use of `unwrap()` and `expect()` is not tolerable. All Option<T> and Result<T, E> types must be dealt explicitly through match statements only (occasionally if lets and such if clippy complains). Generated code will not include any pathways to explicit panics if at all possible; all errors will be logged and a graceful exit from the current context will be executed if an exit has to be made.

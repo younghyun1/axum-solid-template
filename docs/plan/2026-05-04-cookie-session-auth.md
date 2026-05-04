@@ -14,3 +14,4 @@
 - [x] Update frontend API client and app state to use credentialed requests.
 - [x] Update design/API docs.
 - [x] Run frontend and backend checks.
+- [x] Add dotenv entries for public app URL, allowed origins, and dev cookie security.

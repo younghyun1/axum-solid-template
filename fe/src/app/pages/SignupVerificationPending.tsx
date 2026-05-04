@@ -15,9 +15,8 @@ export function SignupVerificationPending(props: SignupVerificationPendingProps)
         is verified.
       </p>
       <p class="form-copy">
-        Open the verification link from the email message. In local development without email
-        delivery, generate the verification token and open{" "}
-        <code>/verify-email?email_validation_token_id=&lt;token&gt;</code>.
+        Check your inbox for the verification message and open the link inside it. You can sign in
+        after the verification step is complete.
       </p>
       <p class="field-note">
         Verification expires {formatVerificationDeadline(props.account.verify_by)}.

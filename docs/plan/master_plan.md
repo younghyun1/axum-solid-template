@@ -34,6 +34,8 @@ Progress:
 - [x] Add five-second flashy hold-to-reset database admin control.
 - [x] Fix stale auth state after database reset.
 - [x] Implement HttpOnly cookie JWT auth, refresh sessions, and environment-aware CORS/cookie policy.
+- [x] Add cookie/CORS environment variables to backend dotenv.
+- [x] Make signup pending-verification copy production-oriented.
 
 ## Service Marketplace Platform
 
