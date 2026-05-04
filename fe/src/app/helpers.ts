@@ -21,7 +21,11 @@ export function initialTheme(): ThemeMode {
 }
 
 export function readLinkTokens(): LinkTokens {
-  const searchParams = new URLSearchParams(window.location.search);
+  return readLinkTokensFromSearch(window.location.search);
+}
+
+export function readLinkTokensFromSearch(search: string): LinkTokens {
+  const searchParams = new URLSearchParams(search);
   return {
     resetToken: searchParams.get("password_reset_token") ?? searchParams.get("token"),
     verificationToken: searchParams.get("email_validation_token_id")

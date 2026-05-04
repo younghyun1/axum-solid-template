@@ -1,4 +1,5 @@
 import { createEffect, createMemo, createResource, createSignal, Show } from "solid-js";
+import { useLocation, useNavigate } from "@solidjs/router";
 
 import {
   getCountries,
@@ -8,7 +9,7 @@ import {
   me
 } from "../api/appApi";
 import type { LoginResponse, MeResponse } from "../api/types";
-import { initialTheme, profileFromSession, readLinkTokens, resultData } from "./helpers";
+import { initialTheme, profileFromSession, readLinkTokensFromSearch, resultData } from "./helpers";
 import { AccountPage } from "./pages/AccountPage";
 import { AdminVerificationQuestionsPage } from "./pages/AdminVerificationQuestionsPage";
 import { HomePage } from "./pages/HomePage";
@@ -19,14 +20,10 @@ import { VerifyEmailPage } from "./pages/VerifyEmailPage";
 import type { PageId, ThemeMode } from "./shared/types";
 
 export function App() {
-  const linkTokens = readLinkTokens();
-  const [activePage, setActivePage] = createSignal<PageId>(
-    linkTokens.verificationToken !== null
-      ? "verify-email"
-      : linkTokens.resetToken !== null
-        ? "recovery"
-        : "home"
-  );
+  const location = useLocation();
+  const navigate = useNavigate();
+  const linkTokens = createMemo(() => readLinkTokensFromSearch(location.search));
+  const activePage = createMemo(() => pageFromPath(location.pathname, linkTokens()));
   const [theme, setTheme] = createSignal<ThemeMode>(initialTheme());
   const [displayLanguage, setDisplayLanguage] = createSignal("en");
   const [token, setToken] = createSignal("");
@@ -72,7 +69,7 @@ export function App() {
       setProfile(profileResult.data);
     }
 
-    setActivePage("account");
+    goToPage("account");
   };
 
   const clearSession = async () => {
@@ -84,17 +81,21 @@ export function App() {
     setProfile(null);
     setToken("");
     setMenuOpen(false);
-    setActivePage("home");
+    goToPage("home");
   };
 
   const goToSwagger = () => {
     window.location.assign("/api/v1/swagger-ui/");
   };
 
+  const goToPage = (page: PageId) => {
+    navigate(pathForPage(page));
+  };
+
   return (
     <div class="app-shell">
       <header class="top-bar">
-        <button class="brand-button" type="button" onClick={() => setActivePage("home")}>
+        <button class="brand-button" type="button" onClick={() => goToPage("home")}>
           Rust-Solid-Template
         </button>
 
@@ -125,10 +126,10 @@ export function App() {
             when={isSignedIn() && currentUser() !== null}
             fallback={
               <div class="guest-actions">
-                <button class="secondary-button" type="button" onClick={() => setActivePage("signin")}>
+                <button class="secondary-button" type="button" onClick={() => goToPage("signin")}>
                   Sign in
                 </button>
-                <button class="primary-button" type="button" onClick={() => setActivePage("join")}>
+                <button class="primary-button" type="button" onClick={() => goToPage("join")}>
                   Create account
                 </button>
               </div>
@@ -140,7 +141,7 @@ export function App() {
                   <button
                     class="secondary-button"
                     type="button"
-                    onClick={() => setActivePage("admin-verification")}
+                    onClick={() => goToPage("admin-verification")}
                   >
                     Verification challenges
                   </button>
@@ -169,7 +170,7 @@ export function App() {
                     type="button"
                     role="menuitem"
                     onClick={() => {
-                      setActivePage("account");
+                      goToPage("account");
                       setMenuOpen(false);
                     }}
                   >
@@ -190,8 +191,8 @@ export function App() {
           <HomePage
             isSignedIn={isSignedIn()}
             serviceOnline={healthOnline()}
-            onCreateAccount={() => setActivePage("join")}
-            onSignIn={() => setActivePage("signin")}
+            onCreateAccount={() => goToPage("join")}
+            onSignIn={() => goToPage("signin")}
           />
         </Show>
 
@@ -199,15 +200,15 @@ export function App() {
           <JoinPage
             countries={countries()}
             languages={languages()}
-            onSignedUp={() => setActivePage("signin")}
-            onSignIn={() => setActivePage("signin")}
+            onSignedUp={() => goToPage("signin")}
+            onSignIn={() => goToPage("signin")}
           />
         </Show>
 
         <Show when={activePage() === "signin"}>
           <SignInPage
-            onForgotPassword={() => setActivePage("recovery")}
-            onJoin={() => setActivePage("join")}
+            onForgotPassword={() => goToPage("recovery")}
+            onJoin={() => goToPage("join")}
             onLogin={handleLogin}
           />
         </Show>
@@ -217,7 +218,7 @@ export function App() {
             countries={countries()}
             languages={languages()}
             profile={currentUser()}
-            onSignIn={() => setActivePage("signin")}
+            onSignIn={() => goToPage("signin")}
             onSignOut={clearSession}
           />
         </Show>
@@ -225,27 +226,77 @@ export function App() {
         <Show when={activePage() === "verify-email"}>
           <VerifyEmailPage
             isSignedIn={isSignedIn()}
-            linkTokens={linkTokens}
+            linkTokens={linkTokens()}
             token={token()}
-            onHome={() => setActivePage("home")}
+            onHome={() => goToPage("home")}
             onProfileLoaded={(nextProfile) => setProfile(nextProfile)}
-            onSignIn={() => setActivePage("signin")}
+            onSignIn={() => goToPage("signin")}
           />
         </Show>
 
         <Show when={activePage() === "recovery"}>
-          <RecoveryPage linkTokens={linkTokens} onSignIn={() => setActivePage("signin")} />
+          <RecoveryPage linkTokens={linkTokens()} onSignIn={() => goToPage("signin")} />
         </Show>
 
         <Show when={activePage() === "admin-verification"}>
           <AdminVerificationQuestionsPage
             isAdmin={isAdmin()}
             token={token()}
-            onHome={() => setActivePage("home")}
-            onSignIn={() => setActivePage("signin")}
+            onHome={() => goToPage("home")}
+            onSignIn={() => goToPage("signin")}
           />
         </Show>
       </main>
     </div>
   );
+}
+
+function pageFromPath(
+  pathname: string,
+  linkTokens: ReturnType<typeof readLinkTokensFromSearch>
+): PageId {
+  if (linkTokens.verificationToken !== null) {
+    return "verify-email";
+  }
+  if (linkTokens.resetToken !== null) {
+    return "recovery";
+  }
+
+  switch (pathname) {
+    case "/":
+      return "home";
+    case "/join":
+      return "join";
+    case "/sign-in":
+      return "signin";
+    case "/account":
+      return "account";
+    case "/recovery":
+      return "recovery";
+    case "/verify-email":
+      return "verify-email";
+    case "/admin":
+      return "admin-verification";
+    default:
+      return "home";
+  }
+}
+
+function pathForPage(page: PageId): string {
+  switch (page) {
+    case "home":
+      return "/";
+    case "join":
+      return "/join";
+    case "signin":
+      return "/sign-in";
+    case "account":
+      return "/account";
+    case "recovery":
+      return "/recovery";
+    case "verify-email":
+      return "/verify-email";
+    case "admin-verification":
+      return "/admin";
+  }
 }

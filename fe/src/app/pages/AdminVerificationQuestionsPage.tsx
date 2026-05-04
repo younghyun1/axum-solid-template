@@ -9,6 +9,11 @@ import {
   resetDatabase
 } from "../../api/appApi";
 import type { ApiCallResult, EmailVerificationQuestionnaireResponse } from "../../api/types";
+import {
+  AdminDashboardSidebar,
+  type AdminDashboardSection
+} from "./AdminDashboardSidebar";
+import { AdminDatabasePanel } from "./AdminDatabasePanel";
 import { NoticeView, SpinnerStatus } from "../shared/Feedback";
 import { emptyNotice, type Notice } from "../shared/types";
 
@@ -22,6 +27,7 @@ interface AdminVerificationQuestionsPageProps {
 export function AdminVerificationQuestionsPage(props: AdminVerificationQuestionsPageProps) {
   const [questionnaire, setQuestionnaire] =
     createSignal<EmailVerificationQuestionnaireResponse | null>(null);
+  const [activeSection, setActiveSection] = createSignal<AdminDashboardSection>("verification");
   const [questionPrompt, setQuestionPrompt] = createSignal("");
   const [questionAnswers, setQuestionAnswers] = createSignal("");
   const [answerInputs, setAnswerInputs] = createSignal<Record<string, string>>({});
@@ -157,114 +163,135 @@ export function AdminVerificationQuestionsPage(props: AdminVerificationQuestions
         <>
           <div class="section-heading">
             <p class="eyebrow">Admin</p>
-            <h1>Verification challenges</h1>
+            <h1>Admin dashboard</h1>
           </div>
-          <form class="auth-card admin-form" onSubmit={createQuestion}>
-            <h2>New question</h2>
-            <input
-              aria-label="Question prompt"
-              placeholder="Question prompt"
-              required
-              value={questionPrompt()}
-              onInput={(event) => setQuestionPrompt(event.currentTarget.value)}
+
+          <div class="admin-dashboard">
+            <AdminDashboardSidebar
+              activeSection={activeSection()}
+              onSectionChange={setActiveSection}
             />
-            <textarea
-              aria-label="Accepted answers"
-              placeholder="Accepted answers, one per line"
-              required
-              value={questionAnswers()}
-              onInput={(event) => setQuestionAnswers(event.currentTarget.value)}
-            />
-            <button class="primary-button" disabled={running()} type="submit">
-              Create question
-            </button>
-          </form>
-          <div class="admin-toolbar">
-            <button
-              class="secondary-button"
-              disabled={running()}
-              type="button"
-              onClick={loadQuestionnaire}
-            >
-              Refresh
-            </button>
-            <button
-              class="danger-button"
-              disabled={running()}
-              type="button"
-              onClick={() => void resetDatabaseFromMigrations()}
-            >
-              Reset database
-            </button>
-            <span>
-              Revision {questionnaire()?.email_verification_questionnaire_revision.toString() ?? "-"}
-            </span>
-          </div>
-          <NoticeView notice={notice()} />
-          <Show when={running()}>
-            <SpinnerStatus text="Updating questionnaire" />
-          </Show>
-          <div class="question-list">
-            <For each={questionnaire()?.email_verification_questions ?? []}>
-              {(question) => (
-                <article class="question-item">
-                  <div class="question-item__header">
-                    <h2>{question.email_verification_question_prompt}</h2>
+
+            <div class="admin-content">
+              <NoticeView notice={notice()} />
+              <Show when={running()}>
+                <SpinnerStatus text="Updating admin state" />
+              </Show>
+
+              <Show when={activeSection() === "verification"}>
+                <>
+                  <form class="auth-card admin-form" onSubmit={createQuestion}>
+                    <h2>New question</h2>
+                    <input
+                      aria-label="Question prompt"
+                      placeholder="Question prompt"
+                      required
+                      value={questionPrompt()}
+                      onInput={(event) => setQuestionPrompt(event.currentTarget.value)}
+                    />
+                    <textarea
+                      aria-label="Accepted answers"
+                      placeholder="Accepted answers, one per line"
+                      required
+                      value={questionAnswers()}
+                      onInput={(event) => setQuestionAnswers(event.currentTarget.value)}
+                    />
+                    <button class="primary-button" disabled={running()} type="submit">
+                      Create question
+                    </button>
+                  </form>
+
+                  <div class="admin-toolbar">
                     <button
                       class="secondary-button"
                       disabled={running()}
                       type="button"
-                      onClick={() => void removeQuestion(question.email_verification_question_id)}
+                      onClick={loadQuestionnaire}
                     >
-                      Delete
+                      Refresh
                     </button>
+                    <span>
+                      Revision{" "}
+                      {questionnaire()?.email_verification_questionnaire_revision.toString() ?? "-"}
+                    </span>
                   </div>
-                  <div class="answer-list">
-                    <For each={question.email_verification_question_answers}>
-                      {(answerItem) => (
-                        <div class="answer-item">
-                          <span>{answerItem.email_verification_question_answer_text}</span>
-                          <button
-                            class="secondary-button"
-                            disabled={running()}
-                            type="button"
-                            onClick={() =>
-                              void removeAnswer(
-                                question.email_verification_question_id,
-                                answerItem.email_verification_question_answer_id
-                              )
-                            }
-                          >
-                            Delete
-                          </button>
-                        </div>
+
+                  <div class="question-list">
+                    <For each={questionnaire()?.email_verification_questions ?? []}>
+                      {(question) => (
+                        <article class="question-item">
+                          <div class="question-item__header">
+                            <h2>{question.email_verification_question_prompt}</h2>
+                            <button
+                              class="secondary-button"
+                              disabled={running()}
+                              type="button"
+                              onClick={() =>
+                                void removeQuestion(question.email_verification_question_id)
+                              }
+                            >
+                              Delete
+                            </button>
+                          </div>
+                          <div class="answer-list">
+                            <For each={question.email_verification_question_answers}>
+                              {(answerItem) => (
+                                <div class="answer-item">
+                                  <span>{answerItem.email_verification_question_answer_text}</span>
+                                  <button
+                                    class="secondary-button"
+                                    disabled={running()}
+                                    type="button"
+                                    onClick={() =>
+                                      void removeAnswer(
+                                        question.email_verification_question_id,
+                                        answerItem.email_verification_question_answer_id
+                                      )
+                                    }
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              )}
+                            </For>
+                          </div>
+                          <div class="answer-add-row">
+                            <input
+                              aria-label="New accepted answer"
+                              placeholder="New accepted answer"
+                              value={answerInputs()[question.email_verification_question_id] ?? ""}
+                              onInput={(event) =>
+                                setAnswerInputs((current) => ({
+                                  ...current,
+                                  [question.email_verification_question_id]:
+                                    event.currentTarget.value
+                                }))
+                              }
+                            />
+                            <button
+                              class="secondary-button"
+                              disabled={running()}
+                              type="button"
+                              onClick={() => void addAnswer(question.email_verification_question_id)}
+                            >
+                              Add answer
+                            </button>
+                          </div>
+                        </article>
                       )}
                     </For>
                   </div>
-                  <div class="answer-add-row">
-                    <input
-                      aria-label="New accepted answer"
-                      placeholder="New accepted answer"
-                      value={answerInputs()[question.email_verification_question_id] ?? ""}
-                      onInput={(event) =>
-                        setAnswerInputs((current) => ({
-                          ...current,
-                          [question.email_verification_question_id]: event.currentTarget.value
-                        }))
-                      }
-                    />
-                    <button
-                      class="secondary-button"
-                      disabled={running()}
-                      type="button"
-                      onClick={() => void addAnswer(question.email_verification_question_id)}
-                    >
-                      Add answer
-                    </button>
-                  </div>
-                </article>
-              )}
-            </For>
+                </>
+              </Show>
+
+              <Show when={activeSection() === "database"}>
+                <AdminDatabasePanel
+                  running={running()}
+                  onHome={props.onHome}
+                  onResetDatabase={() => void resetDatabaseFromMigrations()}
+                />
+              </Show>
+            </div>
           </div>
         </>
       </Show>

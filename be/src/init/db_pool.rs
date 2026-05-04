@@ -1,7 +1,8 @@
 use std::{fmt, time::Duration};
 
+use diesel::sql_query;
 use diesel_async::{
-    AsyncConnection, AsyncMigrationHarness, AsyncPgConnection,
+    AsyncConnection, AsyncMigrationHarness, AsyncPgConnection, RunQueryDsl,
     pooled_connection::{AsyncDieselConnectionManager, bb8::Pool, bb8::PooledConnection},
 };
 use diesel_migrations::{EmbeddedMigrations, MigrationHarness, embed_migrations};
@@ -164,7 +165,7 @@ pub async fn reset_db_migrations(
         "Resetting database through embedded migrations"
     );
 
-    let connection =
+    let mut connection =
         match AsyncPgConnection::establish(&db_config.postgres_connection_string()).await {
             Ok(connection) => connection,
             Err(error) => {
@@ -173,6 +174,28 @@ pub async fn reset_db_migrations(
                 });
             }
         };
+
+    match sql_query(
+        r#"
+        DO $$
+        BEGIN
+            IF to_regclass('public.users') IS NOT NULL THEN
+                EXECUTE 'TRUNCATE TABLE public.users CASCADE';
+            END IF;
+        END
+        $$;
+        "#,
+    )
+    .execute(&mut connection)
+    .await
+    {
+        Ok(_) => {}
+        Err(error) => {
+            return Err(DbPoolInitError::Migrate {
+                error: error.to_string(),
+            });
+        }
+    }
 
     let mut harness = AsyncMigrationHarness::new(connection);
     let reverted_migration_count = match harness.revert_all_migrations(MIGRATIONS) {

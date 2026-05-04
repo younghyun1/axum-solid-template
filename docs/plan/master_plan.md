@@ -11,3 +11,5 @@
 - [x] Add admin database reset endpoint and admin-panel reset button.
 - [x] Tune email verification browser proof-of-work latency and progress reporting.
 - [x] Replace email verification PoW WebCrypto dependency with worker-local SHA-256.
+- [x] Fix admin database reset FK failure and reshape admin UI into a dashboard.
+- [x] Sync frontend page navigation with browser URLs.
