@@ -23,7 +23,7 @@ use crate::{
     repository::marketplace::postgres::{media_repository, provider_repository},
     service::{
         auth::datasource::postgres_conn,
-        marketplace::{authz, validation},
+        marketplace::{authz, cache, indexing, validation},
     },
 };
 
@@ -109,7 +109,11 @@ pub async fn create_provider_image(
     };
 
     match media_repository::insert_image(&mut conn, new_image).await {
-        Ok(image) => Ok(ImageResponse::from(image)),
+        Ok(image) => {
+            cache::clear_public_cache(&state, "provider_image_create").await;
+            indexing::rebuild_search_index(&state, "provider_image_create").await;
+            Ok(ImageResponse::from(image))
+        }
         Err(error) => Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error)),
     }
 }
@@ -152,7 +156,11 @@ pub async fn complete_provider_image_upload(
     )
     .await
     {
-        Ok(image) => Ok(ImageResponse::from(image)),
+        Ok(image) => {
+            cache::clear_public_cache(&state, "provider_image_complete").await;
+            indexing::rebuild_search_index(&state, "provider_image_complete").await;
+            Ok(ImageResponse::from(image))
+        }
         Err(error) => Err(ApiError::from_source(CodeError::DB_UPDATE_ERROR, error)),
     }
 }

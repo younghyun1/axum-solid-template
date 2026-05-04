@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
 use chrono::Utc;
+use serde::{Serialize, de::DeserializeOwned};
+use tracing::warn;
 
 use crate::{
     dto::{
@@ -23,6 +25,18 @@ pub async fn provider_directory(
     state: Arc<ServerState>,
     query: ProviderDirectoryQuery,
 ) -> ApiResult<ProviderDirectoryResponse> {
+    let limit = validation::directory_limit(query.limit);
+    let cache_key = crate::init::state::cache::marketplace::key::provider_directory(
+        query.q.as_deref(),
+        query.service_area.as_deref(),
+        limit,
+    );
+    if let Some(response) =
+        read_cached_response::<ProviderDirectoryResponse>(&state, &cache_key).await
+    {
+        return Ok(response);
+    }
+
     let mut conn = match postgres_conn(&state).await {
         Ok(conn) => conn,
         Err(error) => return Err(error),
@@ -32,7 +46,7 @@ pub async fn provider_directory(
         &mut conn,
         query.q,
         query.service_area,
-        validation::directory_limit(query.limit),
+        limit,
     )
     .await
     {
@@ -52,7 +66,9 @@ pub async fn provider_directory(
         })
         .collect();
 
-    Ok(ProviderDirectoryResponse { providers })
+    let response = ProviderDirectoryResponse { providers };
+    write_cached_response(&state, cache_key, &response).await;
+    Ok(response)
 }
 
 pub async fn provider_detail(
@@ -63,6 +79,11 @@ pub async fn provider_detail(
         Ok(slug) => slug,
         Err(error) => return Err(error),
     };
+    let cache_key = crate::init::state::cache::marketplace::key::provider_detail(&slug);
+    if let Some(response) = read_cached_response::<ProviderDetailResponse>(&state, &cache_key).await
+    {
+        return Ok(response);
+    }
 
     let mut conn = match postgres_conn(&state).await {
         Ok(conn) => conn,
@@ -103,11 +124,13 @@ pub async fn provider_detail(
         Err(error) => return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
     };
 
-    Ok(ProviderDetailResponse {
+    let response = ProviderDetailResponse {
         profile: ProviderProfileResponse::from(profile),
         images,
         blog_posts,
-    })
+    };
+    write_cached_response(&state, cache_key, &response).await;
+    Ok(response)
 }
 
 pub async fn provider_blog_post(
@@ -123,6 +146,13 @@ pub async fn provider_blog_post(
         Ok(slug) => slug,
         Err(error) => return Err(error),
     };
+    let cache_key =
+        crate::init::state::cache::marketplace::key::provider_blog_post(&provider_slug, &post_slug);
+    if let Some(response) =
+        read_cached_response::<ProviderBlogPostResponse>(&state, &cache_key).await
+    {
+        return Ok(response);
+    }
 
     let mut conn = match postgres_conn(&state).await {
         Ok(conn) => conn,
@@ -143,7 +173,11 @@ pub async fn provider_blog_post(
     )
     .await
     {
-        Ok(Some(post)) => Ok(ProviderBlogPostResponse::from(post)),
+        Ok(Some(post)) => {
+            let response = ProviderBlogPostResponse::from(post);
+            write_cached_response(&state, cache_key, &response).await;
+            Ok(response)
+        }
         Ok(None) => Err(ApiError::new(CodeError::MARKETPLACE_NOT_FOUND)),
         Err(error) => Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
     }
@@ -153,15 +187,76 @@ pub async fn active_banners(
     state: Arc<ServerState>,
     placement: crate::domain::marketplace::enums::BannerPlacement,
 ) -> ApiResult<BannerListResponse> {
+    let cache_key = crate::init::state::cache::marketplace::key::active_banners(placement);
+    if let Some(response) = read_cached_response::<BannerListResponse>(&state, &cache_key).await {
+        return Ok(response);
+    }
+
     let mut conn = match postgres_conn(&state).await {
         Ok(conn) => conn,
         Err(error) => return Err(error),
     };
 
     match admin_repository::list_active_banners(&mut conn, placement, Utc::now()).await {
-        Ok(banners) => Ok(BannerListResponse {
-            banners: banners.into_iter().map(Into::into).collect(),
-        }),
+        Ok(banners) => {
+            let response = BannerListResponse {
+                banners: banners.into_iter().map(Into::into).collect(),
+            };
+            write_cached_response(&state, cache_key, &response).await;
+            Ok(response)
+        }
         Err(error) => Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
+    }
+}
+
+async fn read_cached_response<T>(state: &ServerState, cache_key: &str) -> Option<T>
+where
+    T: DeserializeOwned,
+{
+    let json = match state.marketplace_public_cache.get_json(cache_key).await {
+        Some(json) => json,
+        None => return None,
+    };
+    match serde_json::from_str::<T>(&json) {
+        Ok(response) => Some(response),
+        Err(error) => {
+            warn!(
+                cache_key = %cache_key,
+                error = %error,
+                "Ignoring invalid marketplace cache entry"
+            );
+            None
+        }
+    }
+}
+
+async fn write_cached_response<T>(state: &ServerState, cache_key: String, response: &T)
+where
+    T: Serialize,
+{
+    let json = match serde_json::to_string(response) {
+        Ok(json) => json,
+        Err(error) => {
+            warn!(
+                cache_key = %cache_key,
+                error = %error,
+                "Failed to serialize marketplace cache entry"
+            );
+            return;
+        }
+    };
+    match state
+        .marketplace_public_cache
+        .put_json(cache_key.clone(), json)
+        .await
+    {
+        Ok(()) => {}
+        Err(error) => {
+            warn!(
+                cache_key = %cache_key,
+                error = %error,
+                "Failed to persist marketplace cache entry"
+            );
+        }
     }
 }

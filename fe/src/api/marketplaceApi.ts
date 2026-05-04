@@ -8,6 +8,7 @@ import type {
   CreateCentralBlogPostRequest,
   CreatePaymentIntentRequest,
   CreateProviderBlogPostRequest,
+  MarketplaceCacheClearResponse,
   MarketplaceSearchReindexResponse,
   MarketplaceSearchResponse,
   MarketplaceSearchResultKind,
@@ -140,6 +141,15 @@ export function reindexMarketplaceSearch(): Promise<
   return requestApi({
     method: "POST",
     path: "/api/v1/marketplace/admin/search/reindex"
+  });
+}
+
+export function clearMarketplacePublicCache(): Promise<
+  ApiCallResult<MarketplaceCacheClearResponse>
+> {
+  return requestApi({
+    method: "POST",
+    path: "/api/v1/marketplace/admin/cache/clear"
   });
 }
 

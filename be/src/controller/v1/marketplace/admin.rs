@@ -13,7 +13,8 @@ use crate::{
             request::{CreateBanRequest, CreateBannerRequest, CreateCentralBlogPostRequest},
             response::{
                 AdminOverviewResponse, BanListResponse, BanResponse, BannerResponse,
-                CentralBlogPostResponse, MarketplaceSearchReindexResponse,
+                CentralBlogPostResponse, MarketplaceCacheClearResponse,
+                MarketplaceSearchReindexResponse,
             },
         },
     },
@@ -49,6 +50,22 @@ pub async fn admin_reindex_marketplace_search(
     Extension(auth_context): Extension<AuthContext>,
 ) -> ApiResponseResult<MarketplaceSearchReindexResponse> {
     match search::reindex_marketplace_search(state, auth_context.claims).await {
+        Ok(response) => Ok(api_ok(response)),
+        Err(error) => Err(error),
+    }
+}
+
+#[utoipa::path(
+    post,
+    path = "/api/v1/marketplace/admin/cache/clear",
+    tag = "marketplace-admin",
+    responses((status = 200, description = "Cleared marketplace public cache", body = ApiEnvelope<MarketplaceCacheClearResponse>))
+)]
+pub async fn admin_clear_marketplace_public_cache(
+    State(state): State<Arc<ServerState>>,
+    Extension(auth_context): Extension<AuthContext>,
+) -> ApiResponseResult<MarketplaceCacheClearResponse> {
+    match admin::clear_marketplace_public_cache(state, auth_context.claims).await {
         Ok(response) => Ok(api_ok(response)),
         Err(error) => Err(error),
     }

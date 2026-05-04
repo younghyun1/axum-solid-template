@@ -92,7 +92,7 @@ Scope: turn the marketplace from a functional first slice into a production-grad
 - [x] Add production markdown authoring plan and implementation for provider/admin blog workflows.
 - [x] Add sanitized markdown rendering model for public blog content.
 - [x] Add Tantivy-backed search indexing for providers and blog posts.
-- [ ] Add single-server RAM cache plus disk persistence for hot marketplace reads.
+- [x] Add single-server RAM cache plus disk persistence for hot marketplace reads.
 - [ ] Add backend APIs and OpenAPI docs for search, cache-backed public reads, blog updates, and moderation transitions.
 - [ ] Upgrade provider/admin frontend dashboards around rich authoring and content management.
 - [ ] Add focused backend and frontend tests for the new production behavior.
@@ -105,3 +105,4 @@ Progress:
 - [x] 2026-05-04: Added Comrak/Ammonia backend rendering and Milkdown Crepe provider/admin blog editors.
 - [x] 2026-05-04: Ran `cargo check`, markdown renderer unit tests, `npm run build`, and `npm test` for the markdown slice.
 - [x] 2026-05-04: Added Tantivy startup/admin reindex search, public search API, Swagger schemas, directory search UI, and admin reindex control.
+- [x] 2026-05-04: Added Moka RAM cache, versioned disk cache, public-read cache integration, mutation invalidation, and admin cache clear API.

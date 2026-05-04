@@ -1,6 +1,7 @@
 import { createMemo, createResource, createSignal, For, Show } from "solid-js";
 
 import {
+  clearMarketplacePublicCache,
   createBan,
   createBanner,
   createCentralBlogPost,
@@ -35,6 +36,7 @@ export function AdminMarketplacePage(props: AdminMarketplacePageProps) {
   const [centralPostBody, setCentralPostBody] = createSignal("");
   const [centralEditorResetToken, setCentralEditorResetToken] = createSignal(0);
   const [reindexing, setReindexing] = createSignal(false);
+  const [clearingCache, setClearingCache] = createSignal(false);
   const [notice, setNotice] = createSignal("");
 
   const submitBan = async () => {
@@ -101,6 +103,13 @@ export function AdminMarketplacePage(props: AdminMarketplacePageProps) {
     setNotice(result.ok ? "Search index rebuilt." : result.error.message);
   };
 
+  const clearPublicCache = async () => {
+    setClearingCache(true);
+    const result = await clearMarketplacePublicCache();
+    setClearingCache(false);
+    setNotice(result.ok ? "Public cache cleared." : result.error.message);
+  };
+
   return (
     <section class="marketplace-layout">
       <Show when={canModerate()} fallback={<p class="marketplace-empty">Moderator role required.</p>}>
@@ -140,6 +149,14 @@ export function AdminMarketplacePage(props: AdminMarketplacePageProps) {
             onClick={rebuildSearchIndex}
           >
             {reindexing() ? "Rebuilding index" : "Rebuild search index"}
+          </button>
+          <button
+            class="secondary-button"
+            type="button"
+            disabled={clearingCache()}
+            onClick={clearPublicCache}
+          >
+            {clearingCache() ? "Clearing cache" : "Clear public cache"}
           </button>
         </section>
 

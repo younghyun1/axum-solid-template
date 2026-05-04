@@ -1,5 +1,7 @@
 pub mod admin;
 mod authz;
+mod cache;
+mod indexing;
 pub mod markdown;
 pub mod provider;
 pub mod provider_media;

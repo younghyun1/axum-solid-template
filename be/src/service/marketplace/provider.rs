@@ -20,7 +20,7 @@ use crate::{
     repository::marketplace::postgres::{media_repository, provider_repository},
     service::{
         auth::datasource::postgres_conn,
-        marketplace::{authz, validation},
+        marketplace::{authz, cache, indexing, validation},
     },
 };
 use chrono::Utc;
@@ -150,6 +150,8 @@ pub async fn upsert_provider_profile(
         }
     };
 
+    cache::clear_public_cache(&state, "provider_profile_upsert").await;
+    indexing::rebuild_search_index(&state, "provider_profile_upsert").await;
     Ok(ProviderProfileResponse::from(profile))
 }
 
@@ -205,7 +207,11 @@ pub async fn create_provider_blog_post(
     };
 
     match provider_repository::insert_provider_blog_post(&mut conn, new_post).await {
-        Ok(post) => Ok(ProviderBlogPostResponse::from(post)),
+        Ok(post) => {
+            cache::clear_public_cache(&state, "provider_blog_post_create").await;
+            indexing::rebuild_search_index(&state, "provider_blog_post_create").await;
+            Ok(ProviderBlogPostResponse::from(post))
+        }
         Err(error) => Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error)),
     }
 }

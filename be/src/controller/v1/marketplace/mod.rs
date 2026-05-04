@@ -4,8 +4,9 @@ pub mod public;
 pub mod user;
 
 pub use admin::{
-    admin_active_bans, admin_create_ban, admin_create_banner, admin_create_central_blog_post,
-    admin_marketplace_overview, admin_reindex_marketplace_search, admin_revoke_ban,
+    admin_active_bans, admin_clear_marketplace_public_cache, admin_create_ban, admin_create_banner,
+    admin_create_central_blog_post, admin_marketplace_overview, admin_reindex_marketplace_search,
+    admin_revoke_ban,
 };
 pub use provider::{
     provider_complete_image_upload, provider_create_blog_post, provider_create_image,

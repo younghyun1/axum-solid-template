@@ -7,7 +7,7 @@ use crate::init::{
     server_init::error::ServerInitError,
     state::cache::{
         email_verification::EmailVerificationChallengeCache,
-        reference_data::types::ReferenceDataCache,
+        marketplace::cache::MarketplacePublicCache, reference_data::types::ReferenceDataCache,
     },
     state::search::marketplace::index::MarketplaceSearchIndex,
     state::server_state::ServerState,
@@ -75,6 +75,14 @@ pub async fn init_server_state() -> Result<ServerState, ServerInitError> {
         }
     };
 
+    let marketplace_public_cache =
+        match MarketplacePublicCache::load(&server_config.marketplace_config).await {
+            Ok(cache) => cache,
+            Err(error) => {
+                return Err(ServerInitError::MarketplacePublicCache(error));
+            }
+        };
+
     let marketplace_search_index = match MarketplaceSearchIndex::load(
         &db_pool,
         &server_config.marketplace_config.search_index_path,
@@ -87,15 +95,16 @@ pub async fn init_server_state() -> Result<ServerState, ServerInitError> {
         }
     };
 
-    Ok(ServerState::new(
+    Ok(ServerState {
         server_config,
         logger_guard,
         db_pool,
         mail_sender,
         reference_data_cache,
         email_verification_challenge_cache,
+        marketplace_public_cache,
         marketplace_search_index,
-    ))
+    })
 }
 
 /// Perform the `load_dotenv_if_deployment_environment_is_missing` operation as implemented by this function.

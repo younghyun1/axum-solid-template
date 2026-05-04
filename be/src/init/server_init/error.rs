@@ -6,6 +6,7 @@ use crate::init::{
     server_config::server_config::ServerConfigError,
     state::cache::{
         email_verification::EmailVerificationChallengeCacheError,
+        marketplace::error::MarketplacePublicCacheError,
         reference_data::error::ReferenceDataCacheError,
     },
     state::search::marketplace::error::MarketplaceSearchError,
@@ -21,6 +22,7 @@ pub enum ServerInitError {
     MailSender(MailSenderError),
     ReferenceDataCache(ReferenceDataCacheError),
     EmailVerificationChallengeCache(EmailVerificationChallengeCacheError),
+    MarketplacePublicCache(MarketplacePublicCacheError),
     MarketplaceSearch(MarketplaceSearchError),
     ServerConfig(ServerConfigError),
 }
@@ -74,6 +76,12 @@ impl fmt::Display for ServerInitError {
                 write!(
                     formatter,
                     "failed to initialize email verification challenge cache: {error}"
+                )
+            }
+            ServerInitError::MarketplacePublicCache(error) => {
+                write!(
+                    formatter,
+                    "failed to initialize marketplace public cache: {error}"
                 )
             }
             ServerInitError::MarketplaceSearch(error) => {

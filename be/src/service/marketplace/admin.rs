@@ -17,7 +17,7 @@ use crate::{
             request::{CreateBanRequest, CreateBannerRequest, CreateCentralBlogPostRequest},
             response::{
                 AdminOverviewResponse, BanListResponse, BanResponse, BannerResponse,
-                CentralBlogPostResponse,
+                CentralBlogPostResponse, MarketplaceCacheClearResponse,
             },
         },
     },
@@ -26,7 +26,7 @@ use crate::{
     repository::marketplace::postgres::{admin_repository, payment_repository},
     service::{
         auth::datasource::postgres_conn,
-        marketplace::{authz, validation},
+        marketplace::{authz, cache, indexing, validation},
     },
 };
 
@@ -71,7 +71,11 @@ pub async fn create_ban(
     };
 
     match admin_repository::insert_ban(&mut conn, new_ban).await {
-        Ok(ban) => Ok(BanResponse::from(ban)),
+        Ok(ban) => {
+            cache::clear_public_cache(&state, "moderation_ban_create").await;
+            indexing::rebuild_search_index(&state, "moderation_ban_create").await;
+            Ok(BanResponse::from(ban))
+        }
         Err(error) => Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error)),
     }
 }
@@ -90,7 +94,11 @@ pub async fn revoke_ban(
         Err(error) => return Err(error),
     };
     match admin_repository::revoke_ban(&mut conn, ban_id, claims.user_id, Utc::now()).await {
-        Ok(ban) => Ok(BanResponse::from(ban)),
+        Ok(ban) => {
+            cache::clear_public_cache(&state, "moderation_ban_revoke").await;
+            indexing::rebuild_search_index(&state, "moderation_ban_revoke").await;
+            Ok(BanResponse::from(ban))
+        }
         Err(error) => Err(ApiError::from_source(CodeError::DB_UPDATE_ERROR, error)),
     }
 }
@@ -112,6 +120,20 @@ pub async fn active_bans(
             bans: bans.into_iter().map(Into::into).collect(),
         }),
         Err(error) => Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
+    }
+}
+
+pub async fn clear_marketplace_public_cache(
+    state: Arc<ServerState>,
+    claims: AccessTokenClaims,
+) -> ApiResult<MarketplaceCacheClearResponse> {
+    match authz::require_moderator(&claims) {
+        Ok(()) => {}
+        Err(error) => return Err(error),
+    }
+    match state.marketplace_public_cache.clear().await {
+        Ok(()) => Ok(MarketplaceCacheClearResponse { cleared: true }),
+        Err(error) => Err(ApiError::from_source(CodeError::INTERNAL_ERROR, error)),
     }
 }
 
@@ -160,7 +182,11 @@ pub async fn create_central_blog_post(
         Err(error) => return Err(error),
     };
     match admin_repository::insert_central_blog_post(&mut conn, new_post).await {
-        Ok(post) => Ok(CentralBlogPostResponse::from(post)),
+        Ok(post) => {
+            cache::clear_public_cache(&state, "central_blog_post_create").await;
+            indexing::rebuild_search_index(&state, "central_blog_post_create").await;
+            Ok(CentralBlogPostResponse::from(post))
+        }
         Err(error) => Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error)),
     }
 }
@@ -207,7 +233,11 @@ pub async fn create_banner(
         Err(error) => return Err(error),
     };
     match admin_repository::insert_banner(&mut conn, new_banner).await {
-        Ok(banner) => Ok(BannerResponse::from(banner)),
+        Ok(banner) => {
+            cache::clear_public_cache(&state, "advertisement_banner_create").await;
+            indexing::rebuild_search_index(&state, "advertisement_banner_create").await;
+            Ok(BannerResponse::from(banner))
+        }
         Err(error) => Err(ApiError::from_source(CodeError::DB_INSERT_ERROR, error)),
     }
 }

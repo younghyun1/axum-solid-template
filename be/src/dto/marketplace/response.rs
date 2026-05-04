@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -10,7 +10,7 @@ use crate::domain::marketplace::enums::{
 };
 use crate::domain::marketplace::search::MarketplaceSearchResultKind;
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct ImageResponse {
     pub image_id: Uuid,
     pub image_type: ImageType,
@@ -27,7 +27,7 @@ pub struct ImageResponse {
     pub uploaded_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct UserProfileResponse {
     pub user_profile_extension_id: Uuid,
     pub user_id: Uuid,
@@ -38,7 +38,7 @@ pub struct UserProfileResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct ProviderProfileResponse {
     pub provider_profile_id: Uuid,
     pub user_id: Uuid,
@@ -54,7 +54,7 @@ pub struct ProviderProfileResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct ProviderDirectoryCardResponse {
     pub provider_profile_id: Uuid,
     pub slug: String,
@@ -64,12 +64,12 @@ pub struct ProviderDirectoryCardResponse {
     pub primary_image: Option<ImageResponse>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct ProviderDirectoryResponse {
     pub providers: Vec<ProviderDirectoryCardResponse>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct MarketplaceSearchResultResponse {
     pub kind: MarketplaceSearchResultKind,
     pub title: String,
@@ -81,17 +81,22 @@ pub struct MarketplaceSearchResultResponse {
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct MarketplaceSearchResponse {
     pub results: Vec<MarketplaceSearchResultResponse>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct MarketplaceSearchReindexResponse {
     pub indexed_documents: usize,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct MarketplaceCacheClearResponse {
+    pub cleared: bool,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct ProviderBlogPostResponse {
     pub provider_blog_post_id: Uuid,
     pub provider_profile_id: Uuid,
@@ -108,14 +113,14 @@ pub struct ProviderBlogPostResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct ProviderDetailResponse {
     pub profile: ProviderProfileResponse,
     pub images: Vec<ImageResponse>,
     pub blog_posts: Vec<ProviderBlogPostResponse>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct PaymentIntentResponse {
     pub payment_intent_id: Uuid,
     pub user_id: Uuid,
@@ -128,7 +133,7 @@ pub struct PaymentIntentResponse {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct PaymentTransactionResponse {
     pub payment_transaction_id: Uuid,
     pub payment_intent_id: Uuid,
@@ -139,12 +144,12 @@ pub struct PaymentTransactionResponse {
     pub created_at: DateTime<Utc>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct PaymentIntentListResponse {
     pub payment_intents: Vec<PaymentIntentResponse>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct BanResponse {
     pub moderation_ban_id: Uuid,
     pub target_user_id: Uuid,
@@ -156,12 +161,12 @@ pub struct BanResponse {
     pub revoked_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct BanListResponse {
     pub bans: Vec<BanResponse>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct CentralBlogPostResponse {
     pub central_blog_post_id: Uuid,
     pub author_user_id: Uuid,
@@ -175,7 +180,7 @@ pub struct CentralBlogPostResponse {
     pub published_at: Option<DateTime<Utc>>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct BannerResponse {
     pub advertisement_banner_id: Uuid,
     pub placement: BannerPlacement,
@@ -188,12 +193,12 @@ pub struct BannerResponse {
     pub image_id: Option<Uuid>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct BannerListResponse {
     pub banners: Vec<BannerResponse>,
 }
 
-#[derive(Debug, Serialize, ToSchema)]
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
 pub struct AdminOverviewResponse {
     pub provider_count: i64,
     pub active_ban_count: i64,

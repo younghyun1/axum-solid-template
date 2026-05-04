@@ -89,6 +89,10 @@ export interface MarketplaceSearchReindexResponse {
   readonly indexed_documents: number;
 }
 
+export interface MarketplaceCacheClearResponse {
+  readonly cleared: boolean;
+}
+
 export interface ProviderBlogPostResponse {
   readonly provider_blog_post_id: string;
   readonly provider_profile_id: string;
