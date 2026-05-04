@@ -61,6 +61,17 @@ pub struct NewProviderProfile {
     pub provider_profile_moderation_status: ModerationStatus,
 }
 
+#[derive(Debug, Clone)]
+pub struct ProviderProfileUpdate {
+    pub provider_profile_slug: String,
+    pub provider_profile_display_name: String,
+    pub provider_profile_headline: Option<String>,
+    pub provider_profile_bio: Option<String>,
+    pub provider_profile_service_area: Option<String>,
+    pub provider_profile_status: ProviderProfileStatus,
+    pub provider_profile_updated_at: DateTime<Utc>,
+}
+
 #[derive(Debug, Clone, Queryable, Selectable)]
 #[diesel(table_name = provider_blog_posts)]
 #[diesel(check_for_backend(diesel::pg::Pg))]

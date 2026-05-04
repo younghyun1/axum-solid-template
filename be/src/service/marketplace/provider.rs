@@ -5,7 +5,7 @@ use crate::{
         auth::jwt::AccessTokenClaims,
         marketplace::{
             enums::{BlogPostStatus, ModerationStatus},
-            provider::{NewProviderBlogPost, NewProviderProfile},
+            provider::{NewProviderBlogPost, NewProviderProfile, ProviderProfileUpdate},
         },
     },
     dto::{
@@ -116,13 +116,15 @@ pub async fn upsert_provider_profile(
             match provider_repository::update_provider_profile_by_user(
                 &mut conn,
                 claims.user_id,
-                slug,
-                display_name,
-                headline,
-                bio,
-                service_area,
-                request.status,
-                Utc::now(),
+                ProviderProfileUpdate {
+                    provider_profile_slug: slug,
+                    provider_profile_display_name: display_name,
+                    provider_profile_headline: headline,
+                    provider_profile_bio: bio,
+                    provider_profile_service_area: service_area,
+                    provider_profile_status: request.status,
+                    provider_profile_updated_at: Utc::now(),
+                },
             )
             .await
             {

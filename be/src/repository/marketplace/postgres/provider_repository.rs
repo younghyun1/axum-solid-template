@@ -10,7 +10,7 @@ use crate::{
         enums::{BlogPostStatus, ModerationStatus, ProviderProfileStatus},
         provider::{
             NewProviderBlogPost, NewProviderProfile, NewUserProfileExtension, ProviderBlogPost,
-            ProviderProfile, UserProfileExtension,
+            ProviderProfile, ProviderProfileUpdate, UserProfileExtension,
         },
     },
     schema::{provider_blog_posts, provider_profiles, user_profile_extensions},
@@ -140,28 +140,20 @@ pub async fn list_public_providers(
         )
         .into_boxed();
 
-    match q {
-        Some(value) => {
-            let trimmed = value.trim();
-            if !trimmed.is_empty() {
-                let pattern = format!("%{trimmed}%");
-                query =
-                    query.filter(provider_profiles::provider_profile_display_name.ilike(pattern));
-            }
+    if let Some(value) = q {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            let pattern = format!("%{trimmed}%");
+            query = query.filter(provider_profiles::provider_profile_display_name.ilike(pattern));
         }
-        None => {}
     }
 
-    match service_area {
-        Some(value) => {
-            let trimmed = value.trim();
-            if !trimmed.is_empty() {
-                let pattern = format!("%{trimmed}%");
-                query =
-                    query.filter(provider_profiles::provider_profile_service_area.ilike(pattern));
-            }
+    if let Some(value) = service_area {
+        let trimmed = value.trim();
+        if !trimmed.is_empty() {
+            let pattern = format!("%{trimmed}%");
+            query = query.filter(provider_profiles::provider_profile_service_area.ilike(pattern));
         }
-        None => {}
     }
 
     match query
@@ -194,23 +186,19 @@ pub async fn insert_provider_profile(
 pub async fn update_provider_profile_by_user(
     conn: &mut AsyncPgConnection,
     user_id: Uuid,
-    slug: String,
-    display_name: String,
-    headline: Option<String>,
-    bio: Option<String>,
-    service_area: Option<String>,
-    status: ProviderProfileStatus,
-    now: DateTime<Utc>,
+    update: ProviderProfileUpdate,
 ) -> Result<ProviderProfile, diesel::result::Error> {
     match diesel::update(provider_profiles::table.filter(provider_profiles::user_id.eq(user_id)))
         .set((
-            provider_profiles::provider_profile_slug.eq(slug),
-            provider_profiles::provider_profile_display_name.eq(display_name),
-            provider_profiles::provider_profile_headline.eq(headline),
-            provider_profiles::provider_profile_bio.eq(bio),
-            provider_profiles::provider_profile_service_area.eq(service_area),
-            provider_profiles::provider_profile_status.eq(status),
-            provider_profiles::provider_profile_updated_at.eq(now),
+            provider_profiles::provider_profile_slug.eq(update.provider_profile_slug),
+            provider_profiles::provider_profile_display_name
+                .eq(update.provider_profile_display_name),
+            provider_profiles::provider_profile_headline.eq(update.provider_profile_headline),
+            provider_profiles::provider_profile_bio.eq(update.provider_profile_bio),
+            provider_profiles::provider_profile_service_area
+                .eq(update.provider_profile_service_area),
+            provider_profiles::provider_profile_status.eq(update.provider_profile_status),
+            provider_profiles::provider_profile_updated_at.eq(update.provider_profile_updated_at),
         ))
         .returning(ProviderProfile::as_returning())
         .get_result::<ProviderProfile>(conn)
