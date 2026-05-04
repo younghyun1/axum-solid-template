@@ -49,7 +49,7 @@ Scope: evolve the existing cookie-auth, role, DTO, utoipa, Diesel/PostgreSQL, an
 - [x] Build marketplace frontend shell for public, user, provider, and admin workflows.
 - [ ] Add backend repository/service/API/fuzz tests for new behavior.
 - [ ] Add frontend strict TypeScript/API/navigation/component tests where project tooling supports it.
-- [ ] Run `cargo fmt`, `cargo clippy`, non-release backend checks/tests, and `npm run build`.
+- [x] Run `cargo fmt`, `cargo clippy`, non-release backend checks/tests, and `npm run build`.
 
 Progress:
 
@@ -61,4 +61,4 @@ Progress:
 - [x] 2026-05-04: Backend and frontend design docs created for marketplace work.
 - [x] 2026-05-04: Marketplace backend schema, APIs, OpenAPI, repositories, and services implemented.
 - [x] 2026-05-04: Marketplace frontend shell and typed API client implemented.
-- [x] 2026-05-04: Ran `cargo fmt`, `cargo check`, and `npm run build`.
+- [x] 2026-05-04: Ran `cargo fmt`, `cargo check`, `cargo clippy`, `cargo test`, `npm run build`, and `npm test`.
