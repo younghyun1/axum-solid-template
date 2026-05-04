@@ -82,3 +82,23 @@ Progress:
 - [x] 2026-05-04: Production frontend layout plan persisted in `docs/plan/2026-05-04-marketplace-frontend-production-layout.md`.
 - [x] 2026-05-04: Public provider directory and profile pages rebuilt with listing-site structure.
 - [x] 2026-05-04: Ran `npm run build` and `npm test`.
+
+## Marketplace Production Hardening
+
+Scope: turn the marketplace from a functional first slice into a production-grade service marketplace surface with rich blog authoring, durable full-text search, single-server cache persistence, and stronger API/UI workflows.
+
+- [x] Persist production hardening plan documents under `docs/plan`.
+- [ ] Confirm current library choices against primary documentation.
+- [ ] Add production markdown authoring plan and implementation for provider/admin blog workflows.
+- [ ] Add sanitized markdown rendering model for public blog content.
+- [ ] Add Tantivy-backed search indexing for providers and blog posts.
+- [ ] Add single-server RAM cache plus disk persistence for hot marketplace reads.
+- [ ] Add backend APIs and OpenAPI docs for search, cache-backed public reads, blog updates, and moderation transitions.
+- [ ] Upgrade provider/admin frontend dashboards around rich authoring and content management.
+- [ ] Add focused backend and frontend tests for the new production behavior.
+- [ ] Run backend/frontend verification and commit in logical slices.
+
+Progress:
+
+- [x] 2026-05-04: Production hardening master plan persisted.
+- [x] 2026-05-04: Markdown editor, search/cache, API hardening, and dashboard hardening subplans created.
