@@ -161,7 +161,6 @@ export function AdminDatabasePanel(props: AdminDatabasePanelProps) {
           aria-valuenow={progressPercent()}
           class="database-reset-hold-button"
           disabled={props.running}
-          style={`--reset-progress: ${(progress() * 100).toFixed(1)}%;`}
           type="button"
           onKeyDown={handleKeyDown}
           onKeyUp={handleKeyUp}
@@ -169,6 +168,12 @@ export function AdminDatabasePanel(props: AdminDatabasePanelProps) {
           onPointerDown={handlePointerDown}
           onPointerUp={handlePointerEnd}
         >
+          <progress
+            aria-hidden="true"
+            class="database-reset-hold-button__progress"
+            max="100"
+            value={progressPercent()}
+          />
           <span>{buttonLabel()}</span>
         </button>
       </div>

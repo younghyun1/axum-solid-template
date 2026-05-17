@@ -1,4 +1,9 @@
-import type { ProviderDirectoryCardResponse } from "../../api/marketplaceTypes";
+import type {
+  ProviderDirectoryCardResponse,
+  ProviderSubdivisionResponse
+} from "../../api/marketplaceTypes";
+import type { ReferenceCountryResponse, ReferenceSubdivisionResponse } from "../../api/types";
+import { knownUkAreaLabel } from "../shared/ukAreas";
 
 export type ProviderSortMode = "recommended" | "name" | "area";
 export type ProviderMediaMode = "all" | "with-image" | "without-image";
@@ -6,7 +11,7 @@ export type DirectorySection = "all" | "profiles" | "live" | "guides" | "events"
 
 export interface DirectoryFilters {
   readonly q: string;
-  readonly service_area: string;
+  readonly subdivision_code: string;
 }
 
 export function sortProviders(
@@ -20,7 +25,7 @@ export function sortProviders(
 
   if (sortMode === "area") {
     return sortedProviders.sort((left, right) =>
-      (left.service_area ?? "").localeCompare(right.service_area ?? "")
+      subdivisionDisplayName(left.subdivision).localeCompare(subdivisionDisplayName(right.subdivision))
     );
   }
 
@@ -40,26 +45,6 @@ export function filterProvidersByMedia(
   }
 
   return providers;
-}
-
-export function serviceAreaOptions(
-  providers: readonly ProviderDirectoryCardResponse[],
-  selectedArea: string
-): readonly string[] {
-  const areas = new Set<string>();
-  for (const provider of providers) {
-    const area = normalizedArea(provider.service_area);
-    if (area !== null) {
-      areas.add(area);
-    }
-  }
-
-  const selected = normalizedArea(selectedArea);
-  if (selected !== null) {
-    areas.add(selected);
-  }
-
-  return [...areas].sort((left, right) => left.localeCompare(right));
 }
 
 export function providerInitials(displayName: string): string {
@@ -93,17 +78,51 @@ export function compactHeadline(provider: ProviderDirectoryCardResponse): string
   return provider.headline ?? "Published marketplace profile";
 }
 
-function normalizedArea(value: string | null): string | null {
-  if (value === null) {
+export function providerLocationLabel(
+  subdivision: ProviderSubdivisionResponse | null,
+  fallback = "Location not listed"
+): string {
+  const label = subdivisionDisplayName(subdivision);
+  if (label.length === 0) {
+    return fallback;
+  }
+
+  return label;
+}
+
+export function subdivisionDisplayName(
+  subdivision: ProviderSubdivisionResponse | null
+): string {
+  return subdivision?.subdivision_name ?? "";
+}
+
+export function referenceSubdivisionCompositeCode(
+  subdivision: ReferenceSubdivisionResponse
+): string {
+  return `GB-${subdivision.subdivision_code}`;
+}
+
+export function selectedSubdivisionLabel(
+  subdivisions: readonly ReferenceSubdivisionResponse[],
+  selectedCompositeCode: string
+): string {
+  const selected = subdivisions.find(
+    (subdivision) => referenceSubdivisionCompositeCode(subdivision) === selectedCompositeCode
+  );
+  if (selected === undefined) {
+    return knownUkAreaLabel(selectedCompositeCode) ?? "Selected UK area";
+  }
+
+  return selected.subdivision_name;
+}
+
+export function ukCountryCode(countries: readonly ReferenceCountryResponse[]): number | null {
+  const country = countries.find((candidate) => candidate.country_alpha2 === "GB");
+  if (country === undefined) {
     return null;
   }
 
-  const trimmed = value.trim();
-  if (trimmed.length === 0) {
-    return null;
-  }
-
-  return trimmed;
+  return country.country_code;
 }
 
 function hasPublicImage(provider: ProviderDirectoryCardResponse): boolean {

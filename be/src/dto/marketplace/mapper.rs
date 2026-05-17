@@ -72,7 +72,7 @@ impl From<ProviderProfile> for ProviderProfileResponse {
             display_name: profile.provider_profile_display_name,
             headline: profile.provider_profile_headline,
             bio: profile.provider_profile_bio,
-            service_area: profile.provider_profile_service_area,
+            subdivision: None,
             status: profile.provider_profile_status,
             moderation_status: profile.provider_profile_moderation_status,
             primary_image_id: profile.provider_profile_primary_image_id,

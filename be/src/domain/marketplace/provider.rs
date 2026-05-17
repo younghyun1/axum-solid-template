@@ -40,12 +40,12 @@ pub struct ProviderProfile {
     pub provider_profile_display_name: String,
     pub provider_profile_headline: Option<String>,
     pub provider_profile_bio: Option<String>,
-    pub provider_profile_service_area: Option<String>,
     pub provider_profile_status: ProviderProfileStatus,
     pub provider_profile_moderation_status: ModerationStatus,
     pub provider_profile_created_at: DateTime<Utc>,
     pub provider_profile_updated_at: DateTime<Utc>,
     pub provider_profile_primary_image_id: Option<Uuid>,
+    pub provider_profile_subdivision_id: Option<i32>,
 }
 
 #[derive(Debug, Clone, Insertable)]
@@ -56,7 +56,7 @@ pub struct NewProviderProfile {
     pub provider_profile_display_name: String,
     pub provider_profile_headline: Option<String>,
     pub provider_profile_bio: Option<String>,
-    pub provider_profile_service_area: Option<String>,
+    pub provider_profile_subdivision_id: Option<i32>,
     pub provider_profile_status: ProviderProfileStatus,
     pub provider_profile_moderation_status: ModerationStatus,
 }
@@ -67,7 +67,7 @@ pub struct ProviderProfileUpdate {
     pub provider_profile_display_name: String,
     pub provider_profile_headline: Option<String>,
     pub provider_profile_bio: Option<String>,
-    pub provider_profile_service_area: Option<String>,
+    pub provider_profile_subdivision_id: Option<i32>,
     pub provider_profile_status: ProviderProfileStatus,
     pub provider_profile_updated_at: DateTime<Utc>,
 }

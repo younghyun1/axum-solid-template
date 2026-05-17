@@ -1,5 +1,6 @@
 use std::time::Instant;
 
+use diesel::{QueryDsl, SelectableHelper};
 use diesel_async::RunQueryDsl;
 use tracing::{error, info};
 
@@ -122,7 +123,11 @@ async fn load_countries(db_pool: &DbPool) -> Result<Vec<IsoCountry>, ReferenceDa
         }
     };
 
-    let rows = match iso_country::table.load::<IsoCountry>(&mut connection).await {
+    let rows = match iso_country::table
+        .select(IsoCountry::as_select())
+        .load::<IsoCountry>(&mut connection)
+        .await
+    {
         Ok(rows) => rows,
         Err(error) => {
             error!(
@@ -171,6 +176,7 @@ async fn load_currencies(db_pool: &DbPool) -> Result<Vec<IsoCurrency>, Reference
     };
 
     let rows = match iso_currency::table
+        .select(IsoCurrency::as_select())
         .load::<IsoCurrency>(&mut connection)
         .await
     {
@@ -222,6 +228,7 @@ async fn load_languages(db_pool: &DbPool) -> Result<Vec<IsoLanguage>, ReferenceD
     };
 
     let rows = match iso_language::table
+        .select(IsoLanguage::as_select())
         .load::<IsoLanguage>(&mut connection)
         .await
     {
@@ -269,6 +276,7 @@ async fn load_country_subdivisions(
     };
 
     let rows = match iso_country_subdivision::table
+        .select(IsoCountrySubdivision::as_select())
         .load::<IsoCountrySubdivision>(&mut connection)
         .await
     {

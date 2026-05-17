@@ -14,8 +14,18 @@
   }
 
   .top-bar {
-    flex-wrap: wrap;
+    grid-template-columns: auto minmax(0, 1fr) auto;
     padding: 10px var(--space-page);
+  }
+
+  .area-nav {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .top-actions {
+    grid-column: 3;
+    grid-row: 1;
   }
 
   .landing-layout {
@@ -42,14 +52,30 @@
     font-size: 1.55rem;
   }
 
+  .top-bar {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .brand-button {
+    width: max-content;
+  }
+
   .top-actions {
+    grid-column: auto;
+    grid-row: auto;
     width: 100%;
     flex-wrap: wrap;
-    justify-content: flex-end;
+    justify-content: flex-start;
+    justify-self: start;
   }
 
   .primary-nav {
-    order: 3;
+    width: 100%;
+  }
+
+  .area-nav {
+    justify-content: flex-start;
     width: 100%;
   }
 

@@ -15,7 +15,7 @@
   overflow: hidden;
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-  background: var(--color-bg-elevated);
+  background: var(--color-surface);
 }
 
 .markdown-editor__surface .milkdown {
@@ -30,8 +30,4 @@
 
 .markdown-editor__surface .ProseMirror:focus {
   outline: none;
-}
-
-:root[data-theme="dark"] .markdown-editor__surface {
-  background: var(--color-surface);
 }

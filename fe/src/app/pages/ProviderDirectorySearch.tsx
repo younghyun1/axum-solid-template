@@ -1,9 +1,14 @@
 import { For } from "solid-js";
 
+import type { ReferenceSubdivisionResponse } from "../../api/types";
 import type {
   DirectorySection,
   ProviderMediaMode,
   ProviderSortMode
+} from "./providerDirectoryModel";
+import {
+  referenceSubdivisionCompositeCode,
+  selectedSubdivisionLabel
 } from "./providerDirectoryModel";
 
 const SECTION_FILTERS: readonly { readonly label: string; readonly value: DirectorySection }[] = [
@@ -19,14 +24,16 @@ interface ProviderDirectorySearchProps {
   readonly mediaMode: ProviderMediaMode;
   readonly query: string;
   readonly resultLabel: string;
-  readonly serviceArea: string;
-  readonly serviceAreas: readonly string[];
+  readonly subdivisionCode: string;
+  readonly subdivisionErrorMessage: string | null;
+  readonly subdivisionLoading: boolean;
+  readonly subdivisions: readonly ReferenceSubdivisionResponse[];
   readonly sortMode: ProviderSortMode;
   readonly onApplyFilters: () => void;
   readonly onMediaModeChange: (value: ProviderMediaMode) => void;
   readonly onQueryChange: (value: string) => void;
   readonly onSectionChange: (value: DirectorySection) => void;
-  readonly onServiceAreaChange: (value: string) => void;
+  readonly onSubdivisionCodeChange: (value: string) => void;
   readonly onSortModeChange: (value: ProviderSortMode) => void;
 }
 
@@ -54,15 +61,38 @@ export function ProviderDirectorySearch(props: ProviderDirectorySearchProps) {
         </label>
 
         <label>
-          <span class="sr-only">Service area</span>
+          <span class="sr-only">Subdivision</span>
           <select
-            aria-label="Service area"
-            value={props.serviceArea}
-            onInput={(event) => props.onServiceAreaChange(event.currentTarget.value)}
+            aria-label="Subdivision"
+            value={props.subdivisionCode}
+            onInput={(event) => props.onSubdivisionCodeChange(event.currentTarget.value)}
           >
-            <option value="">Area</option>
-            <For each={props.serviceAreas}>{(area) => <option value={area}>{area}</option>}</For>
+            <option value="">
+              {props.subdivisionLoading ? "Loading areas" : "All UK areas"}
+            </option>
+            {props.subdivisionCode.length > 0 &&
+              !props.subdivisions.some(
+                (subdivision) =>
+                  referenceSubdivisionCompositeCode(subdivision) === props.subdivisionCode
+              ) && (
+                <option value={props.subdivisionCode} selected>
+                  {selectedSubdivisionLabel(props.subdivisions, props.subdivisionCode)}
+                </option>
+              )}
+            <For each={props.subdivisions}>
+              {(subdivision) => (
+                <option
+                  value={referenceSubdivisionCompositeCode(subdivision)}
+                  selected={referenceSubdivisionCompositeCode(subdivision) === props.subdivisionCode}
+                >
+                  {subdivision.subdivision_name}
+                </option>
+              )}
+            </For>
           </select>
+          {props.subdivisionErrorMessage !== null && (
+            <span class="template-field-note">{props.subdivisionErrorMessage}</span>
+          )}
         </label>
 
         <label>
@@ -74,7 +104,7 @@ export function ProviderDirectorySearch(props: ProviderDirectorySearchProps) {
           >
             <option value="recommended">Recommended</option>
             <option value="name">Provider name</option>
-            <option value="area">Service area</option>
+            <option value="area">Location</option>
           </select>
         </label>
 

@@ -13,6 +13,7 @@
   --color-border-strong: #151515;
   --color-primary: #111111;
   --color-primary-strong: #000000;
+  --color-primary-contrast: #ffffff;
   --color-primary-soft: #f1f1f1;
   --color-accent: #151515;
   --color-danger: #b42a1f;
@@ -20,6 +21,13 @@
   --color-success: #156c41;
   --color-success-soft: #def4e7;
   --color-shadow: rgb(0 0 0 / 6%);
+  --color-inverse-bg: #111111;
+  --color-inverse-bg-muted: #222222;
+  --color-inverse-text: #ffffff;
+  --color-inverse-text-muted: rgb(255 255 255 / 84%);
+  --color-live: #ff0033;
+  --theme-transition-duration: 300ms;
+  --theme-transition-timing: ease;
 
   --radius-sm: 0;
   --radius-md: 0;
@@ -48,6 +56,7 @@
   --color-border-strong: #4a5562;
   --color-primary: #eef2f6;
   --color-primary-strong: #ffffff;
+  --color-primary-contrast: #0f1216;
   --color-primary-soft: #242b34;
   --color-accent: #e6b25a;
   --color-danger: #ff8a7a;
@@ -55,6 +64,11 @@
   --color-success: #74d99d;
   --color-success-soft: #142f22;
   --color-shadow: rgb(0 0 0 / 28%);
+  --color-inverse-bg: #111111;
+  --color-inverse-bg-muted: #222222;
+  --color-inverse-text: #ffffff;
+  --color-inverse-text-muted: rgb(255 255 255 / 84%);
+  --color-live: #ff0033;
 }
 
 * {
@@ -66,6 +80,7 @@ body {
   min-height: 100vh;
   margin: 0;
   background: var(--color-bg);
+  color: var(--color-text);
 }
 
 button,
@@ -73,6 +88,49 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+body,
+button,
+input,
+textarea,
+select,
+a,
+svg,
+::before,
+::after,
+.app-shell,
+.app-main,
+.top-bar,
+.brand-mark,
+.primary-button,
+.secondary-button,
+.utility-button,
+.danger-button,
+.link-button,
+.template-directory,
+.template-directory-search,
+.template-listing,
+.template-feature-card,
+.template-filter,
+.template-contact-button,
+.directory-search-results,
+.search-result-card,
+.marketplace-panel,
+.marketplace-card,
+.marketplace-row,
+.auth-card,
+.portal-panel,
+.profile-card,
+.feedback-alert,
+.markdown-editor__surface {
+  transition:
+    background-color var(--theme-transition-duration) var(--theme-transition-timing),
+    border-color var(--theme-transition-duration) var(--theme-transition-timing),
+    box-shadow var(--theme-transition-duration) var(--theme-transition-timing),
+    color var(--theme-transition-duration) var(--theme-transition-timing),
+    fill var(--theme-transition-duration) var(--theme-transition-timing),
+    stroke var(--theme-transition-duration) var(--theme-transition-timing);
 }
 
 button,

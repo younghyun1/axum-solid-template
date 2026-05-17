@@ -1,10 +1,18 @@
 use crate::domain::marketplace::enums::BannerPlacement;
 
-pub fn provider_directory(query: Option<&str>, service_area: Option<&str>, limit: i64) -> String {
+pub fn provider_directory(
+    query: Option<&str>,
+    subdivision_id: Option<i32>,
+    subdivision_code: Option<&str>,
+    limit: i64,
+) -> String {
     format!(
-        "public:providers:q={}:area={}:limit={}",
+        "public:providers:q={}:sid={}:scode={}:limit={}",
         normalize(query),
-        normalize(service_area),
+        subdivision_id
+            .map(|value| value.to_string())
+            .unwrap_or_default(),
+        normalize(subdivision_code),
         limit
     )
 }
@@ -47,9 +55,12 @@ mod tests {
 
     #[test]
     fn provider_directory_key_normalizes_query_values() {
-        let key = provider_directory(Some("  Roofing "), Some(" DENVER "), 24);
+        let key = provider_directory(Some("  Roofing "), Some(2826), Some(" GB-LND "), 24);
 
-        assert_eq!(key, "public:providers:q=roofing:area=denver:limit=24");
+        assert_eq!(
+            key,
+            "public:providers:q=roofing:sid=2826:scode=gb-lnd:limit=24"
+        );
     }
 
     #[test]

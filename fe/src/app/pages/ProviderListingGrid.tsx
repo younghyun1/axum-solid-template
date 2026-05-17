@@ -1,7 +1,11 @@
 import { For, Show } from "solid-js";
 
 import type { ProviderDirectoryCardResponse } from "../../api/marketplaceTypes";
-import { compactHeadline, providerInitials } from "./providerDirectoryModel";
+import {
+  compactHeadline,
+  providerInitials,
+  providerLocationLabel
+} from "./providerDirectoryModel";
 
 interface ProviderListingGridProps {
   readonly errorMessage: string | null;
@@ -30,7 +34,7 @@ export function ProviderListingGrid(props: ProviderListingGridProps) {
           fallback={
             <StatePanel
               title="No matching providers"
-              body="Adjust the search, service area, or media filters to broaden the view."
+              body="Adjust the search, location, or media filters to broaden the view."
             />
           }
         >
@@ -78,7 +82,7 @@ function ProviderListingCard(props: {
       </div>
 
       <div class="template-listing-meta">
-        <span>{props.provider.service_area ?? "Service area listed on profile"}</span>
+        <span>{providerLocationLabel(props.provider.subdivision)}</span>
         <span>Published profile</span>
       </div>
 

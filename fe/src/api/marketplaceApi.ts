@@ -26,12 +26,23 @@ import type {
 } from "./marketplaceTypes";
 
 export function getProviderDirectory(
-  query: Readonly<{ q?: string; service_area?: string }>
+  query: Readonly<{ q?: string; subdivision_id?: number; subdivision_code?: string }>
 ): Promise<ApiCallResult<ProviderDirectoryResponse>> {
+  const params: Record<string, string> = {};
+  if (query.q !== undefined && query.q.length > 0) {
+    params["q"] = query.q;
+  }
+  if (query.subdivision_id !== undefined) {
+    params["subdivision_id"] = query.subdivision_id.toString();
+  }
+  if (query.subdivision_code !== undefined && query.subdivision_code.length > 0) {
+    params["subdivision_code"] = query.subdivision_code;
+  }
+
   return requestApi({
     method: "GET",
     path: "/api/v1/marketplace/providers",
-    query
+    query: params
   });
 }
 

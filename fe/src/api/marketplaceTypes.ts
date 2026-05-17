@@ -49,7 +49,7 @@ export interface ProviderProfileResponse {
   readonly display_name: string;
   readonly headline: string | null;
   readonly bio: string | null;
-  readonly service_area: string | null;
+  readonly subdivision: ProviderSubdivisionResponse | null;
   readonly status: ProviderProfileStatus;
   readonly moderation_status: ModerationStatus;
   readonly primary_image_id: string | null;
@@ -62,8 +62,17 @@ export interface ProviderDirectoryCardResponse {
   readonly slug: string;
   readonly display_name: string;
   readonly headline: string | null;
-  readonly service_area: string | null;
+  readonly subdivision: ProviderSubdivisionResponse | null;
   readonly primary_image: ImageResponse | null;
+}
+
+export interface ProviderSubdivisionResponse {
+  readonly subdivision_id: number;
+  readonly country_code: number;
+  readonly country_alpha2: string;
+  readonly subdivision_code: string;
+  readonly subdivision_name: string;
+  readonly subdivision_type: string | null;
 }
 
 export interface ProviderDirectoryResponse {
@@ -137,7 +146,7 @@ export interface UpsertProviderProfileRequest extends JsonObject {
   readonly display_name: string;
   readonly headline: string | null;
   readonly bio: string | null;
-  readonly service_area: string | null;
+  readonly subdivision_id: number | null;
   readonly status: ProviderProfileStatus;
 }
 

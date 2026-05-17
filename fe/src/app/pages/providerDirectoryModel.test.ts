@@ -4,15 +4,21 @@ import type { ProviderDirectoryCardResponse } from "../../api/marketplaceTypes";
 import {
   filterProvidersByMedia,
   providerInitials,
+  providerLocationLabel,
+  referenceSubdivisionCompositeCode,
   resultSummary,
+  selectedSubdivisionLabel,
   sectionVisible,
-  serviceAreaOptions,
-  sortProviders
+  sortProviders,
+  ukCountryCode
 } from "./providerDirectoryModel";
 
 describe("providerDirectoryModel", () => {
   it("sorts providers without mutating the source list", () => {
-    const providers = [provider("zeta", "Zeta", "Remote"), provider("alpha", "Alpha", "Austin")];
+    const providers = [
+      provider("zeta", "Zeta", subdivision("ZZZ", "Zeta Area")),
+      provider("alpha", "Alpha", subdivision("AAA", "Alpha Area"))
+    ];
 
     const sorted = sortProviders(providers, "name");
 
@@ -22,8 +28,8 @@ describe("providerDirectoryModel", () => {
 
   it("filters providers by published media state", () => {
     const providers = [
-      provider("media", "With Media", "Remote", "/image.jpg"),
-      provider("empty", "Without Media", "Remote")
+      provider("media", "With Media", subdivision("REM", "Remote"), "/image.jpg"),
+      provider("empty", "Without Media", subdivision("REM", "Remote"))
     ];
 
     expect(filterProvidersByMedia(providers, "with-image").map((item) => item.slug)).toEqual([
@@ -34,16 +40,21 @@ describe("providerDirectoryModel", () => {
     ]);
   });
 
-  it("keeps selected service area available when filtered results are empty", () => {
-    const providers = [provider("alpha", "Alpha", "Austin")];
+  it("sorts providers by subdivision name", () => {
+    const providers = [
+      provider("zeta", "Zeta", subdivision("ZZZ", "Zeta Area")),
+      provider("alpha", "Alpha", subdivision("AAA", "Alpha Area"))
+    ];
 
-    expect(serviceAreaOptions(providers, "Remote")).toEqual(["Austin", "Remote"]);
+    expect(sortProviders(providers, "area").map((item) => item.slug)).toEqual(["alpha", "zeta"]);
   });
 
   it("builds stable initials and summaries", () => {
     expect(providerInitials("North Star Services")).toBe("NS");
     expect(providerInitials(" ")).toBe("SP");
-    expect(resultSummary([provider("alpha", "Alpha", "Remote")])).toBe("Showing 1 profile");
+    expect(resultSummary([provider("alpha", "Alpha", subdivision("REM", "Remote"))])).toBe(
+      "Showing 1 profile"
+    );
   });
 
   it("checks section visibility for all and direct matches", () => {
@@ -51,12 +62,27 @@ describe("providerDirectoryModel", () => {
     expect(sectionVisible("events", "events")).toBe(true);
     expect(sectionVisible("guides", "profiles")).toBe(false);
   });
+
+  it("formats subdivision labels and composite codes", () => {
+    const remote = subdivision("REM", "Remote");
+
+    expect(providerLocationLabel(remote)).toBe("Remote");
+    expect(providerLocationLabel(null)).toBe("Location not listed");
+    expect(referenceSubdivisionCompositeCode(referenceSubdivision("LND", "London"))).toBe("GB-LND");
+    expect(selectedSubdivisionLabel([referenceSubdivision("LND", "London")], "GB-LND")).toBe(
+      "London"
+    );
+    expect(selectedSubdivisionLabel([], "GB-LND")).toBe("London");
+    expect(selectedSubdivisionLabel([], "GB-BST")).toBe("Bristol");
+    expect(selectedSubdivisionLabel([], "GB-XYZ")).toBe("Selected UK area");
+    expect(ukCountryCode([{ ...country(), country_alpha2: "US" }, country()])).toBe(826);
+  });
 });
 
 function provider(
   slug: string,
   displayName: string,
-  serviceArea: string,
+  providerSubdivision: ProviderDirectoryCardResponse["subdivision"],
   imageUrl: string | null = null
 ): ProviderDirectoryCardResponse {
   return {
@@ -81,7 +107,43 @@ function provider(
             width: 100
           },
     provider_profile_id: `${slug}-id`,
-    service_area: serviceArea,
+    subdivision: providerSubdivision,
     slug
+  };
+}
+
+function subdivision(subdivisionCode: string, subdivisionName: string) {
+  return {
+    country_alpha2: "GB",
+    country_code: 826,
+    subdivision_code: subdivisionCode,
+    subdivision_id: 1,
+    subdivision_name: subdivisionName,
+    subdivision_type: "city"
+  };
+}
+
+function referenceSubdivision(subdivisionCode: string, subdivisionName: string) {
+  return {
+    country_flag: "🇬🇧",
+    country_code: 826,
+    subdivision_code: subdivisionCode,
+    subdivision_id: 1,
+    subdivision_name: subdivisionName,
+    subdivision_type: "city"
+  };
+}
+
+function country() {
+  return {
+    country_alpha2: "GB",
+    country_alpha3: "GBR",
+    country_code: 826,
+    country_currency: 826,
+    country_flag: "🇬🇧",
+    country_name: "United Kingdom",
+    country_primary_language: 1,
+    is_country: true,
+    phone_prefix: "+44"
   };
 }

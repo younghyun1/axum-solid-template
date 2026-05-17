@@ -12,14 +12,29 @@ use crate::{
             response::{
                 BannerListResponse, ProviderBlogPostResponse, ProviderDetailResponse,
                 ProviderDirectoryCardResponse, ProviderDirectoryResponse, ProviderProfileResponse,
+                ProviderSubdivisionResponse,
             },
         },
     },
     error::{api_error::ApiError, code_error::CodeError},
     init::state::server_state::ServerState,
-    repository::marketplace::postgres::{admin_repository, media_repository, provider_repository},
+    repository::marketplace::postgres::{
+        admin_repository, media_repository,
+        provider_repository::{self, SubdivisionWithCountry},
+    },
     service::{auth::datasource::postgres_conn, marketplace::validation},
 };
+
+fn subdivision_response(entry: &SubdivisionWithCountry) -> ProviderSubdivisionResponse {
+    ProviderSubdivisionResponse {
+        subdivision_id: entry.subdivision.subdivision_id,
+        country_code: entry.subdivision.country_code,
+        country_alpha2: entry.country_alpha2.clone(),
+        subdivision_code: entry.subdivision.subdivision_code.clone(),
+        subdivision_name: entry.subdivision.subdivision_name.clone(),
+        subdivision_type: entry.subdivision.subdivision_type.clone(),
+    }
+}
 
 pub async fn provider_directory(
     state: Arc<ServerState>,
@@ -28,7 +43,8 @@ pub async fn provider_directory(
     let limit = validation::directory_limit(query.limit);
     let cache_key = crate::init::state::cache::marketplace::key::provider_directory(
         query.q.as_deref(),
-        query.service_area.as_deref(),
+        query.subdivision_id,
+        query.subdivision_code.as_deref(),
         limit,
     );
     if let Some(response) =
@@ -42,10 +58,33 @@ pub async fn provider_directory(
         Err(error) => return Err(error),
     };
 
+    let resolved_subdivision_id = match query.subdivision_id {
+        Some(id) => Some(id),
+        None => match query.subdivision_code.as_deref() {
+            Some(code) if !code.trim().is_empty() => {
+                match provider_repository::find_subdivision_id_by_code(&mut conn, code.trim()).await
+                {
+                    Ok(Some(id)) => Some(id),
+                    Ok(None) => {
+                        let response = ProviderDirectoryResponse {
+                            providers: Vec::new(),
+                        };
+                        write_cached_response(&state, cache_key, &response).await;
+                        return Ok(response);
+                    }
+                    Err(error) => {
+                        return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error));
+                    }
+                }
+            }
+            _ => None,
+        },
+    };
+
     let providers = match provider_repository::list_public_providers(
         &mut conn,
         query.q,
-        query.service_area,
+        resolved_subdivision_id,
         limit,
     )
     .await
@@ -54,15 +93,35 @@ pub async fn provider_directory(
         Err(error) => return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
     };
 
+    let subdivision_ids: Vec<i32> = providers
+        .iter()
+        .filter_map(|profile| profile.provider_profile_subdivision_id)
+        .collect();
+    let subdivision_lookup = match provider_repository::load_subdivisions_with_country(
+        &mut conn,
+        &subdivision_ids,
+    )
+    .await
+    {
+        Ok(map) => map,
+        Err(error) => return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
+    };
+
     let providers = providers
         .into_iter()
-        .map(|profile| ProviderDirectoryCardResponse {
-            provider_profile_id: profile.provider_profile_id,
-            slug: profile.provider_profile_slug,
-            display_name: profile.provider_profile_display_name,
-            headline: profile.provider_profile_headline,
-            service_area: profile.provider_profile_service_area,
-            primary_image: None,
+        .map(|profile| {
+            let subdivision = profile
+                .provider_profile_subdivision_id
+                .and_then(|id| subdivision_lookup.get(&id))
+                .map(subdivision_response);
+            ProviderDirectoryCardResponse {
+                provider_profile_id: profile.provider_profile_id,
+                slug: profile.provider_profile_slug,
+                display_name: profile.provider_profile_display_name,
+                headline: profile.provider_profile_headline,
+                subdivision,
+                primary_image: None,
+            }
         })
         .collect();
 
@@ -124,8 +183,28 @@ pub async fn provider_detail(
         Err(error) => return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
     };
 
+    let subdivision_ids: Vec<i32> = profile
+        .provider_profile_subdivision_id
+        .into_iter()
+        .collect();
+    let subdivision_lookup = match provider_repository::load_subdivisions_with_country(
+        &mut conn,
+        &subdivision_ids,
+    )
+    .await
+    {
+        Ok(map) => map,
+        Err(error) => return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
+    };
+    let subdivision = profile
+        .provider_profile_subdivision_id
+        .and_then(|id| subdivision_lookup.get(&id))
+        .map(subdivision_response);
+
+    let mut profile_response = ProviderProfileResponse::from(profile);
+    profile_response.subdivision = subdivision;
     let response = ProviderDetailResponse {
-        profile: ProviderProfileResponse::from(profile),
+        profile: profile_response,
         images,
         blog_posts,
     };

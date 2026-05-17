@@ -123,13 +123,16 @@ export function App() {
     navigate(pathForPage(page));
   };
 
+  const goToProviderSubdivision = (subdivisionCode: string) => {
+    navigate(`/providers?subdivision=${encodeURIComponent(subdivisionCode)}`);
+  };
+
   return (
     <div class="app-shell">
       <AppHeader
         theme={theme()}
         displayLanguage={displayLanguage()}
         currentUser={currentUser()}
-        immersive={activePage() === "home"}
         isSignedIn={isSignedIn()}
         isAdmin={isAdmin()}
         isProvider={isProvider()}
@@ -138,6 +141,7 @@ export function App() {
         onThemeToggle={toggleTheme}
         onLanguageChange={setDisplayLanguage}
         onPage={goToPage}
+        onSubdivisionSelect={goToProviderSubdivision}
         onSwagger={goToSwagger}
         onToggleMenu={() => setMenuOpen((open) => !open)}
         onCloseMenu={() => setMenuOpen(false)}
@@ -146,13 +150,16 @@ export function App() {
 
       <main class={activePage() === "home" || activePage() === "providers" ? "app-main app-main--full" : "app-main"}>
         <Show when={activePage() === "home"}>
-          <HomePage
-            isSignedIn={isSignedIn()}
-            serviceOnline={healthOnline()}
-            onBrowseProviders={() => goToPage("providers")}
-            onCreateAccount={() => goToPage("join")}
-            onSignIn={() => goToPage("signin")}
-          />
+          <>
+            <HomePage
+              isSignedIn={isSignedIn()}
+              serviceOnline={healthOnline()}
+              onBrowseProviders={() => goToPage("providers")}
+              onCreateAccount={() => goToPage("join")}
+              onSignIn={() => goToPage("signin")}
+            />
+            <ProviderDirectoryPage onOpenProvider={(slug) => navigate(pathForProvider(slug))} />
+          </>
         </Show>
 
         <Show when={activePage() === "providers"}>

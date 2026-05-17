@@ -45,7 +45,7 @@ export function ProviderDashboardPage(props: ProviderDashboardPageProps) {
       display_name: displayName().trim(),
       headline: headline().trim() || null,
       bio: null,
-      service_area: null,
+      subdivision_id: null,
       status: "published"
     });
     setNotice(result.ok ? "Provider profile saved." : result.error.message);

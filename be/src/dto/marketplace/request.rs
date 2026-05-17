@@ -12,7 +12,8 @@ use crate::domain::marketplace::search::MarketplaceSearchResultKind;
 #[derive(Debug, Deserialize, IntoParams)]
 pub struct ProviderDirectoryQuery {
     pub q: Option<String>,
-    pub service_area: Option<String>,
+    pub subdivision_id: Option<i32>,
+    pub subdivision_code: Option<String>,
     pub limit: Option<i64>,
 }
 
@@ -37,7 +38,7 @@ pub struct UpsertProviderProfileRequest {
     pub display_name: String,
     pub headline: Option<String>,
     pub bio: Option<String>,
-    pub service_area: Option<String>,
+    pub subdivision_id: Option<i32>,
     pub status: ProviderProfileStatus,
 }
 

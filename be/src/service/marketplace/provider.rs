@@ -18,7 +18,10 @@ use crate::{
                 CreateProviderBlogPostRequest, UpdateProviderBlogPostRequest,
                 UpsertProviderProfileRequest,
             },
-            response::{ProviderBlogPostResponse, ProviderDetailResponse, ProviderProfileResponse},
+            response::{
+                ProviderBlogPostResponse, ProviderDetailResponse, ProviderProfileResponse,
+                ProviderSubdivisionResponse,
+            },
         },
     },
     error::{api_error::ApiError, code_error::CodeError},
@@ -71,8 +74,35 @@ pub async fn provider_profile(
             Err(error) => return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
         };
 
+    let subdivision_ids: Vec<i32> = profile
+        .provider_profile_subdivision_id
+        .into_iter()
+        .collect();
+    let subdivision_lookup = match provider_repository::load_subdivisions_with_country(
+        &mut conn,
+        &subdivision_ids,
+    )
+    .await
+    {
+        Ok(map) => map,
+        Err(error) => return Err(ApiError::from_source(CodeError::DB_QUERY_ERROR, error)),
+    };
+    let subdivision = profile
+        .provider_profile_subdivision_id
+        .and_then(|id| subdivision_lookup.get(&id))
+        .map(|entry| ProviderSubdivisionResponse {
+            subdivision_id: entry.subdivision.subdivision_id,
+            country_code: entry.subdivision.country_code,
+            country_alpha2: entry.country_alpha2.clone(),
+            subdivision_code: entry.subdivision.subdivision_code.clone(),
+            subdivision_name: entry.subdivision.subdivision_name.clone(),
+            subdivision_type: entry.subdivision.subdivision_type.clone(),
+        });
+
+    let mut profile_response = ProviderProfileResponse::from(profile);
+    profile_response.subdivision = subdivision;
     Ok(ProviderDetailResponse {
-        profile: ProviderProfileResponse::from(profile),
+        profile: profile_response,
         images,
         blog_posts,
     })
@@ -103,10 +133,7 @@ pub async fn upsert_provider_profile(
         Ok(value) => value,
         Err(error) => return Err(error),
     };
-    let service_area = match validation::short_optional(request.service_area, "service_area") {
-        Ok(value) => value,
-        Err(error) => return Err(error),
-    };
+    let subdivision_id = request.subdivision_id;
 
     let mut conn = match postgres_conn(&state).await {
         Ok(conn) => conn,
@@ -129,7 +156,7 @@ pub async fn upsert_provider_profile(
                     provider_profile_display_name: display_name,
                     provider_profile_headline: headline,
                     provider_profile_bio: bio,
-                    provider_profile_service_area: service_area,
+                    provider_profile_subdivision_id: subdivision_id,
                     provider_profile_status: request.status,
                     provider_profile_updated_at: Utc::now(),
                 },
@@ -147,7 +174,7 @@ pub async fn upsert_provider_profile(
                 provider_profile_display_name: display_name,
                 provider_profile_headline: headline,
                 provider_profile_bio: bio,
-                provider_profile_service_area: service_area,
+                provider_profile_subdivision_id: subdivision_id,
                 provider_profile_status: request.status,
                 provider_profile_moderation_status: ModerationStatus::Pending,
             };

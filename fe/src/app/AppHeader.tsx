@@ -1,13 +1,13 @@
-import { Show } from "solid-js";
+import { For, Show } from "solid-js";
 
 import type { MeResponse } from "../api/types";
 import type { PageId, ThemeMode } from "./shared/types";
+import { UK_AREA_LINKS } from "./shared/ukAreas";
 
 interface AppHeaderProps {
   readonly theme: ThemeMode;
   readonly displayLanguage: string;
   readonly currentUser: MeResponse | null;
-  readonly immersive: boolean;
   readonly isSignedIn: boolean;
   readonly isAdmin: boolean;
   readonly isProvider: boolean;
@@ -16,6 +16,7 @@ interface AppHeaderProps {
   readonly onThemeToggle: () => void;
   readonly onLanguageChange: (value: string) => void;
   readonly onPage: (page: PageId) => void;
+  readonly onSubdivisionSelect: (subdivisionCode: string) => void;
   readonly onSwagger: () => void;
   readonly onToggleMenu: () => void;
   readonly onCloseMenu: () => void;
@@ -24,7 +25,7 @@ interface AppHeaderProps {
 
 export function AppHeader(props: AppHeaderProps) {
   return (
-    <header class={props.immersive ? "top-bar top-bar--immersive" : "top-bar"}>
+    <header class="top-bar">
       <button class="brand-button" type="button" onClick={() => props.onPage("home")}>
         <span class="brand-mark" aria-hidden="true">
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
@@ -54,6 +55,19 @@ export function AppHeader(props: AppHeaderProps) {
             Admin
           </button>
         </Show>
+      </nav>
+
+      <nav class="area-nav" aria-label="UK area shortcuts">
+        <For each={UK_AREA_LINKS}>
+          {(link) => (
+            <button
+              type="button"
+              onClick={() => props.onSubdivisionSelect(link.subdivisionCode)}
+            >
+              {link.label}
+            </button>
+          )}
+        </For>
       </nav>
 
       <div class="top-actions">

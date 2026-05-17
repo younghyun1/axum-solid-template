@@ -1,7 +1,7 @@
 .template-home {
   position: relative;
   display: grid;
-  min-height: 100vh;
+  min-height: min(88vh, 820px);
   overflow: hidden;
   background: #111111;
   color: #ffffff;
@@ -142,7 +142,7 @@
 
 @media (max-width: 640px) {
   .template-home {
-    min-height: 100svh;
+    min-height: 88svh;
   }
 
   .template-home__content {

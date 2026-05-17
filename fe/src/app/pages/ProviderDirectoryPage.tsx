@@ -1,5 +1,7 @@
-import { createMemo, createResource, createSignal } from "solid-js";
+import { createEffect, createMemo, createResource, createSignal } from "solid-js";
+import { useLocation, useNavigate } from "@solidjs/router";
 
+import { getCountries, getCountrySubdivisions } from "../../api/appApi";
 import { getProviderDirectory, searchMarketplace } from "../../api/marketplaceApi";
 import { resultData } from "../helpers";
 import { ProviderDirectorySearch } from "./ProviderDirectorySearch";
@@ -10,8 +12,8 @@ import {
   filterProvidersByMedia,
   resultSummary,
   sectionVisible,
-  serviceAreaOptions,
-  sortProviders
+  sortProviders,
+  ukCountryCode
 } from "./providerDirectoryModel";
 import type {
   DirectoryFilters,
@@ -25,13 +27,27 @@ interface ProviderDirectoryPageProps {
 }
 
 export function ProviderDirectoryPage(props: ProviderDirectoryPageProps) {
-  const [query, setQuery] = createSignal("");
-  const [serviceArea, setServiceArea] = createSignal("");
+  const location = useLocation();
+  const navigate = useNavigate();
+  const initialFilters = readDirectoryFilters(location.search);
+  const [query, setQuery] = createSignal(initialFilters.q);
+  const [subdivisionCode, setSubdivisionCode] = createSignal(initialFilters.subdivision_code);
   const [sortMode, setSortMode] = createSignal<ProviderSortMode>("recommended");
   const [mediaMode, setMediaMode] = createSignal<ProviderMediaMode>("all");
   const [activeSection, setActiveSection] = createSignal<DirectorySection>("all");
-  const [filters, setFilters] = createSignal<DirectoryFilters>({ q: "", service_area: "" });
+  const [filters, setFilters] = createSignal<DirectoryFilters>(initialFilters);
   const [directoryResult] = createResource(filters, getProviderDirectory);
+  const [countriesResult] = createResource(getCountries);
+  const countries = createMemo(() => resultData(countriesResult()) ?? []);
+  const gbCountryCode = createMemo(() => ukCountryCode(countries()));
+  const [subdivisionsResult] = createResource(gbCountryCode, async (countryCode) => {
+    if (countryCode === null) {
+      return undefined;
+    }
+
+    return getCountrySubdivisions(countryCode);
+  });
+  const subdivisions = createMemo(() => resultData(subdivisionsResult()) ?? []);
 
   const searchSource = createMemo(() => {
     const value = filters().q.trim();
@@ -48,7 +64,6 @@ export function ProviderDirectoryPage(props: ProviderDirectoryPageProps) {
     filterProvidersByMedia(sortProviders(providers(), sortMode()), mediaMode())
   );
   const searchResults = createMemo(() => resultData(searchResult())?.results ?? []);
-  const areaOptions = createMemo(() => serviceAreaOptions(providers(), serviceArea()));
   const appliedQuery = createMemo(() => filters().q);
   const errorMessage = createMemo(() => {
     const result = directoryResult();
@@ -58,44 +73,51 @@ export function ProviderDirectoryPage(props: ProviderDirectoryPageProps) {
 
     return result.error.message;
   });
+  const subdivisionErrorMessage = createMemo(() => {
+    const result = subdivisionsResult();
+    if (result === undefined || result.ok) {
+      return null;
+    }
+
+    return result.error.message;
+  });
+
+  createEffect(() => {
+    const nextFilters = readDirectoryFilters(location.search);
+    if (nextFilters.q !== filters().q || nextFilters.subdivision_code !== filters().subdivision_code) {
+      setQuery(nextFilters.q);
+      setSubdivisionCode(nextFilters.subdivision_code);
+      setFilters(nextFilters);
+    }
+  });
 
   const applyFilters = () => {
-    setFilters({
+    const nextFilters = {
       q: query().trim(),
-      service_area: serviceArea().trim()
-    });
+      subdivision_code: subdivisionCode().trim()
+    };
+    setFilters(nextFilters);
+    navigate(`/providers${searchForFilters(nextFilters)}`);
   };
 
   return (
     <section class="template-directory" aria-label="Provider directory">
-      <div class="template-directory__intro">
-        <div class="template-directory__intro-copy">
-          <h1>Browse service providers</h1>
-          <p>
-            Search published profiles, compare service areas, and open the provider page for
-            details, media, updates, and payment entry points.
-          </p>
-        </div>
-        <div class="template-directory__stats" aria-label="Directory summary">
-          <strong>{providers().length}</strong>
-          <span>published profiles</span>
-        </div>
-      </div>
-
       <div class="template-shell">
         <ProviderDirectorySearch
           activeSection={activeSection()}
           mediaMode={mediaMode()}
           query={query()}
           resultLabel={directoryResult.loading ? "Refreshing results" : resultSummary(visibleProviders())}
-          serviceArea={serviceArea()}
-          serviceAreas={areaOptions()}
+          subdivisionCode={subdivisionCode()}
+          subdivisionErrorMessage={subdivisionErrorMessage()}
+          subdivisionLoading={subdivisionsResult.loading}
+          subdivisions={subdivisions()}
           sortMode={sortMode()}
           onApplyFilters={applyFilters}
           onMediaModeChange={setMediaMode}
           onQueryChange={setQuery}
           onSectionChange={setActiveSection}
-          onServiceAreaChange={setServiceArea}
+          onSubdivisionCodeChange={setSubdivisionCode}
           onSortModeChange={setSortMode}
         />
 
@@ -124,6 +146,31 @@ export function ProviderDirectoryPage(props: ProviderDirectoryPageProps) {
       </div>
     </section>
   );
+}
+
+function readDirectoryFilters(search: string): DirectoryFilters {
+  const params = new URLSearchParams(search);
+  return {
+    q: params.get("q")?.trim() ?? "",
+    subdivision_code: params.get("subdivision")?.trim() ?? ""
+  };
+}
+
+function searchForFilters(filters: DirectoryFilters): string {
+  const params = new URLSearchParams();
+  if (filters.q.length > 0) {
+    params.set("q", filters.q);
+  }
+  if (filters.subdivision_code.length > 0) {
+    params.set("subdivision", filters.subdivision_code);
+  }
+
+  const encoded = params.toString();
+  if (encoded.length === 0) {
+    return "";
+  }
+
+  return `?${encoded}`;
 }
 
 function searchErrorMessage(result: Awaited<ReturnType<typeof searchMarketplace>> | undefined): string | null {

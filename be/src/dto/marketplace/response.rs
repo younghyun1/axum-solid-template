@@ -46,7 +46,7 @@ pub struct ProviderProfileResponse {
     pub display_name: String,
     pub headline: Option<String>,
     pub bio: Option<String>,
-    pub service_area: Option<String>,
+    pub subdivision: Option<ProviderSubdivisionResponse>,
     pub status: ProviderProfileStatus,
     pub moderation_status: ModerationStatus,
     pub primary_image_id: Option<Uuid>,
@@ -60,8 +60,18 @@ pub struct ProviderDirectoryCardResponse {
     pub slug: String,
     pub display_name: String,
     pub headline: Option<String>,
-    pub service_area: Option<String>,
+    pub subdivision: Option<ProviderSubdivisionResponse>,
     pub primary_image: Option<ImageResponse>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]
+pub struct ProviderSubdivisionResponse {
+    pub subdivision_id: i32,
+    pub country_code: i32,
+    pub country_alpha2: String,
+    pub subdivision_code: String,
+    pub subdivision_name: String,
+    pub subdivision_type: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize, ToSchema)]

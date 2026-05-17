@@ -1,61 +1,63 @@
+// @generated automatically by Diesel CLI.
+
 pub mod sql_types {
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "ban_scope"))]
     pub struct BanScope;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "banner_placement"))]
     pub struct BannerPlacement;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "banner_status"))]
     pub struct BannerStatus;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "blog_post_status"))]
     pub struct BlogPostStatus;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "image_type"))]
     pub struct ImageType;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "image_upload_status"))]
     pub struct ImageUploadStatus;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "image_visibility"))]
     pub struct ImageVisibility;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "job_run_status"))]
     pub struct JobRunStatus;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "moderation_status"))]
     pub struct ModerationStatus;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "payment_intent_status"))]
     pub struct PaymentIntentStatus;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "payment_provider"))]
     pub struct PaymentProvider;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "payment_transaction_kind"))]
     pub struct PaymentTransactionKind;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "payment_transaction_status"))]
     pub struct PaymentTransactionStatus;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "processor_event_status"))]
     pub struct ProcessorEventStatus;
 
-    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType)]
+    #[derive(diesel::query_builder::QueryId, diesel::sql_types::SqlType, Clone)]
     #[diesel(postgres_type(name = "provider_profile_status"))]
     pub struct ProviderProfileStatus;
 }
@@ -82,6 +84,21 @@ diesel::table! {
 }
 
 diesel::table! {
+    auth_refresh_sessions (auth_refresh_session_id) {
+        auth_refresh_session_id -> Uuid,
+        user_id -> Uuid,
+        #[max_length = 64]
+        auth_refresh_session_token_hash -> Varchar,
+        auth_refresh_session_created_at -> Timestamptz,
+        auth_refresh_session_expires_at -> Timestamptz,
+        auth_refresh_session_last_used_at -> Nullable<Timestamptz>,
+        auth_refresh_session_rotated_at -> Nullable<Timestamptz>,
+        auth_refresh_session_revoked_at -> Nullable<Timestamptz>,
+        auth_refresh_session_user_auth_token_version -> Int4,
+    }
+}
+
+diesel::table! {
     use diesel::sql_types::*;
     use super::sql_types::BlogPostStatus;
     use super::sql_types::ModerationStatus;
@@ -103,16 +120,59 @@ diesel::table! {
 }
 
 diesel::table! {
-    auth_refresh_sessions (auth_refresh_session_id) {
-        auth_refresh_session_id -> Uuid,
-        user_id -> Uuid,
-        auth_refresh_session_token_hash -> Varchar,
-        auth_refresh_session_created_at -> Timestamptz,
-        auth_refresh_session_expires_at -> Timestamptz,
-        auth_refresh_session_last_used_at -> Nullable<Timestamptz>,
-        auth_refresh_session_rotated_at -> Nullable<Timestamptz>,
-        auth_refresh_session_revoked_at -> Nullable<Timestamptz>,
-        auth_refresh_session_user_auth_token_version -> Int4,
+    email_verification_challenges (email_verification_challenge_id) {
+        email_verification_challenge_id -> Uuid,
+        email_verification_token_id -> Uuid,
+        email_verification_question_id -> Uuid,
+        email_verification_challenge_pow_salt -> Text,
+        email_verification_challenge_pow_difficulty_bits -> Int4,
+        email_verification_challenge_pow_algorithm -> Text,
+        email_verification_challenge_minimum_elapsed_ms -> Int4,
+        email_verification_challenge_status -> Text,
+        email_verification_challenge_issued_at -> Timestamptz,
+        email_verification_challenge_expires_at -> Timestamptz,
+        email_verification_challenge_solved_at -> Nullable<Timestamptz>,
+        email_verification_challenge_failed_at -> Nullable<Timestamptz>,
+        email_verification_challenge_attempt_count -> Int4,
+        email_verification_challenge_last_error -> Nullable<Text>,
+        email_verification_challenge_client_ip -> Nullable<Text>,
+        email_verification_challenge_user_agent -> Nullable<Text>,
+    }
+}
+
+diesel::table! {
+    email_verification_question_answers (email_verification_question_answer_id) {
+        email_verification_question_answer_id -> Uuid,
+        email_verification_question_id -> Uuid,
+        email_verification_question_answer_text -> Text,
+        email_verification_question_answer_normalized -> Text,
+        email_verification_question_answer_status -> Text,
+        email_verification_question_answer_created_at -> Timestamptz,
+        email_verification_question_answer_updated_at -> Timestamptz,
+        email_verification_question_answer_deleted_at -> Nullable<Timestamptz>,
+        email_verification_question_answer_created_by -> Nullable<Uuid>,
+        email_verification_question_answer_deleted_by -> Nullable<Uuid>,
+    }
+}
+
+diesel::table! {
+    email_verification_questionnaire_state (email_verification_questionnaire_state_id) {
+        email_verification_questionnaire_state_id -> Uuid,
+        email_verification_questionnaire_revision -> Int8,
+        email_verification_questionnaire_updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    email_verification_questions (email_verification_question_id) {
+        email_verification_question_id -> Uuid,
+        email_verification_question_prompt -> Text,
+        email_verification_question_status -> Text,
+        email_verification_question_created_at -> Timestamptz,
+        email_verification_question_updated_at -> Timestamptz,
+        email_verification_question_deleted_at -> Nullable<Timestamptz>,
+        email_verification_question_created_by -> Nullable<Uuid>,
+        email_verification_question_deleted_by -> Nullable<Uuid>,
     }
 }
 
@@ -160,14 +220,19 @@ diesel::table! {
 diesel::table! {
     iso_country (country_code) {
         country_code -> Int4,
+        #[max_length = 2]
         country_alpha2 -> Bpchar,
+        #[max_length = 3]
         country_alpha3 -> Bpchar,
+        #[max_length = 255]
         country_eng_name -> Varchar,
-        country_primary_language -> Int4,
         country_currency -> Int4,
+        #[max_length = 10]
         phone_prefix -> Varchar,
+        #[max_length = 2]
         country_flag -> Bpchar,
         is_country -> Bool,
+        country_primary_language -> Int4,
     }
 }
 
@@ -175,8 +240,11 @@ diesel::table! {
     iso_country_subdivision (subdivision_id) {
         subdivision_id -> Int4,
         country_code -> Int4,
+        #[max_length = 10]
         subdivision_code -> Varchar,
+        #[max_length = 255]
         subdivision_name -> Varchar,
+        #[max_length = 50]
         subdivision_type -> Nullable<Varchar>,
     }
 }
@@ -184,7 +252,9 @@ diesel::table! {
 diesel::table! {
     iso_currency (currency_code) {
         currency_code -> Int4,
+        #[max_length = 3]
         currency_alpha3 -> Bpchar,
+        #[max_length = 255]
         currency_name -> Varchar,
     }
 }
@@ -192,8 +262,11 @@ diesel::table! {
 diesel::table! {
     iso_language (language_code) {
         language_code -> Int4,
+        #[max_length = 2]
         language_alpha2 -> Bpchar,
+        #[max_length = 3]
         language_alpha3 -> Bpchar,
+        #[max_length = 255]
         language_eng_name -> Varchar,
     }
 }
@@ -250,8 +323,8 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
-    use super::sql_types::PaymentIntentStatus;
     use super::sql_types::PaymentProvider;
+    use super::sql_types::PaymentIntentStatus;
 
     payment_intents (payment_intent_id) {
         payment_intent_id -> Uuid,
@@ -332,8 +405,8 @@ diesel::table! {
 
 diesel::table! {
     use diesel::sql_types::*;
-    use super::sql_types::ModerationStatus;
     use super::sql_types::ProviderProfileStatus;
+    use super::sql_types::ModerationStatus;
 
     provider_profiles (provider_profile_id) {
         provider_profile_id -> Uuid,
@@ -342,12 +415,12 @@ diesel::table! {
         provider_profile_display_name -> Text,
         provider_profile_headline -> Nullable<Text>,
         provider_profile_bio -> Nullable<Text>,
-        provider_profile_service_area -> Nullable<Text>,
         provider_profile_status -> ProviderProfileStatus,
         provider_profile_moderation_status -> ModerationStatus,
         provider_profile_created_at -> Timestamptz,
         provider_profile_updated_at -> Timestamptz,
         provider_profile_primary_image_id -> Nullable<Uuid>,
+        provider_profile_subdivision_id -> Nullable<Int4>,
     }
 }
 
@@ -368,14 +441,6 @@ diesel::table! {
 }
 
 diesel::table! {
-    user_roles (user_role_id) {
-        user_role_id -> Uuid,
-        user_id -> Uuid,
-        role_id -> Uuid,
-    }
-}
-
-diesel::table! {
     user_profile_extensions (user_profile_extension_id) {
         user_profile_extension_id -> Uuid,
         user_id -> Uuid,
@@ -385,6 +450,14 @@ diesel::table! {
         user_profile_extension_public_email -> Nullable<Text>,
         user_profile_extension_created_at -> Timestamptz,
         user_profile_extension_updated_at -> Timestamptz,
+    }
+}
+
+diesel::table! {
+    user_roles (user_role_id) {
+        user_role_id -> Uuid,
+        user_id -> Uuid,
+        role_id -> Uuid,
     }
 }
 
@@ -406,13 +479,13 @@ diesel::table! {
     }
 }
 
+diesel::joinable!(advertisement_banners -> users (created_by_user_id));
 diesel::joinable!(auth_refresh_sessions -> users (user_id));
 diesel::joinable!(central_blog_posts -> users (author_user_id));
+diesel::joinable!(email_verification_challenges -> email_verification_questions (email_verification_question_id));
+diesel::joinable!(email_verification_challenges -> email_verification_tokens (email_verification_token_id));
+diesel::joinable!(email_verification_question_answers -> email_verification_questions (email_verification_question_id));
 diesel::joinable!(email_verification_tokens -> users (user_id));
-diesel::joinable!(images -> advertisement_banners (advertisement_banner_id));
-diesel::joinable!(images -> central_blog_posts (central_blog_post_id));
-diesel::joinable!(images -> provider_blog_posts (provider_blog_post_id));
-diesel::joinable!(images -> provider_profiles (provider_profile_id));
 diesel::joinable!(images -> users (user_id));
 diesel::joinable!(iso_country -> iso_currency (country_currency));
 diesel::joinable!(iso_country -> iso_language (country_primary_language));
@@ -424,6 +497,7 @@ diesel::joinable!(payment_intents -> users (user_id));
 diesel::joinable!(payment_transactions -> iso_currency (payment_transaction_currency));
 diesel::joinable!(payment_transactions -> payment_intents (payment_intent_id));
 diesel::joinable!(provider_blog_posts -> provider_profiles (provider_profile_id));
+diesel::joinable!(provider_profiles -> iso_country_subdivision (provider_profile_subdivision_id));
 diesel::joinable!(provider_profiles -> users (user_id));
 diesel::joinable!(role_permissions -> permissions (permission_id));
 diesel::joinable!(role_permissions -> roles (role_id));
@@ -438,6 +512,10 @@ diesel::allow_tables_to_appear_in_same_query!(
     advertisement_banners,
     auth_refresh_sessions,
     central_blog_posts,
+    email_verification_challenges,
+    email_verification_question_answers,
+    email_verification_questionnaire_state,
+    email_verification_questions,
     email_verification_tokens,
     images,
     iso_country,

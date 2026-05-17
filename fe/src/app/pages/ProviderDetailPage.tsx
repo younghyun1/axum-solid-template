@@ -3,6 +3,7 @@ import { createMemo, createResource, For, Show } from "solid-js";
 import { getProviderDetail } from "../../api/marketplaceApi";
 import type { ImageResponse, ProviderBlogPostResponse } from "../../api/marketplaceTypes";
 import { resultData } from "../helpers";
+import { providerLocationLabel } from "./providerDirectoryModel";
 
 interface ProviderDetailPageProps {
   readonly slug: string | null;
@@ -50,7 +51,7 @@ export function ProviderDetailPage(props: ProviderDetailPageProps) {
                 </Show>
               </div>
               <div class="profile-hero__copy">
-                <p class="eyebrow">{loaded().profile.service_area ?? "Service provider"}</p>
+                <p class="eyebrow">{providerLocationLabel(loaded().profile.subdivision, "Service provider")}</p>
                 <h1>{loaded().profile.display_name}</h1>
                 <p class="profile-hero__headline">
                   {loaded().profile.headline ?? "Published marketplace profile"}
@@ -86,7 +87,7 @@ export function ProviderDetailPage(props: ProviderDetailPageProps) {
                   <h2>Provider details</h2>
                 </div>
                 <dl class="profile-detail-list">
-                  <DetailTerm label="Service area" value={loaded().profile.service_area ?? "Not listed"} />
+                  <DetailTerm label="Location" value={providerLocationLabel(loaded().profile.subdivision)} />
                   <DetailTerm label="Images" value={imageCountLabel(images())} />
                   <DetailTerm label="Blog posts" value={postCountLabel(loaded().blog_posts)} />
                 </dl>

@@ -1,20 +1,90 @@
 use chrono::{DateTime, Utc};
 use diesel::{
-    ExpressionMethods, OptionalExtension, PgTextExpressionMethods, QueryDsl, SelectableHelper,
+    ExpressionMethods, JoinOnDsl, OptionalExtension, PgTextExpressionMethods, QueryDsl,
+    SelectableHelper,
 };
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use std::collections::HashMap;
 use uuid::Uuid;
 
 use crate::{
-    domain::marketplace::{
-        enums::{BlogPostStatus, ModerationStatus, ProviderProfileStatus},
-        provider::{
-            NewProviderBlogPost, NewProviderProfile, NewUserProfileExtension, ProviderBlogPost,
-            ProviderProfile, ProviderProfileUpdate, UserProfileExtension,
+    domain::{
+        iso::{IsoCountry, IsoCountrySubdivision},
+        marketplace::{
+            enums::{BlogPostStatus, ModerationStatus, ProviderProfileStatus},
+            provider::{
+                NewProviderBlogPost, NewProviderProfile, NewUserProfileExtension, ProviderBlogPost,
+                ProviderProfile, ProviderProfileUpdate, UserProfileExtension,
+            },
         },
     },
-    schema::{provider_blog_posts, provider_profiles, user_profile_extensions},
+    schema::{
+        iso_country, iso_country_subdivision, provider_blog_posts, provider_profiles,
+        user_profile_extensions,
+    },
 };
+
+#[derive(Debug, Clone)]
+pub struct SubdivisionWithCountry {
+    pub subdivision: IsoCountrySubdivision,
+    pub country_alpha2: String,
+}
+
+pub async fn load_subdivisions_with_country(
+    conn: &mut AsyncPgConnection,
+    ids: &[i32],
+) -> Result<HashMap<i32, SubdivisionWithCountry>, diesel::result::Error> {
+    if ids.is_empty() {
+        return Ok(HashMap::new());
+    }
+
+    let rows = iso_country_subdivision::table
+        .inner_join(
+            iso_country::table
+                .on(iso_country::country_code.eq(iso_country_subdivision::country_code)),
+        )
+        .filter(iso_country_subdivision::subdivision_id.eq_any(ids))
+        .select((IsoCountrySubdivision::as_select(), IsoCountry::as_select()))
+        .load::<(IsoCountrySubdivision, IsoCountry)>(conn)
+        .await?;
+
+    let mut map = HashMap::with_capacity(rows.len());
+    for (subdivision, country) in rows {
+        map.insert(
+            subdivision.subdivision_id,
+            SubdivisionWithCountry {
+                subdivision,
+                country_alpha2: country.country_alpha2,
+            },
+        );
+    }
+    Ok(map)
+}
+
+pub async fn find_subdivision_id_by_code(
+    conn: &mut AsyncPgConnection,
+    composite_code: &str,
+) -> Result<Option<i32>, diesel::result::Error> {
+    let (country_alpha2, subdivision_code) = match composite_code.split_once('-') {
+        Some((country, subdivision)) => (
+            country.to_ascii_uppercase(),
+            subdivision.to_ascii_uppercase(),
+        ),
+        None => return Ok(None),
+    };
+
+    iso_country_subdivision::table
+        .inner_join(
+            iso_country::table
+                .on(iso_country::country_code.eq(iso_country_subdivision::country_code)),
+        )
+        .filter(iso_country::country_alpha2.eq(country_alpha2))
+        .filter(iso_country_subdivision::subdivision_code.eq(subdivision_code))
+        .select(iso_country_subdivision::subdivision_id)
+        .first::<i32>(conn)
+        .await
+        .optional()
+}
 
 pub async fn find_user_profile_extension(
     conn: &mut AsyncPgConnection,
@@ -130,7 +200,7 @@ pub async fn find_public_provider_by_slug(
 pub async fn list_public_providers(
     conn: &mut AsyncPgConnection,
     q: Option<String>,
-    service_area: Option<String>,
+    subdivision_id: Option<i32>,
     limit: i64,
 ) -> Result<Vec<ProviderProfile>, diesel::result::Error> {
     let mut query = provider_profiles::table
@@ -148,12 +218,8 @@ pub async fn list_public_providers(
         }
     }
 
-    if let Some(value) = service_area {
-        let trimmed = value.trim();
-        if !trimmed.is_empty() {
-            let pattern = format!("%{trimmed}%");
-            query = query.filter(provider_profiles::provider_profile_service_area.ilike(pattern));
-        }
+    if let Some(value) = subdivision_id {
+        query = query.filter(provider_profiles::provider_profile_subdivision_id.eq(value));
     }
 
     match query
@@ -195,8 +261,8 @@ pub async fn update_provider_profile_by_user(
                 .eq(update.provider_profile_display_name),
             provider_profiles::provider_profile_headline.eq(update.provider_profile_headline),
             provider_profiles::provider_profile_bio.eq(update.provider_profile_bio),
-            provider_profiles::provider_profile_service_area
-                .eq(update.provider_profile_service_area),
+            provider_profiles::provider_profile_subdivision_id
+                .eq(update.provider_profile_subdivision_id),
             provider_profiles::provider_profile_status.eq(update.provider_profile_status),
             provider_profiles::provider_profile_updated_at.eq(update.provider_profile_updated_at),
         ))
