@@ -3,26 +3,26 @@
   --font-sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
     sans-serif;
 
-  --color-bg: #f6f8fb;
+  --color-bg: #ffffff;
   --color-bg-elevated: #ffffff;
   --color-surface: #ffffff;
-  --color-surface-muted: #eef2f7;
-  --color-text: #182026;
-  --color-text-muted: #5b6873;
-  --color-border: #dce4ec;
-  --color-border-strong: #aab8c5;
-  --color-primary: #111827;
-  --color-primary-strong: #1f2937;
-  --color-primary-soft: #eef2f7;
-  --color-accent: #8a4d00;
+  --color-surface-muted: #f7f7f7;
+  --color-text: #151515;
+  --color-text-muted: #6f6f6f;
+  --color-border: #e5e5e5;
+  --color-border-strong: #151515;
+  --color-primary: #111111;
+  --color-primary-strong: #000000;
+  --color-primary-soft: #f1f1f1;
+  --color-accent: #151515;
   --color-danger: #b42a1f;
   --color-danger-soft: #fdebe9;
   --color-success: #156c41;
   --color-success-soft: #def4e7;
-  --color-shadow: rgb(20 31 45 / 8%);
+  --color-shadow: rgb(0 0 0 / 6%);
 
-  --radius-sm: 6px;
-  --radius-md: 10px;
+  --radius-sm: 0;
+  --radius-md: 0;
   --space-page: 24px;
   --content-max: 1180px;
   --topbar-height: 60px;
@@ -121,10 +121,16 @@ h2 {
   min-height: 100vh;
 }
 
-.app-shell main {
+.app-main {
   width: min(var(--content-max), 100%);
   margin: 0 auto;
   padding: 0 var(--space-page) 48px;
+}
+
+.app-main--full {
+  width: 100%;
+  max-width: none;
+  padding: 0 0 48px;
 }
 
 :where(

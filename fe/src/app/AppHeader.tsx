@@ -7,6 +7,7 @@ interface AppHeaderProps {
   readonly theme: ThemeMode;
   readonly displayLanguage: string;
   readonly currentUser: MeResponse | null;
+  readonly immersive: boolean;
   readonly isSignedIn: boolean;
   readonly isAdmin: boolean;
   readonly isProvider: boolean;
@@ -23,14 +24,20 @@ interface AppHeaderProps {
 
 export function AppHeader(props: AppHeaderProps) {
   return (
-    <header class="top-bar">
+    <header class={props.immersive ? "top-bar top-bar--immersive" : "top-bar"}>
       <button class="brand-button" type="button" onClick={() => props.onPage("home")}>
-        Rust-Solid-Template
+        <span class="brand-mark" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+            <path d="M12 3 4 9l8 12 8-12-8-6Z" stroke="currentColor" stroke-width="1.7" />
+            <path d="m4 9 8 3 8-3M12 3v9" stroke="currentColor" stroke-width="1.7" />
+          </svg>
+        </span>
+        <span>Provider Exchange</span>
       </button>
 
       <nav class="primary-nav" aria-label="Marketplace">
         <button type="button" onClick={() => props.onPage("providers")}>
-          Providers
+          Directory
         </button>
         <Show when={props.isSignedIn}>
           <button type="button" onClick={() => props.onPage("user-marketplace")}>
@@ -57,7 +64,7 @@ export function AppHeader(props: AppHeaderProps) {
           type="button"
           onClick={props.onThemeToggle}
         >
-          {props.theme === "light" ? "🌙" : "☀️"}
+          {props.theme === "light" ? "Dark" : "Light"}
         </button>
         <label class="select-control">
           <span class="sr-only">Language</span>

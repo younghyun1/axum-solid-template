@@ -18,10 +18,10 @@ export function ProviderSearchResults(props: ProviderSearchResultsProps) {
           <div>
             <h2>Search matches</h2>
             <p>
-              {props.loading ? "Searching indexed profiles and posts" : searchSummary(props.results)}
+              {props.loading ? "Searching profiles and published posts" : searchSummary(props.results)}
             </p>
           </div>
-          <span class="marketplace-chip">Tantivy index</span>
+          <span class="marketplace-chip">Indexed content</span>
         </div>
         <Show
           when={props.errorMessage === null}
@@ -37,7 +37,7 @@ export function ProviderSearchResults(props: ProviderSearchResultsProps) {
             fallback={
               <StatePanel
                 title="Searching marketplace"
-                body="Checking provider profiles and blog content."
+                body="Checking provider profiles and published content."
               />
             }
           >

@@ -1,0 +1,134 @@
+import { For } from "solid-js";
+
+import type {
+  DirectorySection,
+  ProviderMediaMode,
+  ProviderSortMode
+} from "./providerDirectoryModel";
+
+const SECTION_FILTERS: readonly { readonly label: string; readonly value: DirectorySection }[] = [
+  { label: "All", value: "all" },
+  { label: "Profiles", value: "profiles" },
+  { label: "Live", value: "live" },
+  { label: "Guides", value: "guides" },
+  { label: "Events", value: "events" }
+];
+
+interface ProviderDirectorySearchProps {
+  readonly activeSection: DirectorySection;
+  readonly mediaMode: ProviderMediaMode;
+  readonly query: string;
+  readonly resultLabel: string;
+  readonly serviceArea: string;
+  readonly serviceAreas: readonly string[];
+  readonly sortMode: ProviderSortMode;
+  readonly onApplyFilters: () => void;
+  readonly onMediaModeChange: (value: ProviderMediaMode) => void;
+  readonly onQueryChange: (value: string) => void;
+  readonly onSectionChange: (value: DirectorySection) => void;
+  readonly onServiceAreaChange: (value: string) => void;
+  readonly onSortModeChange: (value: ProviderSortMode) => void;
+}
+
+export function ProviderDirectorySearch(props: ProviderDirectorySearchProps) {
+  return (
+    <>
+      <form
+        class="template-directory-search"
+        aria-label="Search providers"
+        onSubmit={(event) => {
+          event.preventDefault();
+          props.onApplyFilters();
+        }}
+      >
+        <label class="template-search-box">
+          <span class="sr-only">Search providers</span>
+          <SearchIcon />
+          <input
+            aria-label="Search providers"
+            placeholder="Search by name, profile, or update"
+            type="search"
+            value={props.query}
+            onInput={(event) => props.onQueryChange(event.currentTarget.value)}
+          />
+        </label>
+
+        <label>
+          <span class="sr-only">Service area</span>
+          <select
+            aria-label="Service area"
+            value={props.serviceArea}
+            onInput={(event) => props.onServiceAreaChange(event.currentTarget.value)}
+          >
+            <option value="">Area</option>
+            <For each={props.serviceAreas}>{(area) => <option value={area}>{area}</option>}</For>
+          </select>
+        </label>
+
+        <label>
+          <span class="sr-only">Sort providers</span>
+          <select
+            aria-label="Sort providers"
+            value={props.sortMode}
+            onInput={(event) => props.onSortModeChange(event.currentTarget.value as ProviderSortMode)}
+          >
+            <option value="recommended">Recommended</option>
+            <option value="name">Provider name</option>
+            <option value="area">Service area</option>
+          </select>
+        </label>
+
+        <label>
+          <span class="sr-only">Media state</span>
+          <select
+            aria-label="Media state"
+            value={props.mediaMode}
+            onInput={(event) => props.onMediaModeChange(event.currentTarget.value as ProviderMediaMode)}
+          >
+            <option value="all">All media</option>
+            <option value="with-image">Image available</option>
+            <option value="without-image">Media pending</option>
+          </select>
+        </label>
+
+        <button class="template-primary-button" type="submit">
+          Search providers
+        </button>
+      </form>
+
+      <div class="template-toolbar">
+        <div class="template-section-title">
+          <h2>Provider directory</h2>
+          <p>{props.resultLabel}</p>
+        </div>
+        <div class="template-filters" aria-label="Filter marketplace sections">
+          <For each={SECTION_FILTERS}>
+            {(filter) => (
+              <button
+                class="template-filter"
+                type="button"
+                aria-pressed={props.activeSection === filter.value ? "true" : "false"}
+                onClick={() => props.onSectionChange(filter.value)}
+              >
+                {filter.label}
+              </button>
+            )}
+          </For>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path
+        d="m21 21-4.35-4.35M10.5 18a7.5 7.5 0 1 1 0-15 7.5 7.5 0 0 1 0 15Z"
+        stroke="currentColor"
+        stroke-linecap="round"
+        stroke-width="2"
+      />
+    </svg>
+  );
+}

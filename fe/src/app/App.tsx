@@ -129,6 +129,7 @@ export function App() {
         theme={theme()}
         displayLanguage={displayLanguage()}
         currentUser={currentUser()}
+        immersive={activePage() === "home"}
         isSignedIn={isSignedIn()}
         isAdmin={isAdmin()}
         isProvider={isProvider()}
@@ -143,11 +144,12 @@ export function App() {
         onSignOut={clearSession}
       />
 
-      <main>
+      <main class={activePage() === "home" || activePage() === "providers" ? "app-main app-main--full" : "app-main"}>
         <Show when={activePage() === "home"}>
           <HomePage
             isSignedIn={isSignedIn()}
             serviceOnline={healthOnline()}
+            onBrowseProviders={() => goToPage("providers")}
             onCreateAccount={() => goToPage("join")}
             onSignIn={() => goToPage("signin")}
           />
