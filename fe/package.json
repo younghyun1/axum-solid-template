@@ -14,14 +14,14 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@milkdown/crepe": "^7.20.0",
+    "@milkdown/crepe": "^7.21.1",
     "@solidjs/router": "^0.16.1",
-    "solid-js": "1.9.12"
+    "solid-js": "1.9.13"
   },
   "devDependencies": {
     "typescript": "6.0.3",
-    "vite": "8.0.10",
+    "vite": "8.0.13",
     "vite-plugin-solid": "2.11.12",
-    "vitest": "4.1.5"
+    "vitest": "4.1.6"
   }
 }
