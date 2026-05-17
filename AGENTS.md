@@ -1,47 +1,70 @@
-Docs:
-Document all design conventions in /docs/design/be, /docs/design/fe, etc.
-Document all API using utopia and utoipa swagger UI.
-Before you do anything, persist plan to /docs/plan/ in a master planning document (make one if there isn't one; check off done items) as well as individual smaller planning documents.
+# Agent Instructions
 
-General Code Convention:
-Files over 360 LOC should be modularized.
-When working on long implementations, occasionally git add and commit with appropriate messages congruent with the style formerly used in the repo.
+## Workflow
+- In a git repo: commit/push regularly; match existing commit message style.
+- Keep commentary terse, technical, token-efficient.
+- Do not run release builds during agent workflows; dev checks/builds are fine.
 
-Backend:
-For the Rust codebase, Use of `unwrap()` and `expect()` is not tolerable. All Option<T> and Result<T, E> types must be dealt explicitly through match statements only (occasionally if lets and such if clippy complains). Generated code will not include any pathways to explicit panics if at all possible; all errors will be logged and a graceful exit from the current context will be executed if an exit has to be made.
-In projects using `tracing`, info, warning, and error messages must be logged in a structured manner in this way, using % or ? or whatever as necessary:
+## Sillok
+Use Sillok for substantive agentic work. Record objectives, completed work, and corrections during the session; do not rely on chat history.
+
+- Assume `sillok` is on `PATH`.
+- JSON is default and agent-facing; use `--human` only for summaries shown to a person.
+- Use `truncate --yes` only when explicitly asked to reset the archive.
+- To group notes: create/find objective id, then pass `--parent <objective_id>`.
+- Use `--at` for backfill and `--tz` when local day attribution matters.
+
+Common commands:
+```bash
+sillok objective add "Finish storage/indexing refactor"
+sillok note "Implemented archive-backed task logging" --parent <objective_id> --tags rust,agent
+sillok note "Documented storage/indexing convention" --parent <objective_id> --tags docs
+sillok objective complete <objective_id> --note "Scoped work is complete"
+sillok day --human
+sillok show <record_id>
+sillok query --from 2026-05-13T00:00:00 --to 2026-05-13T23:59:59 --tag rust
+sillok tree --root <record_id>
+sillok export json
+sillok --tz America/Denver --at 2026-05-13T16:45:00 note "Backfilled release notes" --tags docs
+```
+
+## Rust
+- No `unwrap()` or `expect()`.
+- Handle `Option<T>` and `Result<T, E>` explicitly with `match`; use `if let` only when clippy/clarity warrants it.
+- Generated code should avoid explicit panic paths. Log errors and gracefully exit the current context when exit is necessary.
+- In `tracing` projects, use structured fields:
 ```rust
 error!(env_key = key, error = %e, "Missing required environment variable");
 ```
-Performance is key to Rust. When using `diesel` and other database frameworks exclude N+1 errors. Avoid unnecessary copies. Prefer scc or Tokio RwLocks over mutexes when possible. For blocking tasks within Tokio, use spawn_blocking.
-Run `cargo fmt`, and `cargo clippy` after finishing large refactorings and fix generated warnings and errors.
-Use of Linux intrinsics using `libc` and such are encouraged when more performant. We develop for modern versions of Linux only.
-We'll be building for a single-server on-prem deployment; no Valkey or Redis. In-memory caches are important in that regard.
-Files should be modularized when they get above 300 LOC.
-All folders should have a mod.rs containing nothing but module declarations.
-All API requests and responses must be costructed in /be/src/dto.
-All domain objects must be in /be/src/domain.
-API and DB conventions should be checked before implementing any new APIs or database models, in terms of response construction, schema alteration, etc.
-I prefer UUIDv7 PKEYs, and for all column names to be prefixed by the table name; user_id instead of id, for example.
-Database models should make extensive use of newtyping using the 'nutype' library.
+- Performance matters: avoid Diesel/raw-SQL N+1s, unnecessary copies, and contended mutexes.
+- Prefer `scc` or Tokio `RwLock` where contention is possible.
+- Use `spawn_blocking` for blocking work inside Tokio.
+- Linux/macOS only; `libc`/platform intrinsics are acceptable when faster.
+- Run `cargo fmt` and `cargo clippy` after large refactors; fix warnings/errors.
+- Split files above 300 LOC.
+- Every folder should have `mod.rs` containing only module declarations.
+- Check existing API/database conventions before adding APIs, response shapes, schemas, or models.
+- Add rustdoc comments for modules/functions and useful inline commentary for non-obvious code.
+- Drop objects with `drop()` immediately after final use when lifetime/resource release matters.
 
-FE:
-For the SolidJS project - we're using TypeScript, not JS. Strict, strict, strict typing at all times.
-Tailwind CSS, latest Vite, keep it SOTA and performant.
-Note that we will be serving the built and gzipped/zstd'd version (do both at maximum compression) from the BE server itself.
-Styling and classes should be highly centralized, not applied haphazardly case by case. Consistent visual style and modularized elements!
+## Data Models
+- Prefer UUIDv7 primary keys.
+- Prefix column names with table names: `user_id`, not `id`.
+- Unsigned autoincrement integers are acceptable only for very high row-count structures.
+- Use Rust enums and rich domain types.
+- Use `nutype` extensively for newtypes.
+- Index all sortable columns and ID-like columns.
+- Runtime-growing unbounded caches are forbidden unless the data is fixed reference data, such as ISO standards.
 
-Comments:
-Commentary should be terse and technical.
+## Tests
+- Add unit tests wherever possible.
+- Use `fuzztest` for advanced fuzzing.
+- Use `gh` and other utilities as well as skills to review Copilot-generated code reviews on the PR if any are existent after each refactor pass. Fix, push, reply with fixed/rejected, cite details and hash in terse technical comments, close thread.
 
-Unit tests:
-Implement unit tests wherever possible, including fuzz tests. Use the Rust crate 'fuzztest'.
+## Scripts
+- Standalone project scripts should be Rust binaries in the same workspace.
 
-Scripts:
-One-time use scripts should be produced as Rust binaries in the same workspace as /be/ as a separate binary for maximum integration.
-
-DB schema design:
-For the DB, make rich use of enums, diesel_cli, and its migration system. 
-
-Building:
-Don't do release mode builds and waste time.
+## Docs
+- Document backend design conventions in `/docs/architecture/be`.
+- Document frontend design conventions in `/docs/design/fe`.
+- Document plans in `/docs/planning`.
